@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "💬 Discussões gerais e dúvidas de uso"
+    url: https://github.com/SEU-USUARIO/WingetEasy/discussions
+    about: "Para perguntas sobre como usar o WingetEasy, ideias e conversas gerais"
+  - name: "📖 Documentação e guia de contribuição"
+    url: https://github.com/SEU-USUARIO/WingetEasy/blob/main/CONTRIBUTING.md
+    about: "Como configurar o ambiente e abrir seu primeiro PR"

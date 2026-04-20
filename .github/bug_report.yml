@@ -1,0 +1,95 @@
+name: "🐛 Bug Report"
+description: "O app está fazendo algo errado ou travando"
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar! Preencha todos os campos para que possamos reproduzir e corrigir o problema.
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Versão do WingetEasy
+      description: "Encontre em: ícone da tray → Configurações → Sobre"
+      options:
+        - "v1.0.x"
+        - "v0.x (beta)"
+        - "Não sei"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Versão do Windows
+      options:
+        - "Windows 11 24H2"
+        - "Windows 11 23H2"
+        - "Windows 11 22H2"
+        - "Windows 10 22H2"
+        - "Windows 10 21H2"
+        - "Windows 10 21H1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o comportamento incorreto que você observou.
+      placeholder: "Ex: Ao clicar em 'Atualizar agora', o app fechou sem aviso e nenhum pacote foi atualizado."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que deveria ter acontecido?
+      placeholder: "Ex: Os pacotes selecionados deveriam ter sido atualizados e uma notificação de conclusão deveria ter aparecido."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Lista numerada de passos para chegar ao bug.
+      placeholder: |
+        1. Abrir o WingetEasy
+        2. Aguardar a verificação de atualizações
+        3. Selecionar 3 pacotes
+        4. Clicar em 'Atualizar agora'
+        5. Aceitar o prompt de administrador
+        6. O app fecha
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log de erro
+      description: |
+        Cole aqui o conteúdo do arquivo de log mais recente.
+        Localização: `%APPDATA%\WingetEasy\logs\`
+        Abra o arquivo com data de hoje no bloco de notas e cole o conteúdo.
+      render: text
+      placeholder: "Cole o conteúdo do arquivo app-YYYY-MM-DD.log aqui"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Screenshots, vídeos, ou qualquer outra informação que ajude.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: "Verifiquei se já existe uma issue com esse bug"
+          required: true
+        - label: "Estou usando a versão mais recente do WingetEasy"
+          required: true
+        - label: "O winget funciona normalmente no terminal (`winget --version`)"
+          required: false

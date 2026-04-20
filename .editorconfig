@@ -1,0 +1,138 @@
+root = true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# WingetEasy — EditorConfig
+# Aplica automaticamente no Visual Studio 2022 e VSCode com extensão C#
+# Nenhuma discussão de estilo em PRs — a ferramenta decide
+# ──────────────────────────────────────────────────────────────────────────────
+
+[*]
+charset                  = utf-8
+end_of_line              = crlf
+indent_style             = space
+indent_size              = 4
+trim_trailing_whitespace = true
+insert_final_newline     = true
+max_line_length          = 120
+
+# XAML e XML
+[*.{xaml,xml,csproj,props,targets,appxmanifest}]
+indent_size = 2
+
+# JSON (manifests, appsettings, etc.)
+[*.json]
+indent_size = 2
+
+# YAML (GitHub Actions workflows, winget manifests)
+[*.{yml,yaml}]
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+
+# ──────────────────────────────────────────────────────────────────────────────
+# C# — Convenções de código
+# ──────────────────────────────────────────────────────────────────────────────
+
+[*.cs]
+# Organização de usings
+dotnet_sort_system_directives_first                                    = true
+dotnet_separate_import_directive_groups                                = false
+
+# Qualificação com this.
+dotnet_style_qualification_for_field                                   = false
+dotnet_style_qualification_for_property                                = false
+dotnet_style_qualification_for_method                                  = false
+dotnet_style_qualification_for_event                                   = false
+
+# Preferir tipos de linguagem em vez de tipos do framework
+dotnet_style_predefined_type_for_locals_parameters_members             = true
+dotnet_style_predefined_type_for_member_access                         = true
+
+# Modificadores
+dotnet_style_require_accessibility_modifiers                           = always
+dotnet_style_readonly_field                                            = true
+
+# Expressões
+dotnet_style_object_initializer                                        = true
+dotnet_style_collection_initializer                                    = true
+dotnet_style_explicit_tuple_names                                      = true
+dotnet_style_prefer_inferred_tuple_names                               = true
+dotnet_style_prefer_inferred_anonymous_type_member_names               = true
+dotnet_style_prefer_auto_properties                                    = true
+dotnet_style_prefer_is_null_check_over_reference_equality_method       = true
+dotnet_style_prefer_conditional_expression_over_assignment             = true
+dotnet_style_prefer_conditional_expression_over_return                 = true
+dotnet_style_coalesce_expression                                       = true
+dotnet_style_null_propagation                                          = true
+
+# ──── C# específico ────
+# var vs tipo explícito
+csharp_style_var_for_built_in_types                                    = false
+csharp_style_var_when_type_is_apparent                                 = true
+csharp_style_var_elsewhere                                             = false
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods                                 = false
+csharp_style_expression_bodied_constructors                            = false
+csharp_style_expression_bodied_operators                               = false
+csharp_style_expression_bodied_properties                              = true
+csharp_style_expression_bodied_indexers                                = true
+csharp_style_expression_bodied_accessors                               = true
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check                  = true
+csharp_style_pattern_matching_over_as_with_null_check                  = true
+
+# Null checks
+csharp_style_throw_expression                                          = true
+csharp_style_conditional_delegate_call                                 = true
+
+# Blocos de código
+csharp_prefer_braces                                                   = true
+
+# Espaçamento
+csharp_space_after_cast                                                = false
+csharp_space_after_keywords_in_control_flow_statements                 = true
+csharp_space_between_method_declaration_parameter_list_parentheses     = false
+csharp_space_between_method_call_parameter_list_parentheses            = false
+csharp_space_before_colon_in_inheritance_clause                        = true
+csharp_space_after_colon_in_inheritance_clause                         = true
+
+# Novas linhas
+csharp_new_line_before_open_brace                                      = all
+csharp_new_line_before_else                                            = true
+csharp_new_line_before_catch                                           = true
+csharp_new_line_before_finally                                         = true
+csharp_new_line_before_members_in_object_initializers                  = true
+csharp_new_line_before_members_in_anonymous_types                      = true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Analyzers — severidade das regras
+# Erros bloqueiam o build. Warnings aparecem mas não bloqueiam.
+# ──────────────────────────────────────────────────────────────────────────────
+
+[*.cs]
+# Async void fora de event handlers é proibido
+dotnet_diagnostic.CA2007.severity  = warning   # ConfigureAwait
+dotnet_diagnostic.CA1849.severity  = warning   # Usar métodos async disponíveis
+dotnet_diagnostic.CS4014.severity  = error     # Task não aguardada (bug silencioso grave)
+
+# Nullable
+dotnet_diagnostic.CS8600.severity  = error     # Null atribuído a tipo não-nullable
+dotnet_diagnostic.CS8602.severity  = error     # Dereference de possível null
+dotnet_diagnostic.CS8603.severity  = error     # Retorno de possível null reference
+dotnet_diagnostic.CS8604.severity  = warning   # Possível null como argumento
+
+# Disposables
+dotnet_diagnostic.CA2000.severity  = warning   # Dispose antes de perder escopo
+dotnet_diagnostic.CA1816.severity  = warning   # GC.SuppressFinalize correto
+
+# Performance
+dotnet_diagnostic.CA1822.severity  = suggestion  # Marcar como static quando possível
+dotnet_diagnostic.CA1825.severity  = warning      # Evitar Array.Empty alocações
+
+# Segurança
+dotnet_diagnostic.CA2100.severity  = error     # SQL injection (não usamos SQL direto, mas por garantia)
+dotnet_diagnostic.CA3075.severity  = error     # Processamento XML inseguro

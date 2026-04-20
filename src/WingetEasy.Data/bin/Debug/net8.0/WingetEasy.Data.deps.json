@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "WingetEasy.Data/1.0.0": {
+        "dependencies": {
+          "WingetEasy.Core": "1.0.0"
+        },
+        "runtime": {
+          "WingetEasy.Data.dll": {}
+        }
+      },
+      "WingetEasy.Core/1.0.0": {
+        "runtime": {
+          "WingetEasy.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "WingetEasy.Data/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "WingetEasy.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

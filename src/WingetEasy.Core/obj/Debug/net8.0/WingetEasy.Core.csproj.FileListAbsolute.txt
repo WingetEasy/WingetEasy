@@ -1,0 +1,11 @@
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\bin\Debug\net8.0\WingetEasy.Core.deps.json
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\bin\Debug\net8.0\WingetEasy.Core.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\bin\Debug\net8.0\WingetEasy.Core.pdb
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.AssemblyInfoInputs.cache
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.AssemblyInfo.cs
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.csproj.CoreCompileInputs.cache
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\refint\WingetEasy.Core.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.pdb
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\ref\WingetEasy.Core.dll

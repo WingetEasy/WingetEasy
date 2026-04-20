@@ -1,0 +1,60 @@
+name: "✨ Feature Request"
+description: "Sugerir uma nova funcionalidade ou melhoria"
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de sugerir, verifique se a funcionalidade já foi pedida nas issues existentes ou está no roadmap do projeto.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema isso resolve?
+      description: Descreva a situação atual que te frustra ou limita. Não comece com a solução — comece com o problema.
+      placeholder: "Ex: Toda vez que formato o PC preciso reinstalar manualmente mais de 30 apps um por um. Leva horas."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Como você imagina que funcionaria?
+      description: Descreva a funcionalidade que resolveria o problema. Quanto mais específico, melhor.
+      placeholder: "Ex: Uma tela onde eu possa exportar a lista de todos os apps instalados como um arquivo, e depois importar esse arquivo em outra máquina para instalar tudo automaticamente."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que você considerou
+      description: Existe alguma forma de contornar o problema hoje? Algum outro app que faz isso?
+      placeholder: "Ex: Atualmente uso winget export manualmente no terminal, mas é trabalhoso e não tem interface visual."
+
+  - type: dropdown
+    id: importance
+    attributes:
+      label: Importância para você
+      options:
+        - "Alta — uso o WingetEasy todo dia e isso me traria muito valor"
+        - "Média — seria conveniente mas consigo viver sem"
+        - "Baixa — seria legal ter mas não é prioridade"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Screenshots de como outros apps implementam isso, mockups, links de referência.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: "Verifiquei que essa funcionalidade não existe ainda no WingetEasy"
+          required: true
+        - label: "Verifiquei que essa funcionalidade não foi pedida antes nas issues"
+          required: true

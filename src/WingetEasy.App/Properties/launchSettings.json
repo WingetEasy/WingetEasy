@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WingetEasy.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WingetEasy.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

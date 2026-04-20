@@ -1,0 +1,140 @@
+# WingetEasy — Labels do GitHub
+# Este arquivo documenta todas as labels usadas no repositório.
+# Para criar as labels automaticamente, use a GitHub CLI:
+#   gh label create "nome" --color "HEXCOR" --description "descrição"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TIPO DE ISSUE
+# ──────────────────────────────────────────────────────────────────────────────
+
+- name: "bug"
+  color: "C50F1F"
+  description: "Algo não está funcionando como deveria"
+
+- name: "enhancement"
+  color: "0078D4"
+  description: "Nova funcionalidade ou melhoria de existente"
+
+- name: "question"
+  color: "5C2D91"
+  description: "Dúvida técnica sobre o projeto"
+
+- name: "documentation"
+  color: "6E6E6E"
+  description: "Melhoria ou adição de documentação"
+
+- name: "refactor"
+  color: "CA5010"
+  description: "Refatoração sem mudança de comportamento"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ÁREA DO CÓDIGO
+# ──────────────────────────────────────────────────────────────────────────────
+
+- name: "area: core"
+  color: "7F77DD"
+  description: "WingetEasy.Core — serviços e lógica de negócio"
+
+- name: "area: ui"
+  color: "1D9E75"
+  description: "WingetEasy.App — XAML, ViewModels, controles visuais"
+
+- name: "area: data"
+  color: "378ADD"
+  description: "WingetEasy.Data — banco de dados, repositórios, migrations"
+
+- name: "area: tests"
+  color: "EF9F27"
+  description: "Testes unitários ou de integração"
+
+- name: "area: ci-cd"
+  color: "424242"
+  description: "GitHub Actions, workflows, scripts de build"
+
+- name: "area: security"
+  color: "C50F1F"
+  description: "UAC, elevação de privilégio, validação de entrada"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ESTADO DA ISSUE
+# ──────────────────────────────────────────────────────────────────────────────
+
+- name: "good first issue"
+  color: "107C10"
+  description: "Boa para quem está contribuindo pela primeira vez"
+
+- name: "help wanted"
+  color: "1D9E75"
+  description: "Precisamos de ajuda da comunidade nessa issue"
+
+- name: "blocked"
+  color: "C50F1F"
+  description: "Aguardando outra issue ser concluída antes de começar"
+
+- name: "in progress"
+  color: "EF9F27"
+  description: "Alguém já está trabalhando nessa issue"
+
+- name: "needs-triage"
+  color: "6E6E6E"
+  description: "Issue nova que ainda não foi classificada"
+
+- name: "needs more info"
+  color: "CA5010"
+  description: "Aguardando mais informações de quem abriu a issue"
+
+- name: "wont fix"
+  color: "B4B2A9"
+  description: "Não será corrigido ou implementado"
+
+- name: "duplicate"
+  color: "B4B2A9"
+  description: "Issue duplicada de outra já existente"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MILESTONE / FASE
+# ──────────────────────────────────────────────────────────────────────────────
+
+- name: "milestone: setup"
+  color: "378ADD"
+  description: "Fase 0 — Estrutura e configuração inicial"
+
+- name: "milestone: core"
+  color: "7F77DD"
+  description: "Milestone 1 — Lógica de negócio sem UI"
+
+- name: "milestone: ui-base"
+  color: "1D9E75"
+  description: "Milestone 2 — Interface base WinUI 3"
+
+- name: "milestone: polish"
+  color: "EF9F27"
+  description: "Milestone 3 — Polimento e robustez"
+
+- name: "milestone: advanced"
+  color: "D4537E"
+  description: "Milestone 4 — Funcionalidades avançadas"
+
+- name: "milestone: distribution"
+  color: "C50F1F"
+  description: "Milestone 5 — Distribuição pública"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PRIORIDADE
+# ──────────────────────────────────────────────────────────────────────────────
+
+- name: "priority: critical"
+  color: "C50F1F"
+  description: "Quebra o app para todos os usuários — corrigir imediatamente"
+
+- name: "priority: high"
+  color: "CA5010"
+  description: "Impacta bastante a experiência — corrigir no próximo release"
+
+- name: "priority: medium"
+  color: "EF9F27"
+  description: "Importante mas não urgente"
+
+- name: "priority: low"
+  color: "B4B2A9"
+  description: "Melhoria menor, pode esperar"

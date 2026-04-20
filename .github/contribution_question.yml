@@ -1,0 +1,31 @@
+name: "❓ Dúvida sobre contribuição"
+description: "Dúvida sobre como implementar algo ou onde encontrar o que precisa"
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Para dúvidas gerais sobre uso do WingetEasy, use as **Discussions**.
+        Este template é para dúvidas **técnicas sobre como contribuir** com o código.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Em qual issue você está trabalhando?
+      placeholder: "Ex: Estou implementando a Issue #6 (CheckUpdatesAsync)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Qual é a dúvida?
+      description: Seja específico — mostre o trecho de código relevante se houver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: O que você já tentou?
+      description: Mostra que você pesquisou antes de perguntar e ajuda a direcionar a resposta.
