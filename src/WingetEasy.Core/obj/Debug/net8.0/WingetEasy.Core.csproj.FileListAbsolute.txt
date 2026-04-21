@@ -9,3 +9,5 @@ C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\refint\WingetEasy.Core.dll
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.pdb
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\ref\WingetEasy.Core.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.csproj.AssemblyReference.cache
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Core\obj\Debug\net8.0\WingetEasy.Core.sourcelink.json

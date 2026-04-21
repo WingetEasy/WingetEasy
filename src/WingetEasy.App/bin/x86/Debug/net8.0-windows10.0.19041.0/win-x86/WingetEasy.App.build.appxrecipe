@@ -112,9 +112,6 @@
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.netcore.app.runtime.win-x86\8.0.25\runtimes\win-x86\lib\net8.0\System.Diagnostics.Debug.dll">
       <PackagePath>System.Diagnostics.Debug.dll</PackagePath>
     </AppxPackagedFile>
-    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.netcore.app.runtime.win-x86\8.0.25\runtimes\win-x86\lib\net8.0\System.Diagnostics.DiagnosticSource.dll">
-      <PackagePath>System.Diagnostics.DiagnosticSource.dll</PackagePath>
-    </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.netcore.app.runtime.win-x86\8.0.25\runtimes\win-x86\lib\net8.0\System.Diagnostics.FileVersionInfo.dll">
       <PackagePath>System.Diagnostics.FileVersionInfo.dll</PackagePath>
     </AppxPackagedFile>
@@ -586,6 +583,18 @@
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.windows.sdk.net.ref\10.0.19041.57\lib\net8.0\WinRT.Runtime.dll">
       <PackagePath>WinRT.Runtime.dll</PackagePath>
     </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\communitytoolkit.mvvm\8.4.2\lib\net8.0-windows10.0.17763\CommunityToolkit.Mvvm.dll">
+      <PackagePath>CommunityToolkit.Mvvm.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.extensions.dependencyinjection\10.0.6\lib\net8.0\Microsoft.Extensions.DependencyInjection.dll">
+      <PackagePath>Microsoft.Extensions.DependencyInjection.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.extensions.dependencyinjection.abstractions\10.0.6\lib\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll">
+      <PackagePath>Microsoft.Extensions.DependencyInjection.Abstractions.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.extensions.logging.abstractions\10.0.6\lib\net8.0\Microsoft.Extensions.Logging.Abstractions.dll">
+      <PackagePath>Microsoft.Extensions.Logging.Abstractions.dll</PackagePath>
+    </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.windowsappsdk.ai\1.8.53\lib\net6.0-windows10.0.17763.0\Microsoft.Graphics.Imaging.Projection.dll">
       <PackagePath>Microsoft.Graphics.Imaging.Projection.dll</PackagePath>
     </AppxPackagedFile>
@@ -676,8 +685,59 @@
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.windowsappsdk.winui\1.8.260224000\lib\net6.0-windows10.0.17763.0\Microsoft.WinUI.dll">
       <PackagePath>Microsoft.WinUI.dll</PackagePath>
     </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\serilog\4.3.1\lib\net8.0\Serilog.dll">
+      <PackagePath>Serilog.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\serilog.sinks.file\7.0.0\lib\net8.0\Serilog.Sinks.File.dll">
+      <PackagePath>Serilog.Sinks.File.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\System.CommandLine.dll">
+      <PackagePath>System.CommandLine.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.diagnostics.diagnosticsource\10.0.6\lib\net8.0\System.Diagnostics.DiagnosticSource.dll">
+      <PackagePath>System.Diagnostics.DiagnosticSource.dll</PackagePath>
+    </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.numerics.tensors\9.0.0\lib\net8.0\System.Numerics.Tensors.dll">
       <PackagePath>System.Numerics.Tensors.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\cs\System.CommandLine.resources.dll">
+      <PackagePath>cs\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\de\System.CommandLine.resources.dll">
+      <PackagePath>de\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\es\System.CommandLine.resources.dll">
+      <PackagePath>es\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\fr\System.CommandLine.resources.dll">
+      <PackagePath>fr\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\it\System.CommandLine.resources.dll">
+      <PackagePath>it\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\ja\System.CommandLine.resources.dll">
+      <PackagePath>ja\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\ko\System.CommandLine.resources.dll">
+      <PackagePath>ko\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\pl\System.CommandLine.resources.dll">
+      <PackagePath>pl\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\pt-BR\System.CommandLine.resources.dll">
+      <PackagePath>pt-BR\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\ru\System.CommandLine.resources.dll">
+      <PackagePath>ru\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\tr\System.CommandLine.resources.dll">
+      <PackagePath>tr\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\zh-Hans\System.CommandLine.resources.dll">
+      <PackagePath>zh-Hans\System.CommandLine.resources.dll</PackagePath>
+    </AppxPackagedFile>
+    <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\system.commandline\2.0.6\lib\net8.0\zh-Hant\System.CommandLine.resources.dll">
+      <PackagePath>zh-Hant\System.CommandLine.resources.dll</PackagePath>
     </AppxPackagedFile>
     <AppxPackagedFile Include="C:\Users\vivad\.nuget\packages\microsoft.web.webview2\1.0.3179.45\runtimes\win-x86\native\WebView2Loader.dll">
       <PackagePath>WebView2Loader.dll</PackagePath>

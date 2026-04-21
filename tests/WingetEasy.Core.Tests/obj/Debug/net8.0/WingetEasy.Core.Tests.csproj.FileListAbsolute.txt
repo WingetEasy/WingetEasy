@@ -100,3 +100,15 @@ C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tes
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\obj\Debug\net8.0\WingetEasy.Core.Tests.pdb
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\obj\Debug\net8.0\WingetEasy.Core.Tests.genruntimeconfig.cache
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\obj\Debug\net8.0\ref\WingetEasy.Core.Tests.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\Castle.Core.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\CommunityToolkit.Mvvm.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\FluentAssertions.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\Moq.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\System.Diagnostics.EventLog.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\runtimes\win\lib\net6.0\System.Diagnostics.EventLog.Messages.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\bin\Debug\net8.0\runtimes\win\lib\net6.0\System.Diagnostics.EventLog.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\tests\WingetEasy.Core.Tests\obj\Debug\net8.0\WingetEasy.Core.Tests.sourcelink.json

@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Itens de Solução/">
+    <File Path="Directory.Package.props" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/WingetEasy.App/WingetEasy.App.csproj">
       <Platform Project="x86" />

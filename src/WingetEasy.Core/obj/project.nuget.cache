@@ -1,8 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "TCZPhQSqqhk=",
+  "dgSpecHash": "7x5cfDSLluU=",
   "success": true,
   "projectFilePath": "C:\\Users\\vivad\\Code\\1 - Meus projetos\\3 - Projetos pessoais\\App - WingetEasy\\src\\WingetEasy.Core\\WingetEasy.Core.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\vivad\\.nuget\\packages\\communitytoolkit.mvvm\\8.4.2\\communitytoolkit.mvvm.8.4.2.nupkg.sha512",
+    "C:\\Users\\vivad\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\10.0.6\\microsoft.extensions.dependencyinjection.10.0.6.nupkg.sha512",
+    "C:\\Users\\vivad\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.6\\microsoft.extensions.dependencyinjection.abstractions.10.0.6.nupkg.sha512",
+    "C:\\Users\\vivad\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.6\\microsoft.extensions.logging.abstractions.10.0.6.nupkg.sha512",
+    "C:\\Users\\vivad\\.nuget\\packages\\system.diagnostics.diagnosticsource\\10.0.6\\system.diagnostics.diagnosticsource.10.0.6.nupkg.sha512"
+  ],
   "logs": []
 }

@@ -13,3 +13,4 @@ C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Data\obj\Debug\net8.0\refint\WingetEasy.Data.dll
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Data\obj\Debug\net8.0\WingetEasy.Data.pdb
 C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Data\obj\Debug\net8.0\ref\WingetEasy.Data.dll
+C:\Users\vivad\Code\1 - Meus projetos\3 - Projetos pessoais\App - WingetEasy\src\WingetEasy.Data\obj\Debug\net8.0\WingetEasy.Data.sourcelink.json
