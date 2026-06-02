@@ -1,15 +1,11 @@
 <div align="center">
-  <img src="src/WingetEasy.App/Assets/Icons/logo.png" alt="WingetEasy Logo" width="120" />
+  <img src="doc/images/readme/IMG_Capa.png" alt="WingetEasy Capa" width="1920" />
 
 # WingetEasy
 
 **Gerenciador visual para Winget em WinUI 3**
 
-[![CI](https://img.shields.io/badge/CI-ainda%20não%20configurado-777)](#)
-[![Version](https://img.shields.io/badge/version-0.1.0--dev-orange)](#)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue)](#)
-[![Architecture](https://img.shields.io/badge/architecture-App%20%7C%20Core%20%7C%20Data-success)](#)
-[![License](https://img.shields.io/badge/license-see%20LICENSE-lightgrey)](LICENSE)
+O WingetEasy é um projeto open source para criar uma interface gráfica em cima do Winget, o gerenciador de pacotes nativo do Windows. 
 
 [Contribuindo](CONTRIBUTING.md) • [Issues iniciais](Documents/2.%20InitialIssues/LABELS.md) • [Licença](LICENSE)
 
