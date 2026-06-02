@@ -5,7 +5,7 @@
 
 **Gerenciador visual para Winget em WinUI 3**
 
-O WingetEasy é um projeto open source para criar uma interface gráfica em cima do Winget, o gerenciador de pacotes nativo do Windows. 
+O WingetEasy é um projeto open source para criar uma interface gráfica em cima do Winget, o gerenciador de pacotes nativo do Windows.
 
 [Contribuindo](CONTRIBUTING.md) • [Issues iniciais](Documents/2.%20InitialIssues/LABELS.md) • [Licença](LICENSE)
 
@@ -28,7 +28,7 @@ O objetivo do projeto é evoluir para uma experiência visual em cima do Winget,
 O que já existe no repositório hoje:
 
 - Solução com os projetos `App`, `Core`, `Data` e o projeto de testes `WingetEasy.Core.Tests`.
-- Configuração centralizada de compilação em `Directory.Build.props` e de versões de pacotes em `Directory.Package.props`.
+- Configuração centralizada de compilação em `Directory.Build.props` e de versões de pacotes em `Directory.Packages.props`.
 - App WinUI 3 com `MicaBackdrop` na janela principal.
 - Projeto de testes com xUnit, FluentAssertions, Moq e suporte a cobertura.
 - Documento de contribuição com convenções de código e fluxo de PR.
