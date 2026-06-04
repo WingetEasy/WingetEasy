@@ -21,16 +21,35 @@ namespace WingetEasy.Core.Services;
 public class WingetService : IWingetService
 {
     private static readonly Regex PkgIdRegex = new(@"^[A-Za-z0-9._\-]+$", RegexOptions.Compiled);
+
+    // Regex para extrair a versão no formato v1.x.x
+    private static readonly Regex VersionRegex = new(@"v\d+\.\d+\.\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(30);
 
+    // Tempos de cache específicos
+    private static readonly TimeSpan InstalledCacheExpiry = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan AvailableCacheExpiry = TimeSpan.FromHours(1);
+
     private readonly IPackageRepository _packageRepository;
     private readonly ILogger<WingetService> _logger;
+
 
     // controle do Cache Interno
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
     private DateTime _cacheExpiryTime = DateTime.MinValue;
     private IEnumerable<WingetPackage> _cachedPackages = [];
+
+    // Controles de Cache para Pacotes Instalados
+    private readonly SemaphoreSlim _installedCacheLock = new(1, 1);
+    private DateTime _installedCacheExpiryTime = DateTime.MinValue;
+    private IEnumerable<WingetPackage> _cachedInstalledPackages = [];
+
+    //Controles de Cache para Disponibilidade e Versão
+    private DateTime _availableCacheExpiryTime = DateTime.MinValue;
+    private bool? _cachedIsAvailable = null;
+    private string? _cachedVersion = null;
 
     /// <summary>
     /// Inicializa uma nova instância de <see cref="WingetService"/>.
@@ -140,7 +159,7 @@ public class WingetService : IWingetService
                     if (!PkgIdRegex.IsMatch(id)) continue;
 
                     var name = package.GetProperty("Name").GetString() ?? id;
-                    var availableVer = package.GetProperty("AvailableVersion").GetString() ?? "";
+                    var availableVer = package.TryGetProperty("AvailableVersion", out var av) ? av.GetString() ?? "" : "";
                     var currentVer = package.TryGetProperty("InstalledVersion", out var iv) ? iv.GetString() ?? "" : "";
 
                     results.Add(new WingetPackage(
@@ -323,6 +342,11 @@ public class WingetService : IWingetService
             // 0 = Sucesso | -1978335189 = Não há atualizações aplicáveis (já atualizado)
             bool success = exitCode == 0 || exitCode == -1978335189;
 
+            if (success)
+            {
+                _installedCacheExpiryTime = DateTime.MinValue;
+            }
+
             string? errorMessage = null;
             if (!success)
             {
@@ -337,14 +361,88 @@ public class WingetService : IWingetService
             return new UpdateResult(packageId, packageId, success, errorMessage, sw.Elapsed);
         }
 
-    public Task<IEnumerable<WingetPackage>> GetInstalledPackagesAsync(CancellationToken ct = default)
-        => throw new NotImplementedException();
+    public async Task<IEnumerable<WingetPackage>> GetInstalledPackagesAsync(CancellationToken ct = default)
+        {
+            await _installedCacheLock.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                if (DateTime.UtcNow < _installedCacheExpiryTime && _cachedInstalledPackages.Any())
+                    return _cachedInstalledPackages;
 
-    public Task<bool> IsWingetAvailableAsync()
-        => throw new NotImplementedException();
+                using var timeoutCts  = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(CheckTimeout);
 
-    public Task<string> GetWingetVersionAsync()
-        => throw new NotImplementedException();
+                try
+                {
+                    var rawJson = await ExecuteWingetCommandAsync("list --output json --disable-interactivity --accept-source-agreements", timeoutCts.Token).ConfigureAwait(false);
+
+                    if (string.IsNullOrWhiteSpace(rawJson)) return [];
+
+                    var packages = ParseWingetJson(rawJson);
+
+                    _cachedInstalledPackages = packages.ToList();
+                    _installedCacheExpiryTime = DateTime.UtcNow.Add(InstalledCacheExpiry);
+
+                    return _cachedInstalledPackages;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro inesperado ao listar pacotes instalados via Winget.");
+                    return [];
+                }
+
+            }
+            finally
+            {
+                _installedCacheLock.Release();
+            }
+        }
+
+    public async Task<bool> IsWingetAvailableAsync()
+        {
+            if (DateTime.UtcNow < _availableCacheExpiryTime && _cachedIsAvailable.HasValue)
+                return _cachedIsAvailable.Value;
+
+            await CheckWingetVersionInternalAsync().ConfigureAwait(false);
+            return _cachedIsAvailable ?? false;
+
+        }
+
+    public async Task<string> GetWingetVersionAsync()
+        {
+            if (DateTime.UtcNow < _availableCacheExpiryTime && _cachedVersion != null)
+                return _cachedVersion;
+
+            await CheckWingetVersionInternalAsync().ConfigureAwait(false);
+            return _cachedVersion ?? string.Empty;
+        }
+
+    private async Task CheckWingetVersionInternalAsync()
+    {
+        try
+        {
+            var output = await ExecuteWingetCommandAsync("--version", CancellationToken.None).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                _cachedIsAvailable = true; // Winget existe mas não devolveu versão (raro, mas possível)
+                var match = VersionRegex.Match(output);
+                _cachedVersion = match.Success ? match.Value : output.Trim();
+                _availableCacheExpiryTime = DateTime.UtcNow.Add(AvailableCacheExpiry);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao verificar a versão do Winget. Provavelmente não está instalado.");
+        }
+
+        // Se falhou sem dar throw ou retornou vazio, marca como false
+        _cachedIsAvailable = false;
+        _cachedVersion = string.Empty;
+        _availableCacheExpiryTime = DateTime.UtcNow.Add(AvailableCacheExpiry);
+    }
+
+
 
 
 }
