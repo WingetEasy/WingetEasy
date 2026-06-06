@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using WingetEasy.Core.Models;
 
 namespace WingetEasy.Core.Interfaces;
 
@@ -12,5 +13,5 @@ namespace WingetEasy.Core.Interfaces;
 public interface IAdminElevationHelper
 {
     bool IsRunningAsAdmin();
-    Task ExecuteElevatedAsync(IEnumerable<string> packageIds, CancellationToken ct = default);
+    Task <IEnumerable<UpdateResult>> ExecuteElevatedAsync(IEnumerable<string> packageIds, CancellationToken ct = default);
 }

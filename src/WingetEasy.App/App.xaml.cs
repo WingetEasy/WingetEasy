@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -29,6 +31,7 @@ namespace WingetEasy.App
     /// <summary>
     /// Provides application-specific behavior to supplement the default Application class.
     /// </summary>
+
     public partial class App : Application
     {
         private Window? _window;
@@ -40,12 +43,85 @@ namespace WingetEasy.App
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
+
         public App()
         {
+            // INTERCEpTA A EXECUÇÃO LOGO NO INÍCIO SE FOR O PROCESSO FILHO ELEVADO
+            var args = Environment.GetCommandLineArgs();
+            if (args.Contains("--elevated"))
+            {
+                RunElevatedModeAndExit(args);
+            }
+
+
             InitializeComponent();
 
             // Inicialia os serviços assim que inicia
             Services = ConfigureServices();
+        }
+
+        /// <summary>
+        /// Executa as atualizações de forma invisível e encerra.
+        /// Este método SÓ é chamado pelo processo filho rodando como Administrador.
+        /// </summary>
+
+        private static void RunElevatedModeAndExit(string[] args)
+        {
+            try
+            {
+                var jobIdx = Array.IndexOf(args, "--job") + 1;
+                if (jobIdx > 0 && jobIdx < args.Length)
+                {
+                    var jobFile = args[jobIdx];
+                    if (File.Exists(jobFile))
+                    {
+                        var json = File.ReadAllText(jobFile);
+                        var job = JsonSerializer.Deserialize<Core.Models.ElevatedJob>(json);
+
+                        if (job != null && job.PackageIds != null && job.PackageIds.Any())
+                        {
+                            var results = new List<Core.Models.UpdateResult>();
+                            foreach (var id in job.PackageIds)
+                            {
+                                var sw = Stopwatch.StartNew();
+
+                                // O processo já está elevado (passou pelo UAC), então o winget não pedirá permissão de novo
+                                using var process = new Process
+                                {
+                                    StartInfo = new ProcessStartInfo
+                                    {
+                                        FileName = "winget.exe",
+                                        Arguments  = $"update --exact --id {id} --accept-package-agreements --accept-source-agreements --silent",
+                                        UseShellExecute = false,
+                                        CreateNoWindow = true,
+                                        RedirectStandardOutput = true,
+                                        RedirectStandardError = true
+                                    }
+                                };
+                                process.Start();
+                                process.WaitForExit();
+                                sw.Stop();
+
+                                bool success = process.ExitCode == 0;
+                                results.Add(new Core.Models.UpdateResult(id, id, success, success ? null : $"Erro {process.ExitCode}", sw.Elapsed));
+                            }
+
+                            var resultFile = jobFile.Replace("job", "result");
+                            File.WriteAllText(resultFile, JsonSerializer.Serialize(results));
+                        }
+                    }
+                }
+            }
+
+            catch
+            {
+                // Supressão total de erros para garantir que o processo filho encerra sem travar o Windows
+            }
+            finally
+            {
+                // NUNCA FICA ÓRFÃO. FECHA O PROCESSO FILHO IMEDIATAMENTE.
+                Environment.Exit(0);
+            }
         }
 
         /// <summary>
