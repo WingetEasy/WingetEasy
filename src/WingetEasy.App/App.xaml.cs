@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks;
 using WingetEasy.Data;
+using WingetEasy.Core.Interfaces;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -59,6 +60,10 @@ namespace WingetEasy.App
             services.AddDbContext<AppDbContext>();
 
             // Aqui você pode registrar outros serviços, repositórios, etc.
+            services.AddScoped<ISettingsRepository, WingetEasy.Data.Repositories.SettingsRepository>();
+            services.AddScoped<IUpdateHistoryRepository, WingetEasy.Data.Repositories.UpdateHistoryRepository>();
+            services.AddScoped<IPackageRepository, WingetEasy.Data.Repositories.PackageRepository>();
+            services.AddScoped<ICheckLogRepository, WingetEasy.Data.Repositories.CheckLogRepository>();
 
             return services.BuildServiceProvider();
         }
