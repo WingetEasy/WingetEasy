@@ -1,0 +1,16 @@
+{
+  "Sources": [
+    {
+      "Source": "winget",
+      "Packages": [
+        {
+          "Id": "Microsoft.VSCode",
+          "Name": "Visual Studio Code",
+          "InstalledVersion": "1.80.0",
+          "AvailableVersion": "1.83.0"
+        },
+        { "Id": "VideoLAN.VLC", "Name": "VLC media player", "InstalledVersion": "3.0.18", "AvailableVersion": "3.0.19" }
+      ]
+    }
+  ]
+}
