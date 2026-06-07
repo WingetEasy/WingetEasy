@@ -23,6 +23,10 @@ using System.Threading.Tasks;
 using WingetEasy.Data;
 using WingetEasy.Core.Interfaces;
 
+using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
@@ -48,8 +52,28 @@ namespace WingetEasy.App
         {
             // INTERCEpTA A EXECUÇÃO LOGO NO INÍCIO SE FOR O PROCESSO FILHO ELEVADO
             var args = Environment.GetCommandLineArgs();
+
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var logPath = System.IO.Path.Combine(appData, "WingetEasy", "Logs", "app-.log");
+            var isDev = args.Contains("--dev");
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Is(isDev ? LogEventLevel.Debug : LogEventLevel.Information)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning) // Silencia o EF Core
+                .WriteTo.File(
+                    path: logPath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    shared: true, // permite que o app principal e o processo UAC escrevam juntos no log
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+
+            Log.Information("==== Inicializando WingetEasy ====");
+
+            // INTERCEpTA A EXECUÇÃO LOGO NO INÍCIO SE FOR O PROCESSO FILHO ELEVADO
             if (args.Contains("--elevated"))
             {
+                Log.Information("Iniciando processo filho com privilégios de Administrador (UAC)."); // ---> AQUI: Log de inicialização do UAC
                 RunElevatedModeAndExit(args);
             }
 
@@ -103,6 +127,16 @@ namespace WingetEasy.App
                                 sw.Stop();
 
                                 bool success = process.ExitCode == 0;
+
+                                // Log do resultado individual de cada pacote dentro do UAC
+                                if (!success)
+                                {
+                                    Log.Error("Falha ao atualizar pacote via UAC: {PackageId} (ExitCode: {Code})", id, process.ExitCode);
+                                }
+                                else
+                                {
+                                    Log.Information("Pacote atualizado com sucesso via UAC: {PackageId}", id);
+                                }
                                 results.Add(new Core.Models.UpdateResult(id, id, success, success ? null : $"Erro {process.ExitCode}", sw.Elapsed));
                             }
 
@@ -113,12 +147,15 @@ namespace WingetEasy.App
                 }
             }
 
-            catch
+            catch (Exception ex)
             {
-                // Supressão total de erros para garantir que o processo filho encerra sem travar o Windows
+                Log.Fatal(ex, "Erro fatal não tratado no processo filho elevado."); // Log de erro fatal no UAC
             }
             finally
             {
+                // Garante que o Serilog escreve tudo no disco antes de matar o processo filho
+                Log.CloseAndFlush();
+
                 // NUNCA FICA ÓRFÃO. FECHA O PROCESSO FILHO IMEDIATAMENTE.
                 Environment.Exit(0);
             }
@@ -131,6 +168,11 @@ namespace WingetEasy.App
         private static IServiceProvider ConfigureServices()
         {
             var services = new ServiceCollection();
+
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.AddSerilog(dispose: true);
+            });
 
             // Registra o DBCONTEXT
             services.AddDbContext<AppDbContext>();
@@ -157,11 +199,22 @@ namespace WingetEasy.App
 
         protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // executa a migração da bse de dados antes de mostrar a janela principal
-            await MigrateDatabaseAsync(Services).ConfigureAwait(true);
+            try
+            {
+                // executa a migração da bse de dados antes de mostrar a janela principal
+                await MigrateDatabaseAsync(Services).ConfigureAwait(true);
 
-            _window = new MainWindow();
-            _window.Activate();
+                _window = new MainWindow();
+                _window.Activate();
+
+                Log.Information("WingetEasy iniciado com sucesso."); // Log de sucesso
+            }
+
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Ocorreu um erro fatal durante a inicialização da interface principal."); // Log caso a app não consiga abrir
+                throw;
+            }
         }
 
         /// <summary>
