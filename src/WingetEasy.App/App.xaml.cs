@@ -141,6 +141,12 @@ namespace WingetEasy.App
             services.AddScoped<IPackageRepository, WingetEasy.Data.Repositories.PackageRepository>();
             services.AddScoped<ICheckLogRepository, WingetEasy.Data.Repositories.CheckLogRepository>();
 
+            services.AddScoped<IAdminElevationHelper, WingetEasy.Core.Services.AdminElevationHelper>();
+            services.AddSingleton<ISchedulerService, WingetEasy.Core.Services.SchedulerService>();
+
+            services.AddScoped<IWingetService, WingetEasy.Core.Services.WingetService>();
+            services.AddScoped<IUpdateService, WingetEasy.Core.Services.UpdateService>();
+
             return services.BuildServiceProvider();
         }
 
