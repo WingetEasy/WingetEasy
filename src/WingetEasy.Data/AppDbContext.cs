@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WingetEasy.Data.Entities;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace WingetEasy.Data;
 
@@ -82,6 +83,14 @@ public class AppDbContext : DbContext
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default), // Convert List<string> para JSON ao salvar
                 v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
+
+            )
+            .Metadata.SetValueComparer(
+                 new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()
+                )
             );
     }
 
