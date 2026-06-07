@@ -27,4 +27,14 @@ public interface ISchedulerService
     /// Atualiza a frequência do temporizador e guarda a configuração no banco de dados.
     /// </summary>
     Task UpdateScheduleAsync(ScheduleConfig config);
+
+    /// <summary>
+    /// Registra uma verificação bem-sucedida, resetando o contador de falhas e fechando o circuito.
+    /// </summary>
+    void RecordSuccess();
+
+    /// <summary>
+    /// Registra uma falha na verificação. Se atingir o limite, abre o circuito e pausa verificações automáticas.
+    /// </summary>
+    void RecordFailure();
 }
