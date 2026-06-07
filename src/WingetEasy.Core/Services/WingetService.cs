@@ -95,7 +95,7 @@ public class WingetService : IWingetService
                 if (string.IsNullOrWhiteSpace(rawJson))
                     return [];
 
-                var packages = ParseWingetJson(rawJson);
+                var packages = ParseWingetJsonInternal(rawJson);
 
                 // Filtra os pacotes que o utilizador escolheu ignorar
                 var skippedIds = await _packageRepository.GetSkippedIdsAsync(timeoutCts.Token).ConfigureAwait(false);
@@ -131,7 +131,7 @@ public class WingetService : IWingetService
     /// Lida com falhas estruturais e "sujeira" no terminal (ex: barras de progresso que antecedem o JSON).
     /// </summary>
 
-    private IEnumerable<WingetPackage> ParseWingetJson(string raw)
+    internal IEnumerable<WingetPackage> ParseWingetJsonInternal(string raw)
     {
         // O Winget por vezes escreve texto de carregamento antes do JSON.
         // Procurar o primeiro '{' garante que só fazemos parse ao JSON válido.
@@ -234,14 +234,20 @@ public class WingetService : IWingetService
         }
     }
 
+    // Método extraído para ser testável isoladamente e garantir que a validação do ID é consistente em toda a aplicação
+    internal static void ValidatePackageId(string packageId)
+    {
+        if (string.IsNullOrWhiteSpace(packageId) || !PkgIdRegex.IsMatch(packageId))
+        {
+            throw new ArgumentException($"Package ID inválido ou com caracteres não permitidos: {packageId}", nameof(packageId));
+        }
+    }
+
     // --- Stubs para satisfazer a IWingetService por agora (Serão feitos noutras issues) ---
     public async Task<UpdateResult> InstallUpdateAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default)
         {
             // 1. Validação estrita do ID para evitar injeção de comandos no terminal
-            if (string.IsNullOrWhiteSpace(packageId) || !PkgIdRegex.IsMatch(packageId))
-            {
-                throw new ArgumentException($"Package ID inválido ou com caracteres não permitidos: {packageId}", nameof(packageId));
-            }
+            ValidatePackageId(packageId);
 
             var sw = Stopwatch.StartNew();
             progress?.Report(0); // Inicio a 0%
@@ -378,7 +384,7 @@ public class WingetService : IWingetService
 
                     if (string.IsNullOrWhiteSpace(rawJson)) return [];
 
-                    var packages = ParseWingetJson(rawJson);
+                    var packages = ParseWingetJsonInternal(rawJson);
 
                     _cachedInstalledPackages = packages.ToList();
                     _installedCacheExpiryTime = DateTime.UtcNow.Add(InstalledCacheExpiry);

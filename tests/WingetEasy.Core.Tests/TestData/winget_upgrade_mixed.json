@@ -1,0 +1,10 @@
+\ | / - Trabalhando...
+Carregando pacotes...
+{
+  "Sources": [
+    {
+      "Source": "winget",
+      "Packages": [ { "Id": "Mozilla.Firefox", "Name": "Firefox", "InstalledVersion": "115.0", "AvailableVersion": "118.0" } ]
+    }
+  ]
+}
