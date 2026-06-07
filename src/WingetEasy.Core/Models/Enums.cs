@@ -11,8 +11,8 @@ public enum PackageCategory
 
 public enum ScheduleFrequency
 {
-    OnceDaily,
-    TwiceDaily,
-    Weekly,
-    Custom
+    Manual, // Desabilitado
+    TwiceDaily, // 2x por dia a cada 12 horas
+    OnceDaily, // 1x por dia a cada 24 horas
+    Weekly // 1x por semana a cada 7 dias
 }
