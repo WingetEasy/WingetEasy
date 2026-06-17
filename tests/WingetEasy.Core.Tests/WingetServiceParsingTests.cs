@@ -70,10 +70,10 @@ public class WingetServiceParsingTests
     [InlineData("pkg; rm -rf /")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void ValidatePackageId_WithInvalidInput_ThrowsArgumentException(string invalidId)
+    public void ValidatePackageId_WithInvalidInput_ThrowsArgumentException(string? invalidId)
     {
         // Assert: Ações fluentes que verificam se uma exceção é lançada
-        FluentActions.Invoking(() => WingetService.ValidatePackageId(invalidId))
+        FluentActions.Invoking(() => WingetService.ValidatePackageId(invalidId!))
             .Should().Throw<ArgumentException>();
     }
 
