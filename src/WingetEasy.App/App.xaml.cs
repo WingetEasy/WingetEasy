@@ -211,18 +211,85 @@ namespace WingetEasy.App
 
         private void InitializeTrayIcon()
         {
-            // Descobre o caminho físico real onde o app foi compilado e junta com a pasta Assets
-            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "WingetEasy-Logo.ico");
+            // 1. CRIANDO OS ITENS USANDO "COMMANDS" (À prova de falhas na Bandeja do Sistema)
+            var menuVerificar = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Verificar agora", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE72C" } };
+            menuVerificar.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+                Log.Information("Usuário clicou em Verificar Agora.");
+            });
 
+            var menuAtualizacoes = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Atualizações disponíveis (0)", Visibility = Microsoft.UI.Xaml.Visibility.Collapsed, Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE895" } };
+            menuAtualizacoes.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+
+            var menuConfig = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Configurações", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE713" } };
+            menuConfig.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+
+            var menuHistorico = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Histórico", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE81C" } };
+            menuHistorico.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+
+            var menuSobre = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Sobre", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE946" } };
+            menuSobre.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+
+            var menuSair = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Sair", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE7E8" } };
+            menuSair.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+                Log.Information("Usuário solicitou encerramento via System Tray. Finalizando...");
+                Log.CloseAndFlush(); // Força a gravação do log antes de matar o processo
+                _trayIcon?.Dispose();
+                Environment.Exit(0); // Marreta do sistema operativo: encerra TUDO na hora!
+            });
+
+            // 2. MONTANDO O FLYOUT (A CAIXINHA DO MENU)
+            var contextMenu = new Microsoft.UI.Xaml.Controls.MenuFlyout();
+            contextMenu.Items.Add(menuVerificar);
+            contextMenu.Items.Add(menuAtualizacoes);
+            contextMenu.Items.Add(new Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator());
+            contextMenu.Items.Add(menuConfig);
+            contextMenu.Items.Add(menuHistorico);
+            contextMenu.Items.Add(new Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator());
+            contextMenu.Items.Add(menuSobre);
+            contextMenu.Items.Add(menuSair);
+
+            // 3. CONFIGURANDO A IMAGEM COLORIDA COM CAMINHO ABSOLUTO
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "WingetEasy-logo.ico");
+
+            // 4. INSTANCIANDO O TRAY ICON
             _trayIcon = new H.NotifyIcon.TaskbarIcon
             {
-                // caminho absoluto direto para a imagem!
-                IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath)),
                 ToolTipText = "WingetEasy",
+                IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath)),
+                ContextFlyout = contextMenu,
                 LeftClickCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow)
             };
 
+            // Manda para a bandeja do Windows
             _trayIcon.ForceCreate();
+        }
+
+        /// <summary>
+        /// Atualiza o estado visual da bandeja do sistema (Ícone e Menu) com base no número de atualizações.
+        /// </summary>
+        public void UpdateTrayState(int updateCount)
+        {
+            if (_trayIcon == null) return;
+
+            bool hasUpdates = updateCount > 0;
+
+            // 1. Alterna entre o ficheiro normal e o ficheiro com o Badge
+            // NOTA: Certifique-se de que o nome do ficheiro com o badge bate certo com o que colocar na pasta Assets
+            var fileName = hasUpdates ? "WingetEasy-Logo-update.ico" : "WingetEasy-Logo.ico";
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+
+            _trayIcon.IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath));
+
+            // 2. Atualiza o botão no Menu Contextual
+            if (_trayIcon.ContextFlyout is Microsoft.UI.Xaml.Controls.MenuFlyout menuFlyout)
+            {
+                // No nosso código, o item de atualizações é o segundo elemento (índice 1)
+                if (menuFlyout.Items[1] is Microsoft.UI.Xaml.Controls.MenuFlyoutItem menuAtualizacoes)
+                {
+                    menuAtualizacoes.Visibility = hasUpdates ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+                    menuAtualizacoes.Text = $"Atualizações disponíveis ({updateCount})";
+                }
+            }
         }
 
         private void ShowMainWindow()

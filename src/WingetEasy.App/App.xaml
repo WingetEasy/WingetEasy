@@ -3,14 +3,33 @@
     x:Class="WingetEasy.App.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:WingetEasy.App">
-    <Application.Resources>
+    xmlns:local="using:WingetEasy.App"
+    xmlns:tb="using:H.NotifyIcon"> <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+            
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#5A6BFF" />
+                    <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#12131A" />
+                    <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#1C1D24" />
+                    <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#A0A0A5" />
+                    <SolidColorBrush x:Key="BrandSuccessBrush" Color="#28A745" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#5A6BFF" />
+                    <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#F3F4F6" />
+                    <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#12131A" />
+                    <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#6B6B70" />
+                    <SolidColorBrush x:Key="BrandSuccessBrush" Color="#28A745" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>
