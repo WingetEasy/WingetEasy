@@ -12,7 +12,7 @@ O WingetEasy é um projeto open source que traz uma interface gráfica para o Wi
 
 [Contribuindo](CONTRIBUTING.md) • [Issues iniciais](Documents/2.%20InitialIssues/LABELS.md) • [Discussions](https://github.com/WingetEasy/WingetEasy/discussions) • [Licença](LICENSE)
 
-**🌍 Leia em outros idiomas:** [English](README.md)
+**🌍 Leia em outros idiomas:** [English](README.MD)
 
 </div>
 
