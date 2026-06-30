@@ -16,6 +16,7 @@ namespace WingetEasy.App
         private readonly ISettingsRepository _settingsRepo;
         private bool _isFirstActivation = true;
 
+
         public MainWindow()
         {
             this.InitializeComponent();

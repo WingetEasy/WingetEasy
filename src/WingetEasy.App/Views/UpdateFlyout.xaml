@@ -1,0 +1,60 @@
+<Window
+    x:Class="WingetEasy.App.Views.UpdateFlyout"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Atualizações Disponíveis">
+
+    <Grid x:Name="RootGrid" CornerRadius="12" Loaded="RootGrid_Loaded" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="16,16,16,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Atualizações disponíveis"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1"
+                    Content="&#xE711;"
+                    FontFamily="Segoe Fluent Icons"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    Click="CloseButton_Click"/>
+        </Grid>
+
+        <!-- Content Placeholder (Issue #24) -->
+        <ListView Grid.Row="1" Margin="0,8,0,0">
+            <TextBlock Text="Lista de pacotes virá aqui (Issue #24)"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="Gray"/>
+        </ListView>
+
+        <!-- Footer -->
+        <Grid Grid.Row="2" Padding="16" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="SelectedCountText"
+                       Text="0 selecionados"
+                       VerticalAlignment="Center"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+            <Button Grid.Column="1"
+                    Content="Atualizar agora"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Width="140"/>
+        </Grid>
+    </Grid>
+</Window>
