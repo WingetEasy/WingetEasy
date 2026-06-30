@@ -1,41 +1,43 @@
-# Código de Conduta
+# Code of Conduct
 
-## Nosso Compromisso
+**🌍 Read this in other languages:** [Português (BR)](CODE_OF_CONDUCT.pt-BR.md)
 
-Como parte da comunidade do WingetEasy, nos comprometemos a tornar a participação no projeto uma experiência livre de assédio para todos, independentemente de idade, identidade de gênero, orientação sexual, deficiência, aparência física, etnia, religião ou nível de experiência.
+## Our Pledge
 
-## Nosso Padrão
+As part of the WingetEasy community, we pledge to make participation in the project a harassment-free experience for everyone, regardless of age, gender identity, sexual orientation, disability, physical appearance, ethnicity, religion, or level of experience.
 
-Exemplos de comportamento que contribuem para um ambiente positivo:
+## Our Standards
 
-- Usar linguagem acolhedora e inclusiva.
-- Respeitar pontos de vista e experiências diferentes.
-- Aceitar críticas construtivas com boa vontade.
-- Focar no que é melhor para a comunidade e para o projeto.
-- Demonstrar empatia com outros membros da comunidade.
+Examples of behavior that contributes to a positive environment:
 
-Exemplos de comportamento inaceitável:
+- Using welcoming and inclusive language.
+- Respecting differing viewpoints and experiences.
+- Gracefully accepting constructive criticism.
+- Focusing on what is best for the community and the project.
+- Showing empathy toward other community members.
 
-- Uso de linguagem ou imagens sexualizadas, e atenção ou avanços sexuais indesejados.
-- Comentários ofensivos, insultos ou ataques pessoais e políticos.
-- Assédio público ou privado.
-- Publicar informações privadas de terceiros sem permissão explícita.
-- Qualquer outra conduta que seria razoavelmente considerada inadequada em um ambiente profissional.
+Examples of unacceptable behavior:
 
-## Responsabilidades
+- The use of sexualized language or imagery, and unwelcome sexual attention or advances.
+- Offensive comments, insults, or personal and political attacks.
+- Public or private harassment.
+- Publishing others' private information without explicit permission.
+- Any other conduct that could reasonably be considered inappropriate in a professional setting.
 
-Os mantenedores do projeto são responsáveis por esclarecer os padrões de comportamento aceitável e devem tomar ações corretivas justas em resposta a comportamentos inaceitáveis.
+## Responsibilities
 
-Os mantenedores têm o direito e a responsabilidade de remover, editar ou rejeitar comentários, commits, código, edições de wiki, issues e outras contribuições que não estejam alinhadas com este Código de Conduta, e podem banir temporariamente ou permanentemente qualquer colaborador por comportamentos que considerem inadequados, ameaçadores, ofensivos ou nocivos.
+Project maintainers are responsible for clarifying the standards of acceptable behavior and are expected to take fair corrective action in response to any unacceptable behavior.
 
-## Escopo
+Maintainers have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned with this Code of Conduct, and may temporarily or permanently ban any contributor for behavior they deem inappropriate, threatening, offensive, or harmful.
 
-Este Código de Conduta se aplica tanto em espaços do projeto (issues, pull requests, Discussions) quanto em espaços públicos quando um indivíduo está representando o projeto ou sua comunidade.
+## Scope
 
-## Aplicação
+This Code of Conduct applies both within project spaces (issues, pull requests, Discussions) and in public spaces when an individual is representing the project or its community.
 
-Casos de comportamento abusivo, de assédio ou de outra forma inaceitável podem ser reportados abrindo uma issue marcada como confidencial ou contatando diretamente os mantenedores do projeto. Todas as reclamações serão revisadas e investigadas, resultando na resposta considerada necessária e apropriada às circunstâncias.
+## Enforcement
 
-## Atribuição
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by opening an issue marked as confidential or by contacting the project maintainers directly. All complaints will be reviewed and investigated, resulting in the response deemed necessary and appropriate to the circumstances.
 
-Este Código de Conduta é adaptado do [Contributor Covenant](https://www.contributor-covenant.org), versão 2.1.
+## Attribution
+
+This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
