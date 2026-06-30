@@ -12,7 +12,7 @@ WingetEasy is an open source project that brings a graphical interface to Winget
 
 [Contributing](CONTRIBUTING.md) • [Initial issues](Documents/2.%20InitialIssues/LABELS.md) • [Discussions](https://github.com/WingetEasy/WingetEasy/discussions) • [License](LICENSE)
 
-**🌍 Read this in other languages:** [Português (BR)](README.pt-BR.md)
+**🌍 Read this in other languages:** [Português (BR)](README.pt-BR.MD)
 
 </div>
 
