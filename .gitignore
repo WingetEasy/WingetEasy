@@ -484,3 +484,11 @@ $RECYCLE.BIN/
 bin
 
 Documents/
+
+
+# Ignorar ficheiros de log e diagnósticos de compilação
+log_build.txt
+erros_xaml.txt
+build-diag*.txt
+input-slim*.json
+*.log
