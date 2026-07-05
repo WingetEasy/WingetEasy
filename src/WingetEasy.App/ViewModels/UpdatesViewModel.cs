@@ -71,9 +71,9 @@ public partial class UpdatesViewModel : ObservableObject
 
             Packages.Clear();
 
-            Packages.Add(new PackageItemViewModel("Microsoft.VisualStudioCode", "Visual Studio Code", "1.89.1", "1.90.0", this));
-            Packages.Add(new PackageItemViewModel("Google.Chrome", "Google Chrome", "124.0.6", "125.0.6", this));
-            Packages.Add(new PackageItemViewModel("Microsoft.PowerToys", "PowerToys", "0.80.1", "0.81.0", this));
+            Packages.Add(new PackageItemViewModel("Microsoft.VisualStudioCode", "Visual Studio Code", "1.89.1", "1.90.0", "winget", "App", this));
+            Packages.Add(new PackageItemViewModel("Google.Chrome", "Google Chrome", "124.0.6", "125.0.6", "winget", "Segurança", this));
+            Packages.Add(new PackageItemViewModel("Microsoft.PowerToys", "PowerToys", "0.80.1", "0.81.0", "winget", "Runtime", this));
 
             HasUpdates = Packages.Any();
             StatusMessage = HasUpdates ? $"{Packages.Count} atualizações encontradas." : "O seu sistema está totalmente atualizado!";
@@ -176,5 +176,20 @@ public partial class UpdatesViewModel : ObservableObject
             package.IsSelected = false;
         }
         UpdateSelectionState();
+    }
+
+    public void RemovePackageFromList(PackageItemViewModel package)
+    {
+        Packages.Remove(package);
+        UpdateSelectionState();
+    }
+
+    public async Task SkipPackagePermanentlyAsync(PackageItemViewModel package)
+    {
+        // TODO: Chamar o IPackageRepository para gravar no SQLite (Issue futura ou injetar o Repo aqui)
+        _logger.LogInformation("Pacote {PackageId} adicionado à lista de ignorados permanentes.", package.Id);
+
+        RemovePackageFromList(package);
+        await Task.CompletedTask.ConfigureAwait(true);
     }
 }
