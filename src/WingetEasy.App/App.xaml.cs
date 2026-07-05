@@ -44,6 +44,11 @@ namespace WingetEasy.App
         public static IServiceProvider Services { get; private set; } = null!;
 
         /// <summary>
+        /// Chave utilizada para persistir a preferência de tema no ISettingsRepository.
+        /// </summary>
+        public const string AppThemeSettingsKey = "AppTheme";
+
+        /// <summary>
         /// Initializes the singleton application object.
         /// </summary>
         public App()
@@ -299,8 +304,39 @@ namespace WingetEasy.App
                 _window = new MainWindow();
                 // Limpa a instância ao fechar para permitir a recriação limpa posterior
                 _window.Closed += (s, e) => _window = null;
+
+                _ = ApplySavedThemeAsync();
             }
             _window.Activate();
+        }
+
+        /// <summary>
+        /// Aplica de imediato o tema (Claro/Escuro/Sistema) ao elemento raiz da janela informado.
+        /// Chamado tanto na abertura da janela quanto em tempo real pela SettingsPage.
+        /// </summary>
+        public void ApplyTheme(ElementTheme theme)
+        {
+            if (_window?.Content is FrameworkElement rootElement)
+            {
+                rootElement.RequestedTheme = theme;
+            }
+        }
+
+        private async Task ApplySavedThemeAsync()
+        {
+            try
+            {
+                using var scope = Services.CreateScope();
+                var settingsRepo = scope.ServiceProvider.GetRequiredService<ISettingsRepository>();
+                var themeName = await settingsRepo.GetAsync(AppThemeSettingsKey).ConfigureAwait(true);
+                var theme = Enum.TryParse<ElementTheme>(themeName, out var parsed) ? parsed : ElementTheme.Default;
+
+                ApplyTheme(theme);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Erro ao aplicar o tema salvo na inicialização da janela principal.");
+            }
         }
 
         private static async Task MigrateDatabaseAsync(IServiceProvider serviceProvider)

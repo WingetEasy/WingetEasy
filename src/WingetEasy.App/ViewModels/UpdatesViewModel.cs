@@ -16,6 +16,7 @@ namespace WingetEasy.App.ViewModels;
 public partial class UpdatesViewModel : ObservableObject
 {
     private readonly IWingetService _wingetService;
+    private readonly IPackageRepository _packageRepository;
     private readonly ILogger<UpdatesViewModel> _logger;
     private CancellationTokenSource? _cancellationTokenSource;
 
@@ -43,9 +44,10 @@ public partial class UpdatesViewModel : ObservableObject
 
     public int SelectedCount => Packages.Count(p => p.IsSelected);
 
-    public UpdatesViewModel(IWingetService wingetService, ILogger<UpdatesViewModel> logger)
+    public UpdatesViewModel(IWingetService wingetService, IPackageRepository packageRepository, ILogger<UpdatesViewModel> logger)
     {
         _wingetService = wingetService;
+        _packageRepository = packageRepository;
         _logger = logger;
     }
 
@@ -186,10 +188,9 @@ public partial class UpdatesViewModel : ObservableObject
 
     public async Task SkipPackagePermanentlyAsync(PackageItemViewModel package)
     {
-        // TODO: Chamar o IPackageRepository para gravar no SQLite (Issue futura ou injetar o Repo aqui)
+        await _packageRepository.SkipPackageAsync(package.Id).ConfigureAwait(true);
         _logger.LogInformation("Pacote {PackageId} adicionado à lista de ignorados permanentes.", package.Id);
 
         RemovePackageFromList(package);
-        await Task.CompletedTask.ConfigureAwait(true);
     }
 }
