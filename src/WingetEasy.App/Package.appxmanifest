@@ -11,14 +11,14 @@
   <Identity
     Name="c58b2eaa-a825-40c2-a50e-35e4439690fe"
     Publisher="CN=Jeferson"
-    Version="1.0.0.0" />
+    Version="1.0.0.5" />
 
   <mp:PhoneIdentity PhoneProductId="c58b2eaa-a825-40c2-a50e-35e4439690fe" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>WingetEasy.App</DisplayName>
     <PublisherDisplayName>Jeferson</PublisherDisplayName>
-    <Logo>Assets\StoreLogo.png</Logo>
+    <Logo>Assets\SLogo.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -35,8 +35,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="WingetEasy.App"
-        Description="WingetEasy.App"
+        DisplayName="WingetEasy"
+        Description="WingetEasy"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
