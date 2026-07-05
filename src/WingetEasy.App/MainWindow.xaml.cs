@@ -29,6 +29,9 @@ namespace WingetEasy.App
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             _appWindow = AppWindow.GetFromWindowId(windowId);
 
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "Logo.ico");
+            _appWindow.SetIcon(iconPath);
+
             _appWindow.Closing += AppWindow_Closing;
             this.Activated += MainWindow_Activated;
 

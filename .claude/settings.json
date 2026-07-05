@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(powershell -File \"C:\\\\Users\\\\vivad\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-vivad-Code-1---Meus-projetos-3---Projetos-pessoais-App---WingetEasy\\\\db5baef6-00bd-4dbd-a80f-773a12ad4cf3\\\\scratchpad\\\\make-icons.ps1\")"
+    ]
+  }
+}

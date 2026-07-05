@@ -254,7 +254,7 @@ namespace WingetEasy.App
             contextMenu.Items.Add(menuSair);
 
             // 3. CONFIGURANDO A IMAGEM COLORIDA COM CAMINHO ABSOLUTO
-            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "WingetEasy-logo.ico");
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "WingetEasy-Logo.ico");
 
             // 4. INSTANCIANDO O TRAY ICON
             _trayIcon = new H.NotifyIcon.TaskbarIcon
