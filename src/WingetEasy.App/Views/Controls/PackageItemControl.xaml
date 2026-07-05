@@ -1,0 +1,53 @@
+<UserControl
+    x:Class="WingetEasy.App.Views.Controls.PackageItemControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:WingetEasy.App.ViewModels"
+    mc:Ignorable="d"
+    x:DataType="vm:PackageItemViewModel">
+
+    <Grid Padding="12" CornerRadius="8" Background="{ThemeResource PackageCardBackgroundBrush}" ColumnSpacing="12" Margin="0,0,0,4">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <CheckBox Grid.Column="0" IsChecked="{x:Bind ViewModel.IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
+
+        <Border Grid.Column="1" Width="36" Height="36" CornerRadius="8" Background="{x:Bind ViewModel.IconColorHex}">
+            <TextBlock Text="{x:Bind ViewModel.Initials}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="14" />
+        </Border>
+
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="{x:Bind ViewModel.Name}" FontWeight="SemiBold" FontSize="14" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{x:Bind ViewModel.Source}" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="•" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="{x:Bind ViewModel.Version}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="&#xE72A;" FontFamily="Segoe Fluent Icons" FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Bind ViewModel.AvailableVersion}" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" FontWeight="SemiBold" />
+            </StackPanel>
+        </StackPanel>
+
+        <Border Grid.Column="3" VerticalAlignment="Center" Padding="8,4" CornerRadius="12" Background="{x:Bind GetBadgeBackground(ViewModel.Category)}" MinWidth="70">
+            <TextBlock Text="{x:Bind ViewModel.Category}" FontSize="11" FontWeight="SemiBold" Foreground="{x:Bind GetBadgeForeground(ViewModel.Category)}" HorizontalAlignment="Center" />
+        </Border>
+
+        <Button Grid.Column="4" Content="&#xE712;" FontFamily="Segoe Fluent Icons" Background="Transparent" BorderThickness="0" VerticalAlignment="Center" Width="36" Height="36">
+            <Button.Flyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Text="Ignorar esta vez" Command="{x:Bind ViewModel.SkipOnceCommand}" Icon="Cancel" />
+                    <MenuFlyoutItem Text="Ignorar sempre" Command="{x:Bind ViewModel.SkipAlwaysCommand}" Icon="Stop" />
+                    <MenuFlyoutSeparator />
+                    <MenuFlyoutItem Text="Copiar ID" Command="{x:Bind ViewModel.CopyIdCommand}" Icon="Copy" />
+                    <MenuFlyoutItem Text="Ver no Winget" Command="{x:Bind ViewModel.ViewInWingetCommand}" Icon="Globe" />
+                </MenuFlyout>
+            </Button.Flyout>
+        </Button>
+    </Grid>
+</UserControl>
