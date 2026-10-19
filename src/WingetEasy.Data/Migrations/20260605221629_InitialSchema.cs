@@ -35,7 +35,7 @@ namespace WingetEasy.Data.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     CheckedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     FoundCount = table.Column<int>(type: "INTEGER", nullable: false),
-                    DurationMs = table.Column<bool>(type: "INTEGER", nullable: false)
+                    DurationMs = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {

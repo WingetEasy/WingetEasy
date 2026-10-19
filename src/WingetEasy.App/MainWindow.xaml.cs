@@ -3,6 +3,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Windows.Graphics;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +15,14 @@ namespace WingetEasy.App
 {
     public sealed partial class MainWindow : Window
     {
+        private const string WindowXKey = "WindowX";
+        private const string WindowYKey = "WindowY";
+        private const string WindowWidthKey = "WindowWidth";
+        private const string WindowHeightKey = "WindowHeight";
+
+        [DllImport("psapi.dll")]
+        private static extern int EmptyWorkingSet(IntPtr hProcess);
+
         private AppWindow _appWindow;
         private readonly ISettingsRepository _settingsRepo;
         private bool _isFirstActivation = true;
@@ -65,17 +76,18 @@ namespace WingetEasy.App
 
         private async Task RestoreOrCenterWindowAsync()
         {
-            // Tenta buscar as dimensões anteriores (Exemplo com métodos abstratos. Adapte para os do seu ISettingsRepository)
-            // var savedX = await _settingsRepo.GetSettingAsync<int?>("WindowX");
-            // var savedY = await _settingsRepo.GetSettingAsync<int?>("WindowY");
-            // var savedWidth = await _settingsRepo.GetSettingAsync<int?>("WindowWidth");
-            // var savedHeight = await _settingsRepo.GetSettingAsync<int?>("WindowHeight");
+            var savedX = await GetWindowCoordinateAsync(WindowXKey).ConfigureAwait(true);
+            var savedY = await GetWindowCoordinateAsync(WindowYKey).ConfigureAwait(true);
+            var savedWidth = await GetWindowCoordinateAsync(WindowWidthKey).ConfigureAwait(true);
+            var savedHeight = await GetWindowCoordinateAsync(WindowHeightKey).ConfigureAwait(true);
 
-            bool hasSavedSettings = false; // Substituir por verificação real
-
-            if (hasSavedSettings)
+            if (savedX.HasValue && savedY.HasValue && savedWidth > 0 && savedHeight > 0)
             {
-                // _appWindow.MoveAndResize(new RectInt32(savedX.Value, savedY.Value, savedWidth.Value, savedHeight.Value));
+                _appWindow.MoveAndResize(new RectInt32(
+                    savedX.Value,
+                    savedY!.Value,
+                    savedWidth.Value,
+                    savedHeight.Value));
             }
             else
             {
@@ -96,18 +108,48 @@ namespace WingetEasy.App
             _appWindow.MoveAndResize(new RectInt32(x, y, width, height));
         }
 
-        private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+        private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
         {
             // Cancela a morte da janela
             args.Cancel = true;
 
-            //TODO: Salvar no ISettingsRepository a posição atual para abrir no mesmo lugar da próxima vez
             var pos = _appWindow.Position;
             var size = _appWindow.Size;
-            // await _settingsRepo.SaveSettingAsync("WindowX", pos.X);
+
+            await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
+            TrimWorkingSet();
 
             // A API .Hide() nativamente esconde a janela do Alt+Tab e da Barra de Tarefas
             sender.Hide();
+        }
+
+        private async Task<int?> GetWindowCoordinateAsync(string key)
+        {
+            var value = await _settingsRepo.GetAsync(key).ConfigureAwait(true);
+            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var coordinate)
+                ? coordinate
+                : null;
+        }
+
+        private async Task SaveWindowStateAsync(PointInt32 position, SizeInt32 size)
+        {
+            await _settingsRepo.SetAsync(WindowXKey, position.X.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
+            await _settingsRepo.SetAsync(WindowYKey, position.Y.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
+            await _settingsRepo.SetAsync(WindowWidthKey, size.Width.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
+            await _settingsRepo.SetAsync(WindowHeightKey, size.Height.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
+        }
+
+        private static void TrimWorkingSet()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            using var process = Process.GetCurrentProcess();
+            if (EmptyWorkingSet(process.Handle) == 0)
+            {
+                Debug.WriteLine("Não foi possível reduzir o Working Set do processo.");
+            }
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

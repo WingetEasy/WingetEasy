@@ -55,7 +55,7 @@ namespace WingetEasy.Data.Migrations
                     b.Property<DateTime>("CheckedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("DurationMs")
+                    b.Property<long>("DurationMs")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("FoundCount")

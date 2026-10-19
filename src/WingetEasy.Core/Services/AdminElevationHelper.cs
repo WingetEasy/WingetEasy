@@ -39,7 +39,10 @@ public class AdminElevationHelper : IAdminElevationHelper
         {
             // Grava o ficheiro com a lista de pacotes
             var job = new ElevatedJob { JobId = jobId, PackageIds = validIds };
-            await File.WriteAllTextAsync(jobFile, JsonSerializer.Serialize(job), ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(
+                jobFile,
+                JsonSerializer.Serialize(job, CoreJsonContext.Default.ElevatedJob),
+                ct).ConfigureAwait(false);
 
             var processPath = Environment.ProcessPath;
             if (string.IsNullOrEmpty(processPath))
@@ -101,7 +104,7 @@ public class AdminElevationHelper : IAdminElevationHelper
             if (File.Exists(resultFile))
             {
                 var resultJson = await File.ReadAllTextAsync(resultFile, ct).ConfigureAwait(false);
-                return JsonSerializer.Deserialize<List<UpdateResult>>(resultJson) ?? [];
+                return JsonSerializer.Deserialize(resultJson, CoreJsonContext.Default.ListUpdateResult) ?? [];
             }
 
             return validIds.Select(id => new UpdateResult(id, id, false, "Ficheiro de resultado não encontrado.", TimeSpan.Zero));
