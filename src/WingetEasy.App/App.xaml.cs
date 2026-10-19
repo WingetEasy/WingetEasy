@@ -94,7 +94,7 @@ namespace WingetEasy.App
                     if (File.Exists(jobFile))
                     {
                         var json = File.ReadAllText(jobFile);
-                        var job = JsonSerializer.Deserialize<Core.Models.ElevatedJob>(json);
+                        var job = JsonSerializer.Deserialize(json, Core.Models.CoreJsonContext.Default.ElevatedJob);
 
                         if (job != null && job.PackageIds != null && job.PackageIds.Any())
                         {
@@ -133,7 +133,7 @@ namespace WingetEasy.App
                             }
 
                             var resultFile = jobFile.Replace("job", "result");
-                            File.WriteAllText(resultFile, JsonSerializer.Serialize(results));
+                            File.WriteAllText(resultFile, JsonSerializer.Serialize(results, Core.Models.CoreJsonContext.Default.ListUpdateResult));
                         }
                     }
                 }
@@ -219,7 +219,16 @@ namespace WingetEasy.App
             // 1. CRIANDO OS ITENS USANDO "COMMANDS" (À prova de falhas na Bandeja do Sistema)
             var menuVerificar = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Verificar agora", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE72C" } };
             menuVerificar.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
-                Log.Information("Usuário clicou em Verificar Agora.");
+                try
+                {
+                    Log.Information("Usuário clicou em Verificar Agora.");
+                    var updatesViewModel = Services.GetRequiredService<UpdatesViewModel>();
+                    updatesViewModel.CheckUpdatesCommand.Execute(null);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Não foi possível iniciar a verificação de atualizações pela bandeja.");
+                }
             });
 
             var menuAtualizacoes = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Atualizações disponíveis (0)", Visibility = Microsoft.UI.Xaml.Visibility.Collapsed, Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE895" } };
