@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Windows.Graphics;
 using Microsoft.Extensions.DependencyInjection;
 using WingetEasy.Core.Interfaces;
+using WingetEasy.App.Views;
 
 namespace WingetEasy.App
 {
@@ -26,6 +27,7 @@ namespace WingetEasy.App
         private AppWindow _appWindow;
         private readonly ISettingsRepository _settingsRepo;
         private bool _isFirstActivation = true;
+        private bool _onboardingShown;
 
 
         public MainWindow()
@@ -50,6 +52,27 @@ namespace WingetEasy.App
             ConfigureBackdrop();
         }
 
+        private async Task ShowOnboardingIfNeededAsync()
+        {
+            if (_onboardingShown)
+            {
+                return;
+            }
+
+            _onboardingShown = true;
+            var completed = await _settingsRepo.GetAsync("OnboardingCompleted").ConfigureAwait(true);
+            if (string.Equals(completed, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var dialog = new OnboardingDialog
+            {
+                XamlRoot = Content.XamlRoot
+            };
+            await dialog.ShowAsync().AsTask().ConfigureAwait(true);
+        }
+
         private void ConfigureBackdrop()
         {
             if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
@@ -71,6 +94,7 @@ namespace WingetEasy.App
 
                 // Seleciona e carrega a página de Atualizações na primeira abertura
                 NavView.SelectedItem = NavView.MenuItems[0];
+                await ShowOnboardingIfNeededAsync().ConfigureAwait(true);
             }
         }
 
