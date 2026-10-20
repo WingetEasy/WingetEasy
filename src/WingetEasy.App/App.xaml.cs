@@ -26,6 +26,7 @@ using WingetEasy.App.Services;
 using WingetEasy.App.ViewModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
+using Microsoft.Windows.AppNotifications;
 using Serilog;
 using Serilog.Events;
 
@@ -82,6 +83,7 @@ namespace WingetEasy.App
             InitializeComponent();
 
             Services = ConfigureServices();
+            AppNotificationManager.Default.NotificationInvoked += OnNotificationInvoked;
         }
 
         private static void RunElevatedModeAndExit(string[] args)
@@ -174,6 +176,8 @@ namespace WingetEasy.App
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
             services.AddSingleton<ISchedulerService, WingetEasy.Core.Services.SchedulerService>();
             services.AddSingleton<INotificationService, ToastNotificationService>();
+            services.AddSingleton<IToastNotificationService>(serviceProvider =>
+                (IToastNotificationService)serviceProvider.GetRequiredService<INotificationService>());
             services.AddSingleton<IAdminElevationHelper, WingetEasy.Core.Services.AdminElevationHelper>();
 
             // Mantém a lista de atualizações compartilhada entre as superfícies da aplicação
@@ -193,6 +197,12 @@ namespace WingetEasy.App
                 // 2. Acorda o SchedulerService assim que o banco está estável
                 var scheduler = Services.GetRequiredService<ISchedulerService>();
                 await scheduler.StartAsync().ConfigureAwait(true);
+                Services.GetRequiredService<IToastNotificationService>().Register();
+                scheduler.CheckRequested += (_, _) =>
+                {
+                    var updatesViewModel = Services.GetRequiredService<UpdatesViewModel>();
+                    updatesViewModel.CheckUpdatesCommand.Execute(null);
+                };
 
                 // 3. Monta e expõe o ícone na System Tray (Bandeja do Sistema)
                 InitializeTrayIcon();
@@ -320,6 +330,28 @@ namespace WingetEasy.App
                 _ = ApplySavedThemeAsync();
             }
             _window.Activate();
+        }
+
+        private void OnNotificationInvoked(
+            AppNotificationManager sender,
+            AppNotificationActivatedEventArgs args)
+        {
+            var action = args.Arguments.TryGetValue("action", out var requestedAction)
+                ? requestedAction
+                : "viewUpdates";
+            var dispatcherQueue = Services.GetRequiredService<DispatcherQueue>();
+
+            dispatcherQueue.TryEnqueue(() =>
+            {
+                ShowMainWindow();
+                (_window as MainWindow)?.FocusUpdatesPage();
+
+                if (action == "updateAll")
+                {
+                    Services.GetRequiredService<UpdatesViewModel>()
+                        .UpdateSelectedCommand.Execute(null);
+                }
+            });
         }
 
         /// <summary>
