@@ -69,6 +69,11 @@ public partial class UpdatesViewModel : ObservableObject
 
     public int SelectedCount => Packages.Count(p => p.IsSelected);
     public string SelectedCountText => $"{SelectedCount} selecionados";
+
+    /// <summary>
+    /// Callback usado pela view ativa para confirmar a abertura do prompt UAC.
+    /// </summary>
+    public Func<Task<bool>>? ElevationConfirmation { get; set; }
     public Visibility IsUpdatingVisibility => IsUpdating ? Visibility.Visible : Visibility.Collapsed;
     public string BatchStatus => $"Atualizando {BatchCompleted} de {BatchTotal}...";
     public string UpdateSummary => $"{SuccessfulUpdates} atualizadas com sucesso; {FailedUpdates} falharam.";
@@ -213,6 +218,7 @@ public partial class UpdatesViewModel : ObservableObject
                 .ExecuteUpdatesAsync(
                     pacotesParaAtualizar.Select(package => package.Id),
                     progress,
+                    ElevationConfirmation,
                     cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 

@@ -66,7 +66,12 @@ public class AdminElevationHelper : IAdminElevationHelper
             catch (System.ComponentModel.Win32Exception)
             {
                 // Usuário clicou em "Não" no UAC. Retornar sem crashar.
-                return validIds.Select(id => new UpdateResult(id, id, false, "Operação cancelada pelo utilizador (UAC).", TimeSpan.Zero));
+                return validIds.Select(id => new UpdateResult(
+                    id,
+                    id,
+                    false,
+                    "Elevação de administrador cancelada pelo usuário.",
+                    TimeSpan.Zero));
 
             }
 

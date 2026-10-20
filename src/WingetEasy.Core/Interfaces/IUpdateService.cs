@@ -13,5 +13,9 @@ namespace WingetEasy.Core.Interfaces;
 
 public interface IUpdateService
 {
-    Task<IReadOnlyList<UpdateResult>> ExecuteUpdatesAsync(IEnumerable<string> packageIds, IProgress<(string name, int pct, int cur, int total)>? progress = null, CancellationToken ct = default);
+    Task<IReadOnlyList<UpdateResult>> ExecuteUpdatesAsync(
+        IEnumerable<string> packageIds,
+        IProgress<(string name, int pct, int cur, int total)>? progress = null,
+        Func<Task<bool>>? confirmElevation = null,
+        CancellationToken ct = default);
 }
