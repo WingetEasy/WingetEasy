@@ -39,6 +39,7 @@ namespace WingetEasy.App
     {
         private Window? _window;
         private H.NotifyIcon.TaskbarIcon? _trayIcon;
+        public static IntPtr MainWindowHandle { get; private set; }
 
         /// <summary>
         /// Provedor central estático exposto para toda a aplicação obter dependências.
@@ -182,6 +183,7 @@ namespace WingetEasy.App
 
             // Mantém a lista de atualizações compartilhada entre as superfícies da aplicação
             services.AddSingleton<UpdatesViewModel>();
+            services.AddTransient<HistoryViewModel>();
             services.AddTransient<SettingsViewModel>();
 
             return services.BuildServiceProvider();
@@ -324,6 +326,7 @@ namespace WingetEasy.App
             if (_window == null)
             {
                 _window = new MainWindow();
+                MainWindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
                 // Limpa a instância ao fechar para permitir a recriação limpa posterior
                 _window.Closed += (s, e) => _window = null;
 

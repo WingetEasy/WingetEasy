@@ -30,7 +30,7 @@ public class UpdateHistoryRepository : IUpdateHistoryRepository
             Status = result.Success ? UpdateStatus.Success : UpdateStatus.Failed,
             ErrorMessage = result.ErrorMessage,
             DurationMs = result.Duration.HasValue ? (long)result.Duration.Value.TotalMilliseconds : 0,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = result.UpdatedAt ?? DateTime.UtcNow,
         };
 
         _dbContext.UpdateHistories.Add(entity);
@@ -44,7 +44,7 @@ public class UpdateHistoryRepository : IUpdateHistoryRepository
             .Take(count)
             .ToListAsync(ct).ConfigureAwait(false);
 
-        return entities.Select(e => new UpdateResult(e.PackageId, e.PackageName, e.Status == UpdateStatus.Success, e.ErrorMessage, TimeSpan.FromMilliseconds(e.DurationMs)));
+        return entities.Select(ToResult);
     }
 
     public async Task<IEnumerable<UpdateResult>> GetByDataRangeAsync(DateTime start, DateTime end, CancellationToken ct = default)
@@ -54,12 +54,22 @@ public class UpdateHistoryRepository : IUpdateHistoryRepository
             .OrderByDescending(u => u.UpdatedAt)
             .ToListAsync(ct).ConfigureAwait(false);
 
-        return entities.Select(e => new UpdateResult(e.PackageId, e.PackageName, e.Status == UpdateStatus.Success, e.ErrorMessage, TimeSpan.FromMilliseconds(e.DurationMs)));
+        return entities.Select(ToResult);
     }
 
     public async Task<int> GetTotalCountAsync(CancellationToken ct = default)
     {
         return await _dbContext.UpdateHistories.CountAsync(ct).ConfigureAwait(false);
     }
-}
 
+    private static UpdateResult ToResult(UpdateHistoryEntity entity) =>
+        new(
+            entity.PackageId,
+            entity.PackageName,
+            entity.Status == UpdateStatus.Success,
+            entity.ErrorMessage,
+            TimeSpan.FromMilliseconds(entity.DurationMs),
+            entity.FromVersion,
+            entity.ToVersion,
+            entity.UpdatedAt);
+}
