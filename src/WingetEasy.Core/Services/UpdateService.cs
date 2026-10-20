@@ -12,21 +12,28 @@ public class UpdateService : IUpdateService
 {
     private readonly IWingetService _wingetService;
     private readonly IUpdateHistoryRepository _historyRepository;
+    private readonly IAdminElevationHelper _adminElevationHelper;
 
-    public UpdateService(IWingetService wingetService, IUpdateHistoryRepository historyRepository)
+    public UpdateService(
+        IWingetService wingetService,
+        IUpdateHistoryRepository historyRepository,
+        IAdminElevationHelper adminElevationHelper)
     {
         _wingetService = wingetService;
         _historyRepository = historyRepository;
+        _adminElevationHelper = adminElevationHelper;
     }
 
     public async Task<IReadOnlyList<UpdateResult>> ExecuteUpdatesAsync(
         IEnumerable<string> packageIds,
         IProgress<(string name, int pct, int cur, int total)>? progress = null,
+        Func<Task<bool>>? confirmElevation = null,
         CancellationToken ct = default)
     {
         var ids = packageIds.ToList();
         var results = new List<UpdateResult>(ids.Count);
 
+        var elevationCandidates = new List<string>();
         for (int i = 0; i < ids.Count; i++)
         {
             // Respeita o cancelamento se o utilizador clicar no botão "Cancelar" entre os pacotes
@@ -49,7 +56,14 @@ public class UpdateService : IUpdateService
                 results.Add(result);
 
                 // Grava o resultado na base de dados SQLite
-                await _historyRepository.AddAsync(result, ct).ConfigureAwait(false);
+                if (RequiresElevation(result) && !_adminElevationHelper.IsRunningAsAdmin())
+                {
+                    elevationCandidates.Add(currentId);
+                }
+                else
+                {
+                    await _historyRepository.AddAsync(result, ct).ConfigureAwait(false);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -67,6 +81,53 @@ public class UpdateService : IUpdateService
             }
         }
 
+        if (elevationCandidates.Count > 0)
+        {
+            var shouldElevate = confirmElevation is not null && await confirmElevation().ConfigureAwait(false);
+            var elevatedResults = shouldElevate
+                ? await _adminElevationHelper.ExecuteElevatedAsync(elevationCandidates, ct).ConfigureAwait(false)
+                : elevationCandidates.Select(id => new UpdateResult(
+                    id,
+                    id,
+                    false,
+                    "Elevação de administrador cancelada pelo usuário.",
+                    TimeSpan.Zero));
+
+            foreach (var elevatedResult in elevatedResults)
+            {
+                var index = results.FindIndex(result => result.PackageId == elevatedResult.PackageId);
+                if (index >= 0)
+                {
+                    results[index] = elevatedResult;
+                }
+                else
+                {
+                    results.Add(elevatedResult);
+                }
+
+                await _historyRepository.AddAsync(elevatedResult, ct).ConfigureAwait(false);
+            }
+        }
+
         return results;
+    }
+
+    private static bool RequiresElevation(UpdateResult result)
+    {
+        if (result.Success || string.IsNullOrWhiteSpace(result.ErrorMessage))
+        {
+            return false;
+        }
+
+        var error = result.ErrorMessage;
+        return error.Contains("access denied", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("acesso negado", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("permission", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("permiss", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("administrator", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("administrador", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("elevation", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("eleva", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("0x80070005", StringComparison.OrdinalIgnoreCase);
     }
 }

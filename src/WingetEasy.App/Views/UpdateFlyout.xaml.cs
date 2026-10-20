@@ -25,6 +25,7 @@ public sealed partial class UpdateFlyout : Window
     {
         ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
         this.InitializeComponent();
+        ViewModel.ElevationConfirmation = ConfirmElevationAsync;
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd);
@@ -51,6 +52,21 @@ public sealed partial class UpdateFlyout : Window
 
         HideFromTaskbarAndAltTab();
         PositionWindow();
+    }
+
+    private async Task<bool> ConfirmElevationAsync()
+    {
+        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = "Permissão de administrador necessária",
+            Content = "Alguns pacotes exigem privilégios de Administrador para serem atualizados.",
+            PrimaryButtonText = "Continuar com Administrador",
+            CloseButtonText = "Cancelar",
+            DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
+        };
+
+        return await dialog.ShowAsync() == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary;
     }
 
     private void HideFromTaskbarAndAltTab()
