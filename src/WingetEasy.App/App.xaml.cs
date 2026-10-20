@@ -25,6 +25,7 @@ using WingetEasy.Core.Interfaces;
 using WingetEasy.App.Services;
 using WingetEasy.App.ViewModels;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using Serilog;
 using Serilog.Events;
 
@@ -153,6 +154,8 @@ namespace WingetEasy.App
         {
             var services = new ServiceCollection();
 
+            services.AddSingleton(DispatcherQueue.GetForCurrentThread());
+
             services.AddLogging(loggingBuilder =>
             {
                 loggingBuilder.AddSerilog(dispose: true);
@@ -173,8 +176,8 @@ namespace WingetEasy.App
             services.AddSingleton<INotificationService, ToastNotificationService>();
             services.AddSingleton<IAdminElevationHelper, WingetEasy.Core.Services.AdminElevationHelper>();
 
-            // Lógica de Apresentação resolvida como Transient para evitar vazamento de estado
-            services.AddTransient<UpdatesViewModel>();
+            // Mantém a lista de atualizações compartilhada entre as superfícies da aplicação
+            services.AddSingleton<UpdatesViewModel>();
             services.AddTransient<SettingsViewModel>();
 
             return services.BuildServiceProvider();
