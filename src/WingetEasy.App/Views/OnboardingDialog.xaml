@@ -1,0 +1,98 @@
+<ContentDialog
+    x:Class="WingetEasy.App.Views.OnboardingDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Bem-vindo ao WingetEasy"
+    PrimaryButtonText="Próximo"
+    SecondaryButtonText="Voltar"
+    CloseButtonText="Cancelar"
+    PrimaryButtonClick="OnPrimaryButtonClick"
+    SecondaryButtonClick="OnSecondaryButtonClick"
+    Closing="Dialog_Closing">
+    <Grid MinWidth="520" MinHeight="300">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <FlipView x:Name="StepsFlipView"
+                  SelectionChanged="StepsFlipView_SelectionChanged"
+                  IsHitTestVisible="False">
+            <Grid Padding="12" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Conheça o WingetEasy"
+                           FontSize="24"
+                           FontWeight="SemiBold"/>
+                <StackPanel Grid.Row="1" Spacing="12">
+                    <TextBlock Text="O WingetEasy verifica atualizações do Windows e dos seus aplicativos usando o Windows Package Manager."
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="Depois da configuração, ele pode permanecer na bandeja do sistema e avisar quando houver atualizações disponíveis."
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+            <Grid Padding="12" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Frequência de verificação"
+                           FontSize="24"
+                           FontWeight="SemiBold"/>
+                <StackPanel Grid.Row="1" Spacing="12">
+                    <TextBlock Text="Escolha com que frequência o WingetEasy deve buscar atualizações em segundo plano."
+                               TextWrapping="Wrap"/>
+                    <ComboBox x:Name="FrequencyComboBox" SelectedIndex="2">
+                        <ComboBoxItem Content="Manual" Tag="Manual"/>
+                        <ComboBoxItem Content="Duas vezes ao dia" Tag="TwiceDaily"/>
+                        <ComboBoxItem Content="Uma vez ao dia" Tag="OnceDaily"/>
+                        <ComboBoxItem Content="Semanalmente" Tag="Weekly"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+            <Grid Padding="12" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Inicialização com o Windows"
+                           FontSize="24"
+                           FontWeight="SemiBold"/>
+                <StackPanel Grid.Row="1" Spacing="12">
+                    <TextBlock Text="O aplicativo pode iniciar automaticamente e ficar disponível na bandeja do sistema."
+                               TextWrapping="Wrap"/>
+                    <ToggleSwitch x:Name="StartWithWindowsToggle"
+                                  Header="Iniciar o WingetEasy com o Windows"/>
+                </StackPanel>
+            </Grid>
+            <Grid Padding="12" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Tudo pronto!"
+                           FontSize="24"
+                           FontWeight="SemiBold"/>
+                <StackPanel Grid.Row="1" Spacing="12">
+                    <TextBlock Text="Suas preferências serão salvas. Você poderá alterá-las a qualquer momento em Configurações."
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="Clique em Concluir para começar a usar o WingetEasy."
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </FlipView>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Ellipse x:Name="StepOne" Width="8" Height="8"/>
+            <Ellipse x:Name="StepTwo" Width="8" Height="8"/>
+            <Ellipse x:Name="StepThree" Width="8" Height="8"/>
+            <Ellipse x:Name="StepFour" Width="8" Height="8"/>
+        </StackPanel>
+    </Grid>
+</ContentDialog>
