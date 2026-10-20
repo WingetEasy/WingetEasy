@@ -4,6 +4,7 @@ public enum PackageCategory
 {
     App,
     Runtime,
+    Security,
     Driver,
     Font,
     Other

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WingetEasy.Core.Interfaces;
+using WingetEasy.Core.Models;
 
 namespace WingetEasy.App.ViewModels;
 
@@ -24,6 +25,10 @@ public partial class UpdatesViewModel : ObservableObject
     private readonly ILogger<UpdatesViewModel> _logger;
     private readonly DispatcherQueue _dispatcherQueue;
     private CancellationTokenSource? _cancellationTokenSource;
+    private readonly ObservableCollection<PackageItemViewModel> _allPackages = new();
+    private string _searchText = string.Empty;
+    private string _categoryFilter = "Todos";
+    private string _sortBy = "Nome";
 
     // Sintaxe moderna para propriedades observáveis
     [ObservableProperty]
@@ -67,7 +72,43 @@ public partial class UpdatesViewModel : ObservableObject
 
     public ObservableCollection<PackageItemViewModel> Packages { get; } = new();
 
-    public int SelectedCount => Packages.Count(p => p.IsSelected);
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+            {
+                ApplyFilters();
+            }
+        }
+    }
+
+    public string CategoryFilter
+    {
+        get => _categoryFilter;
+        set
+        {
+            if (SetProperty(ref _categoryFilter, value))
+            {
+                ApplyFilters();
+            }
+        }
+    }
+
+    public string SortBy
+    {
+        get => _sortBy;
+        set
+        {
+            if (SetProperty(ref _sortBy, value))
+            {
+                ApplyFilters();
+            }
+        }
+    }
+
+    public int SelectedCount => _allPackages.Count(p => p.IsSelected);
     public string SelectedCountText => $"{SelectedCount} selecionados";
 
     /// <summary>
@@ -119,25 +160,25 @@ public partial class UpdatesViewModel : ObservableObject
 
             await RunOnUIAsync(() =>
             {
-                Packages.Clear();
+                _allPackages.Clear();
                 IsUpdateSummaryVisible = false;
 
                 foreach (var package in updates)
                 {
-                    var category = package.IsSecurityUpdate ? "Segurança" : package.Category.ToString();
-                    Packages.Add(new PackageItemViewModel(
+                    _allPackages.Add(new PackageItemViewModel(
                         package.Id,
                         package.Name,
                         package.CurrentVersion,
                         package.AvailableVersion,
                         package.Source ?? string.Empty,
-                        category,
+                        PackageItemViewModel.Classify(package),
                         this));
                 }
 
-                HasUpdates = Packages.Any();
+                ApplyFilters();
+                HasUpdates = _allPackages.Any();
                 StatusMessage = HasUpdates
-                    ? $"{Packages.Count} atualizações encontradas."
+                    ? $"{_allPackages.Count} atualizações encontradas."
                     : "O seu sistema está totalmente atualizado!";
 
                 UpdateSelectionState();
@@ -176,7 +217,7 @@ public partial class UpdatesViewModel : ObservableObject
             using var cancellationTokenSource = new CancellationTokenSource();
             _cancellationTokenSource = cancellationTokenSource;
 
-            var pacotesParaAtualizar = Packages.Where(p => p.IsSelected).ToList();
+            var pacotesParaAtualizar = _allPackages.Where(p => p.IsSelected).ToList();
             await RunOnUIAsync(() =>
             {
                 BatchCompleted = 0;
@@ -317,7 +358,7 @@ public partial class UpdatesViewModel : ObservableObject
     [RelayCommand]
     private void SelectAll()
     {
-        foreach (var package in Packages)
+        foreach (var package in _allPackages)
         {
             package.IsSelected = true;
         }
@@ -327,7 +368,7 @@ public partial class UpdatesViewModel : ObservableObject
     [RelayCommand]
     private void DeselectAll()
     {
-        foreach (var package in Packages)
+        foreach (var package in _allPackages)
         {
             package.IsSelected = false;
         }
@@ -336,8 +377,10 @@ public partial class UpdatesViewModel : ObservableObject
 
     public void RemovePackageFromList(PackageItemViewModel package)
     {
+        _allPackages.Remove(package);
         Packages.Remove(package);
         UpdateSelectionState();
+        HasUpdates = _allPackages.Count > 0;
     }
 
     public async Task SkipPackagePermanentlyAsync(PackageItemViewModel package)
@@ -347,4 +390,39 @@ public partial class UpdatesViewModel : ObservableObject
 
         RemovePackageFromList(package);
     }
+
+    public void ApplyFilters()
+    {
+        var filtered = _allPackages.Where(package =>
+            (_categoryFilter == "Todos" || package.Category == _categoryFilter) &&
+            (string.IsNullOrWhiteSpace(_searchText)
+                || package.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || package.Id.Contains(_searchText, StringComparison.OrdinalIgnoreCase)));
+
+        filtered = _sortBy switch
+        {
+            "Categoria" => filtered.OrderBy(package => CategoryOrder(package.Category))
+                .ThenBy(package => package.Name, StringComparer.OrdinalIgnoreCase),
+            "Fonte" => filtered.OrderBy(package => package.Source, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(package => package.Name, StringComparer.OrdinalIgnoreCase),
+            _ => filtered.OrderBy(package => package.Name, StringComparer.OrdinalIgnoreCase)
+        };
+
+        Packages.Clear();
+        foreach (var package in filtered)
+        {
+            Packages.Add(package);
+        }
+
+        OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(SelectedCountText));
+    }
+
+    private static int CategoryOrder(string category) => category switch
+    {
+        "App" => 0,
+        "Runtime" => 1,
+        "Segurança" => 2,
+        _ => 3
+    };
 }
