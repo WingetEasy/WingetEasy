@@ -15,6 +15,7 @@ public sealed class SchedulerService : ISchedulerService, IDisposable
     private readonly INotificationService _notificationService;
     private readonly ILogger<SchedulerService> _logger;
     private readonly CircuitBreaker _circuitBreaker;
+    private readonly ITaskSchedulerService _taskSchedulerService;
 
 
     private PeriodicTimer? _timer;
@@ -28,11 +29,13 @@ public sealed class SchedulerService : ISchedulerService, IDisposable
     public SchedulerService(
         ISettingsRepository settingsRepository,
         INotificationService notificationService,
-        ILogger<SchedulerService> logger)
+        ILogger<SchedulerService> logger,
+        ITaskSchedulerService taskSchedulerService)
     {
         _settingsRepository = settingsRepository;
         _notificationService = notificationService;
         _logger = logger;
+        _taskSchedulerService = taskSchedulerService;
         _circuitBreaker = new CircuitBreaker();
     }
 
@@ -42,6 +45,7 @@ public sealed class SchedulerService : ISchedulerService, IDisposable
         ?? new ScheduleConfig(ScheduleFrequency.OnceDaily, TimeSpan.Zero);
 
         StartTimer(config.Frequency);
+        await SynchronizeNativeTaskAsync(config).ConfigureAwait(false);
 
         // Log indicando que o agendador arrancou
         _logger.LogInformation("SchedulerService iniciado com a frequência: {Frequency}", config.Frequency);
@@ -53,9 +57,22 @@ public sealed class SchedulerService : ISchedulerService, IDisposable
 
         StopTimer();
         StartTimer(config.Frequency);
+        await SynchronizeNativeTaskAsync(config).ConfigureAwait(false);
 
         //Log de mudança de configuração
         _logger.LogInformation("Schedule atualizado para: {Frequency}", config.Frequency);
+    }
+
+    private async Task SynchronizeNativeTaskAsync(ScheduleConfig config)
+    {
+        try
+        {
+            await _taskSchedulerService.CreateOrUpdateTaskAsync(config).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Não foi possível sincronizar o Task Scheduler nativo; o fallback em processo continuará ativo.");
+        }
     }
 
     // método para registrar SUCESSO (vem da Interface)

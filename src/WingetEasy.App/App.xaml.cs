@@ -179,6 +179,8 @@ namespace WingetEasy.App
             // Alinhamento das regras de arquitetura: Serviços principais como Singletons
             services.AddSingleton<IWingetService, WingetEasy.Core.Services.WingetService>();
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
+            services.AddSingleton<ITaskSchedulerProcessRunner, WindowsTaskSchedulerProcessRunner>();
+            services.AddSingleton<ITaskSchedulerService, WindowsTaskSchedulerService>();
             services.AddTransient<IBackupService, WingetEasy.Core.Services.BackupService>();
             services.AddTransient<IProfilesService, WingetEasy.Core.Services.ProfilesService>();
             services.AddSingleton<CliArgumentsParser>();
@@ -419,7 +421,6 @@ namespace WingetEasy.App
         }
     }
 }
-
 
 
 
