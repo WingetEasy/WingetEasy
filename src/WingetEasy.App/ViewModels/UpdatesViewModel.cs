@@ -19,6 +19,7 @@ public partial class UpdatesViewModel : ObservableObject
 {
     private readonly IWingetService _wingetService;
     private readonly IUpdateService _updateService;
+    private readonly INotificationService _notificationService;
     private readonly IPackageRepository _packageRepository;
     private readonly ILogger<UpdatesViewModel> _logger;
     private readonly DispatcherQueue _dispatcherQueue;
@@ -75,12 +76,14 @@ public partial class UpdatesViewModel : ObservableObject
     public UpdatesViewModel(
         IWingetService wingetService,
         IUpdateService updateService,
+        INotificationService notificationService,
         IPackageRepository packageRepository,
         ILogger<UpdatesViewModel> logger,
         DispatcherQueue dispatcherQueue)
     {
         _wingetService = wingetService;
         _updateService = updateService;
+        _notificationService = notificationService;
         _packageRepository = packageRepository;
         _logger = logger;
         _dispatcherQueue = dispatcherQueue;
@@ -133,6 +136,11 @@ public partial class UpdatesViewModel : ObservableObject
                     : "O seu sistema está totalmente atualizado!";
 
                 UpdateSelectionState();
+
+                if (HasUpdates)
+                {
+                    _notificationService.ShowUpdatesAvailable(Packages.Count);
+                }
             }).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -236,6 +244,7 @@ public partial class UpdatesViewModel : ObservableObject
                     : $"{SuccessfulUpdates} atualizações concluídas; {FailedUpdates} falharam.";
             }).ConfigureAwait(false);
             _logger.LogInformation("Processo de atualização finalizado.");
+            _notificationService.ShowUpdateComplete(SuccessfulUpdates, FailedUpdates);
 
             await RunOnUIAsync(() => HasUpdates = false).ConfigureAwait(false);
         }

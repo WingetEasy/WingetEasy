@@ -175,5 +175,13 @@ namespace WingetEasy.App
                 }
             }
         }
+
+        public void FocusUpdatesPage()
+        {
+            if (NavView.MenuItems.Count > 0)
+            {
+                NavView.SelectedItem = NavView.MenuItems[0];
+            }
+        }
     }
 }
