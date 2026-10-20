@@ -1,10 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Reflection;
-using System.Text.Json;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -28,15 +25,12 @@ public partial class SettingsViewModel : ObservableObject
     private const string StartWithWindowsRunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string StartWithWindowsValueName = "WingetEasy";
     private const string GitHubRepoUrl = "https://github.com/WingetEasy/WingetEasy";
-    private const string GitHubLatestReleaseApiUrl = "https://api.github.com/repos/WingetEasy/WingetEasy/releases/latest";
-
-    private static readonly HttpClient HttpClient = CreateHttpClient();
-
     private readonly ISettingsRepository _settingsRepository;
     private readonly ISchedulerService _schedulerService;
     private readonly IPackageRepository _packageRepository;
     private readonly IWingetService _wingetService;
     private readonly ILogger<SettingsViewModel> _logger;
+    private readonly IAppUpdateService _appUpdateService;
 
     // Impede que a aplicação dos valores carregados do banco dispare novas gravações/efeitos colaterais
     private bool _isLoading = true;
@@ -97,12 +91,14 @@ public partial class SettingsViewModel : ObservableObject
         ISchedulerService schedulerService,
         IPackageRepository packageRepository,
         IWingetService wingetService,
+        IAppUpdateService appUpdateService,
         ILogger<SettingsViewModel> logger)
     {
         _settingsRepository = settingsRepository;
         _schedulerService = schedulerService;
         _packageRepository = packageRepository;
         _wingetService = wingetService;
+        _appUpdateService = appUpdateService;
         _logger = logger;
 
         SelectedFrequencyOption = FrequencyOptions[2]; // Uma vez ao dia, alinhado ao padrão do SchedulerService
@@ -232,28 +228,21 @@ public partial class SettingsViewModel : ObservableObject
             IsCheckingAppUpdate = true;
             AppUpdateStatusMessage = "Verificando atualizações...";
 
-            using var response = await HttpClient.GetAsync(GitHubLatestReleaseApiUrl).ConfigureAwait(true);
-            if (!response.IsSuccessStatusCode)
+            if (!_appUpdateService.IsInstalled)
             {
-                AppUpdateStatusMessage = "Não foi possível verificar atualizações no momento.";
+                AppUpdateStatusMessage = "Atualizações automáticas estão disponíveis apenas na versão instalada.";
                 return;
             }
 
-            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(true);
-            using var doc = await JsonDocument.ParseAsync(stream).ConfigureAwait(true);
-
-            var latestTag = doc.RootElement.TryGetProperty("tag_name", out var tagElement) ? tagElement.GetString() : null;
-            var latestVersionText = latestTag?.TrimStart('v', 'V');
-
-            if (Version.TryParse(latestVersionText, out var latestVersion) && Version.TryParse(AppVersion, out var currentVersion))
+            var update = await _appUpdateService.CheckForAppUpdateAsync().ConfigureAwait(true);
+            if (update is null)
             {
-                AppUpdateStatusMessage = latestVersion > currentVersion
-                    ? $"Nova versão disponível: {latestTag}"
-                    : "Você já está usando a versão mais recente.";
+                AppUpdateStatusMessage = "Você já está usando a versão mais recente.";
             }
             else
             {
-                AppUpdateStatusMessage = "Não foi possível determinar a versão mais recente.";
+                await _appUpdateService.DownloadAppUpdateAsync(update).ConfigureAwait(true);
+                AppUpdateStatusMessage = $"Nova versão disponível e baixada: {update.Version}.";
             }
         }
         catch (Exception ex)
@@ -311,14 +300,6 @@ public partial class SettingsViewModel : ObservableObject
         {
             key.DeleteValue(StartWithWindowsValueName, throwOnMissingValue: false);
         }
-    }
-
-    private static HttpClient CreateHttpClient()
-    {
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("WingetEasy", "1.0"));
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-        return client;
     }
 
     public sealed record FrequencyOption(ScheduleFrequency Value, string Label)

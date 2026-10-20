@@ -31,6 +31,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppNotifications;
 using Serilog;
 using Serilog.Events;
+using Velopack;
 
 namespace WingetEasy.App
 {
@@ -76,6 +77,14 @@ namespace WingetEasy.App
                 .CreateLogger();
 
             Log.Information("==== Inicializando WingetEasy ====");
+            try
+            {
+                VelopackApp.Build().Run();
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Velopack não está ativo neste ambiente; continuando inicialização normal.");
+            }
 
             if (args.Contains("--elevated"))
             {
@@ -190,6 +199,8 @@ namespace WingetEasy.App
             services.AddSingleton<IToastNotificationService>(serviceProvider =>
                 (IToastNotificationService)serviceProvider.GetRequiredService<INotificationService>());
             services.AddSingleton<IAdminElevationHelper, WingetEasy.Core.Services.AdminElevationHelper>();
+            services.AddSingleton<IAppUpdateManager, VelopackAppUpdateManager>();
+            services.AddSingleton<IAppUpdateService, VelopackAppUpdateService>();
 
             // Mantém a lista de atualizações compartilhada entre as superfícies da aplicação
             services.AddSingleton<UpdatesViewModel>();
@@ -421,7 +432,6 @@ namespace WingetEasy.App
         }
     }
 }
-
 
 
 

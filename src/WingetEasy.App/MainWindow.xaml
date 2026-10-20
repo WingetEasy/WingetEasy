@@ -5,7 +5,26 @@
     Title="WingetEasy">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <InfoBar x:Name="AppUpdateInfoBar"
+                 Grid.Row="0"
+                 IsOpen="False"
+                 IsClosable="True"
+                 Severity="Informational"
+                 Title="Atualização do WingetEasy"
+                 Message=""
+                 Margin="12,8,12,0">
+            <InfoBar.ActionButton>
+                <Button Content="Reiniciar e atualizar" Click="ApplyAppUpdate_Click" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
         <NavigationView x:Name="NavView"
+                        Grid.Row="1"
                         PaneDisplayMode="Left"
                         IsSettingsVisible="False"
                         SelectionChanged="NavView_SelectionChanged">
