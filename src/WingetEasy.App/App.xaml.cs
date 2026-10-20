@@ -170,6 +170,7 @@ namespace WingetEasy.App
             services.AddScoped<ISettingsRepository, WingetEasy.Data.Repositories.SettingsRepository>();
             services.AddScoped<IUpdateHistoryRepository, WingetEasy.Data.Repositories.UpdateHistoryRepository>();
             services.AddScoped<IBackupSnapshotRepository, WingetEasy.Data.Repositories.BackupSnapshotRepository>();
+            services.AddScoped<IProfileRepository, WingetEasy.Data.Repositories.ProfileRepository>();
             services.AddScoped<IPackageRepository, WingetEasy.Data.Repositories.PackageRepository>();
             services.AddScoped<ICheckLogRepository, WingetEasy.Data.Repositories.CheckLogRepository>();
 
@@ -177,6 +178,7 @@ namespace WingetEasy.App
             services.AddSingleton<IWingetService, WingetEasy.Core.Services.WingetService>();
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
             services.AddTransient<IBackupService, WingetEasy.Core.Services.BackupService>();
+            services.AddTransient<IProfilesService, WingetEasy.Core.Services.ProfilesService>();
             services.AddSingleton<ISchedulerService, WingetEasy.Core.Services.SchedulerService>();
             services.AddSingleton<INotificationService, ToastNotificationService>();
             services.AddSingleton<IToastNotificationService>(serviceProvider =>
@@ -187,6 +189,7 @@ namespace WingetEasy.App
             services.AddSingleton<UpdatesViewModel>();
             services.AddTransient<HistoryViewModel>();
             services.AddSingleton<BackupViewModel>();
+            services.AddSingleton<ProfilesViewModel>();
             services.AddTransient<SettingsViewModel>();
 
             return services.BuildServiceProvider();

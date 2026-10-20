@@ -10,6 +10,10 @@ namespace WingetEasy.Core.Models;
 [JsonSerializable(typeof(List<UpdateResult>))]
 [JsonSerializable(typeof(BackupSnapshot))]
 [JsonSerializable(typeof(List<BackupPackage>))]
+[JsonSerializable(typeof(Profile))]
+[JsonSerializable(typeof(ProfilePackage))]
+[JsonSerializable(typeof(List<Profile>))]
+[JsonSerializable(typeof(List<ProfilePackage>))]
 public partial class CoreJsonContext : JsonSerializerContext
 {
 }
