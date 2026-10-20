@@ -65,7 +65,7 @@
 
 ---
 
-## Milestone 4 — Funcionalidades Avançadas 📋 (Pendente)
+## Milestone 4 — Funcionalidades Avançadas 📋 (Em andamento)
 
 | # | Issue | Descrição | Dependências |
 |---|---|---|---|

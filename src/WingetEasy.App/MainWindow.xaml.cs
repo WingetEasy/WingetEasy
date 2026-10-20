@@ -11,6 +11,7 @@ using Windows.Graphics;
 using Microsoft.Extensions.DependencyInjection;
 using WingetEasy.Core.Interfaces;
 using WingetEasy.App.Views;
+using WingetEasy.Core.Models;
 
 namespace WingetEasy.App
 {
@@ -28,6 +29,8 @@ namespace WingetEasy.App
         private readonly ISettingsRepository _settingsRepo;
         private bool _isFirstActivation = true;
         private bool _onboardingShown;
+        private readonly IAppUpdateService _appUpdateService;
+        private AppUpdateInfo? _availableAppUpdate;
 
 
         public MainWindow()
@@ -36,6 +39,7 @@ namespace WingetEasy.App
 
             // 1. Resolução do repositório através do nosso injetor central configurado na Issue 19
             _settingsRepo = App.Services.GetRequiredService<ISettingsRepository>();
+            _appUpdateService = App.Services.GetRequiredService<IAppUpdateService>();
 
             // 2. Acesso à API nativa da janela
             var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -95,7 +99,39 @@ namespace WingetEasy.App
                 // Seleciona e carrega a página de Atualizações na primeira abertura
                 NavView.SelectedItem = NavView.MenuItems[0];
                 await ShowOnboardingIfNeededAsync().ConfigureAwait(true);
+                _ = CheckForAppUpdateInBackgroundAsync();
             }
+        }
+
+        private async Task CheckForAppUpdateInBackgroundAsync()
+        {
+            try
+            {
+                _availableAppUpdate = await _appUpdateService.CheckForAppUpdateAsync().ConfigureAwait(true);
+                if (_availableAppUpdate is null)
+                {
+                    return;
+                }
+
+                await _appUpdateService.DownloadAppUpdateAsync(_availableAppUpdate).ConfigureAwait(true);
+                AppUpdateInfo? update = _availableAppUpdate;
+                AppUpdateInfoBar.Message = $"A versão {update.Version} está pronta para instalar.";
+                AppUpdateInfoBar.IsOpen = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Falha ao verificar atualização do WingetEasy: {ex}");
+            }
+        }
+
+        private void ApplyAppUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (_availableAppUpdate is null)
+            {
+                return;
+            }
+
+            _appUpdateService.ApplyUpdateAndRestart(_availableAppUpdate);
         }
 
         private async Task RestoreOrCenterWindowAsync()
