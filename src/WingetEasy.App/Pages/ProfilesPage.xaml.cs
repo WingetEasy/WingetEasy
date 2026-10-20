@@ -1,9 +1,43 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WingetEasy.App.ViewModels;
 
-namespace WingetEasy.App.Pages
+namespace WingetEasy.App.Pages;
+
+public sealed partial class ProfilesPage : Page
 {
-    public sealed partial class ProfilesPage : Page
+    public ProfilesViewModel ViewModel { get; }
+
+    public ProfilesPage()
     {
-        public ProfilesPage() { this.InitializeComponent(); }
+        ViewModel = App.Services.GetRequiredService<ProfilesViewModel>();
+        InitializeComponent();
+        DataContext = ViewModel;
+        Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+    }
+
+    private async void InstallButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: ProfileItemViewModel item })
+        {
+            await ViewModel.InstallProfileCommand.ExecuteAsync(item).ConfigureAwait(true);
+        }
+    }
+
+    private void EditButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: ProfileItemViewModel item })
+        {
+            ViewModel.EditProfileCommand.Execute(item);
+        }
+    }
+
+    private async void DeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: ProfileItemViewModel item })
+        {
+            await ViewModel.DeleteProfileCommand.ExecuteAsync(item).ConfigureAwait(true);
+        }
     }
 }

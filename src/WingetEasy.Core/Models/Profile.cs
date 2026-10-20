@@ -8,5 +8,7 @@ public record Profile(
     string Name,
     string Description,
     DateTime CreatedAt,
-    IReadOnlyList<String> PackageIds
+    IReadOnlyList<ProfilePackage> Packages
 );
+
+public record ProfilePackage(string Id, string Name);
