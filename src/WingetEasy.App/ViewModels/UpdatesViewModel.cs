@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using WingetEasy.Core.Interfaces;
 
 namespace WingetEasy.App.ViewModels;
@@ -16,8 +17,10 @@ namespace WingetEasy.App.ViewModels;
 public partial class UpdatesViewModel : ObservableObject
 {
     private readonly IWingetService _wingetService;
+    private readonly IUpdateService _updateService;
     private readonly IPackageRepository _packageRepository;
     private readonly ILogger<UpdatesViewModel> _logger;
+    private readonly DispatcherQueue _dispatcherQueue;
     private CancellationTokenSource? _cancellationTokenSource;
 
     // Sintaxe moderna para propriedades observáveis
@@ -44,11 +47,18 @@ public partial class UpdatesViewModel : ObservableObject
 
     public int SelectedCount => Packages.Count(p => p.IsSelected);
 
-    public UpdatesViewModel(IWingetService wingetService, IPackageRepository packageRepository, ILogger<UpdatesViewModel> logger)
+    public UpdatesViewModel(
+        IWingetService wingetService,
+        IUpdateService updateService,
+        IPackageRepository packageRepository,
+        ILogger<UpdatesViewModel> logger,
+        DispatcherQueue dispatcherQueue)
     {
         _wingetService = wingetService;
+        _updateService = updateService;
         _packageRepository = packageRepository;
         _logger = logger;
+        _dispatcherQueue = dispatcherQueue;
     }
 
     public void UpdateSelectionState()
@@ -66,35 +76,51 @@ public partial class UpdatesViewModel : ObservableObject
             StatusMessage = "Procurando atualizações disponíveis...";
             _logger.LogInformation("Iniciando verificação de atualizações...");
 
-            _cancellationTokenSource = new CancellationTokenSource();
+            using var cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource = cancellationTokenSource;
 
-            // Adicionado o ConfigureAwait(true) para o CA2007
-            await Task.Delay(2000, _cancellationTokenSource.Token).ConfigureAwait(true);
+            var updates = await _wingetService
+                .CheckUpdatesAsync(cancellationTokenSource.Token)
+                .ConfigureAwait(false);
 
-            Packages.Clear();
+            await RunOnUIAsync(() =>
+            {
+                Packages.Clear();
 
-            Packages.Add(new PackageItemViewModel("Microsoft.VisualStudioCode", "Visual Studio Code", "1.89.1", "1.90.0", "winget", "App", this));
-            Packages.Add(new PackageItemViewModel("Google.Chrome", "Google Chrome", "124.0.6", "125.0.6", "winget", "Segurança", this));
-            Packages.Add(new PackageItemViewModel("Microsoft.PowerToys", "PowerToys", "0.80.1", "0.81.0", "winget", "Runtime", this));
+                foreach (var package in updates)
+                {
+                    var category = package.IsSecurityUpdate ? "Segurança" : package.Category.ToString();
+                    Packages.Add(new PackageItemViewModel(
+                        package.Id,
+                        package.Name,
+                        package.CurrentVersion,
+                        package.AvailableVersion,
+                        package.Source ?? string.Empty,
+                        category,
+                        this));
+                }
 
-            HasUpdates = Packages.Any();
-            StatusMessage = HasUpdates ? $"{Packages.Count} atualizações encontradas." : "O seu sistema está totalmente atualizado!";
+                HasUpdates = Packages.Any();
+                StatusMessage = HasUpdates
+                    ? $"{Packages.Count} atualizações encontradas."
+                    : "O seu sistema está totalmente atualizado!";
 
-            UpdateSelectionState();
+                UpdateSelectionState();
+            }).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Verificação cancelada.";
+            await RunOnUIAsync(() => StatusMessage = "Verificação cancelada.").ConfigureAwait(false);
             _logger.LogInformation("A verificação de atualizações foi cancelada pelo usuário.");
         }
         catch (Exception ex)
         {
-            StatusMessage = "Ocorreu um erro ao verificar as atualizações.";
+            await RunOnUIAsync(() => StatusMessage = "Ocorreu um erro ao verificar as atualizações.").ConfigureAwait(false);
             _logger.LogError(ex, "Erro fatal não tratado em CheckUpdatesAsync.");
         }
         finally
         {
-            IsChecking = false;
+            await RunOnUIAsync(() => IsChecking = false).ConfigureAwait(false);
         }
     }
 
@@ -106,51 +132,95 @@ public partial class UpdatesViewModel : ObservableObject
         try
         {
             IsUpdating = true;
-            _cancellationTokenSource = new CancellationTokenSource();
+            using var cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource = cancellationTokenSource;
 
             var pacotesParaAtualizar = Packages.Where(p => p.IsSelected).ToList();
             _logger.LogInformation("Iniciando atualização de {Count} pacotes.", pacotesParaAtualizar.Count);
 
-            int total = pacotesParaAtualizar.Count;
-            int concluidos = 0;
-
-            foreach (var package in pacotesParaAtualizar)
+            var progress = new Progress<(string name, int pct, int cur, int total)>(update =>
             {
-                _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                _ = RunOnUIAsync(() =>
+                {
+                    CurrentUpdatingPackage = update.name;
+                    StatusMessage = $"A atualizar {update.name} ({update.cur} de {update.total})...";
+                    UpdateProgress = update.pct;
+                });
+            });
 
-                CurrentUpdatingPackage = package.Name;
-                StatusMessage = $"A atualizar {package.Name} ({concluidos + 1} de {total})...";
+            var results = await _updateService
+                .ExecuteUpdatesAsync(
+                    pacotesParaAtualizar.Select(package => package.Id),
+                    progress,
+                    cancellationTokenSource.Token)
+                .ConfigureAwait(false);
 
-                // Adicionado o ConfigureAwait(true) para o CA2007
-                await Task.Delay(3000, _cancellationTokenSource.Token).ConfigureAwait(true);
-
-                concluidos++;
-                UpdateProgress = (int)((double)concluidos / total * 100);
-            }
-
-            StatusMessage = "Atualizações concluídas com sucesso!";
+            var failedCount = results.Count(result => !result.Success);
+            await RunOnUIAsync(() =>
+            {
+                StatusMessage = failedCount == 0
+                    ? "Atualizações concluídas com sucesso!"
+                    : $"{failedCount} atualizações falharam.";
+            }).ConfigureAwait(false);
             _logger.LogInformation("Processo de atualização finalizado.");
 
-            Packages.Clear();
-            HasUpdates = false;
-            UpdateSelectionState();
+            await RunOnUIAsync(() =>
+            {
+                Packages.Clear();
+                HasUpdates = false;
+                UpdateSelectionState();
+            }).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Instalação cancelada em andamento.";
+            await RunOnUIAsync(() => StatusMessage = "Instalação cancelada em andamento.").ConfigureAwait(false);
             _logger.LogWarning("O processo de atualização foi interrompido.");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Erro ao atualizar: {CurrentUpdatingPackage}";
+            await RunOnUIAsync(() => StatusMessage = $"Erro ao atualizar: {CurrentUpdatingPackage}").ConfigureAwait(false);
             _logger.LogError(ex, "Erro ao atualizar o pacote {PackageName}.", CurrentUpdatingPackage);
         }
         finally
         {
-            IsUpdating = false;
-            CurrentUpdatingPackage = string.Empty;
-            UpdateProgress = 0;
+            await RunOnUIAsync(() =>
+            {
+                IsUpdating = false;
+                CurrentUpdatingPackage = string.Empty;
+                UpdateProgress = 0;
+            }).ConfigureAwait(false);
         }
+    }
+
+    private Task RunOnUIAsync(Action action)
+    {
+        if (_dispatcherQueue.HasThreadAccess)
+        {
+            action();
+            return Task.CompletedTask;
+        }
+
+        var completionSource = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        if (!_dispatcherQueue.TryEnqueue(() =>
+        {
+            try
+            {
+                action();
+                completionSource.SetResult();
+            }
+            catch (Exception ex)
+            {
+                completionSource.SetException(ex);
+            }
+        }))
+        {
+            completionSource.SetException(
+                new InvalidOperationException("Não foi possível agendar a atualização na thread da UI."));
+        }
+
+        return completionSource.Task;
     }
 
     [RelayCommand]
