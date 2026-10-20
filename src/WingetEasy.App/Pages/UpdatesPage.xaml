@@ -13,12 +13,21 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Botão temporário para carregar os nossos mocks -->
-        <Button Grid.Row="0"
-                Content="Buscar Atualizações (Teste)"
-                Command="{x:Bind ViewModel.CheckUpdatesCommand}"
-                Style="{StaticResource AccentButtonStyle}"
-                Margin="0,0,0,16"/>
+        <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,16">
+            <Button Content="Buscar atualizações"
+                    Command="{x:Bind ViewModel.CheckUpdatesCommand}"
+                    Style="{StaticResource AccentButtonStyle}"/>
+            <ProgressBar Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}"
+                         Visibility="{x:Bind ViewModel.IsUpdatingVisibility}"
+                         Maximum="100"/>
+            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"/>
+            <TextBlock Visibility="{x:Bind ViewModel.IsUpdatingVisibility}"
+                       Text="{x:Bind ViewModel.BatchStatus, Mode=OneWay}"/>
+            <InfoBar IsOpen="{x:Bind ViewModel.IsUpdateSummaryVisible, Mode=OneWay}"
+                     Severity="Informational"
+                     Title="Resumo da atualização"
+                     Message="{x:Bind ViewModel.UpdateSummary, Mode=OneWay}"/>
+        </StackPanel>
 
         <!-- A Lista que renderiza o nosso novo controle -->
         <ListView Grid.Row="1"

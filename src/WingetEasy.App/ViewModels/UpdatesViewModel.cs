@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using WingetEasy.Core.Interfaces;
 
 namespace WingetEasy.App.ViewModels;
@@ -28,6 +29,7 @@ public partial class UpdatesViewModel : ObservableObject
     public partial bool IsChecking { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsUpdatingVisibility))]
     [NotifyCanExecuteChangedFor(nameof(UpdateSelectedCommand))]
     public partial bool IsUpdating { get; set; }
 
@@ -41,11 +43,34 @@ public partial class UpdatesViewModel : ObservableObject
     public partial int UpdateProgress { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BatchStatus))]
+    public partial int BatchCompleted { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BatchStatus))]
+    public partial int BatchTotal { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateSummary))]
+    public partial int SuccessfulUpdates { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateSummary))]
+    public partial int FailedUpdates { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsUpdateSummaryVisible { get; set; }
+
+    [ObservableProperty]
     public partial string CurrentUpdatingPackage { get; set; } = string.Empty;
 
     public ObservableCollection<PackageItemViewModel> Packages { get; } = new();
 
     public int SelectedCount => Packages.Count(p => p.IsSelected);
+    public string SelectedCountText => $"{SelectedCount} selecionados";
+    public Visibility IsUpdatingVisibility => IsUpdating ? Visibility.Visible : Visibility.Collapsed;
+    public string BatchStatus => $"Atualizando {BatchCompleted} de {BatchTotal}...";
+    public string UpdateSummary => $"{SuccessfulUpdates} atualizadas com sucesso; {FailedUpdates} falharam.";
 
     public UpdatesViewModel(
         IWingetService wingetService,
@@ -64,6 +89,7 @@ public partial class UpdatesViewModel : ObservableObject
     public void UpdateSelectionState()
     {
         OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(SelectedCountText));
         UpdateSelectedCommand.NotifyCanExecuteChanged();
     }
 
@@ -86,6 +112,7 @@ public partial class UpdatesViewModel : ObservableObject
             await RunOnUIAsync(() =>
             {
                 Packages.Clear();
+                IsUpdateSummaryVisible = false;
 
                 foreach (var package in updates)
                 {
@@ -120,6 +147,7 @@ public partial class UpdatesViewModel : ObservableObject
         }
         finally
         {
+            _cancellationTokenSource = null;
             await RunOnUIAsync(() => IsChecking = false).ConfigureAwait(false);
         }
     }
@@ -136,15 +164,40 @@ public partial class UpdatesViewModel : ObservableObject
             _cancellationTokenSource = cancellationTokenSource;
 
             var pacotesParaAtualizar = Packages.Where(p => p.IsSelected).ToList();
+            await RunOnUIAsync(() =>
+            {
+                BatchCompleted = 0;
+                BatchTotal = pacotesParaAtualizar.Count;
+                SuccessfulUpdates = 0;
+                FailedUpdates = 0;
+                IsUpdateSummaryVisible = false;
+                UpdateProgress = 0;
+
+                foreach (var package in pacotesParaAtualizar)
+                {
+                    package.UpdateState = PackageUpdateState.Queued;
+                    package.Progress = 0;
+                    package.ErrorMessage = string.Empty;
+                }
+            }).ConfigureAwait(false);
+
             _logger.LogInformation("Iniciando atualização de {Count} pacotes.", pacotesParaAtualizar.Count);
 
             var progress = new Progress<(string name, int pct, int cur, int total)>(update =>
             {
                 _ = RunOnUIAsync(() =>
                 {
-                    CurrentUpdatingPackage = update.name;
-                    StatusMessage = $"A atualizar {update.name} ({update.cur} de {update.total})...";
-                    UpdateProgress = update.pct;
+                    var package = pacotesParaAtualizar.FirstOrDefault(p => p.Id == update.name);
+                    if (package is not null)
+                    {
+                        package.UpdateState = PackageUpdateState.Updating;
+                        package.Progress = update.pct;
+                    }
+
+                    BatchCompleted = Math.Max(0, update.cur - 1);
+                    CurrentUpdatingPackage = package?.Name ?? update.name;
+                    StatusMessage = $"Atualizando {update.cur} de {update.total}...";
+                    UpdateProgress = (int)(((update.cur - 1) * 100d + update.pct) / update.total);
                 });
             });
 
@@ -158,18 +211,33 @@ public partial class UpdatesViewModel : ObservableObject
             var failedCount = results.Count(result => !result.Success);
             await RunOnUIAsync(() =>
             {
+                foreach (var result in results)
+                {
+                    var package = pacotesParaAtualizar.FirstOrDefault(p => p.Id == result.PackageId);
+                    if (package is null)
+                    {
+                        continue;
+                    }
+
+                    package.UpdateState = result.Success
+                        ? PackageUpdateState.Completed
+                        : PackageUpdateState.Failed;
+                    package.Progress = result.Success ? 100 : package.Progress;
+                    package.ErrorMessage = result.ErrorMessage ?? string.Empty;
+                }
+
+                BatchCompleted = results.Count;
+                SuccessfulUpdates = results.Count(result => result.Success);
+                FailedUpdates = failedCount;
+                UpdateProgress = 100;
+                IsUpdateSummaryVisible = true;
                 StatusMessage = failedCount == 0
-                    ? "Atualizações concluídas com sucesso!"
-                    : $"{failedCount} atualizações falharam.";
+                    ? $"{SuccessfulUpdates} atualizações concluídas com sucesso."
+                    : $"{SuccessfulUpdates} atualizações concluídas; {FailedUpdates} falharam.";
             }).ConfigureAwait(false);
             _logger.LogInformation("Processo de atualização finalizado.");
 
-            await RunOnUIAsync(() =>
-            {
-                Packages.Clear();
-                HasUpdates = false;
-                UpdateSelectionState();
-            }).ConfigureAwait(false);
+            await RunOnUIAsync(() => HasUpdates = false).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -183,6 +251,7 @@ public partial class UpdatesViewModel : ObservableObject
         }
         finally
         {
+            _cancellationTokenSource = null;
             await RunOnUIAsync(() =>
             {
                 IsUpdating = false;

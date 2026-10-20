@@ -17,7 +17,26 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <CheckBox Grid.Column="0" IsChecked="{x:Bind ViewModel.IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
+        <Grid Grid.Column="0" Width="32" Height="32" VerticalAlignment="Center">
+            <CheckBox IsChecked="{x:Bind ViewModel.IsSelected, Mode=TwoWay}"
+                      Visibility="{x:Bind ViewModel.IsSelectionVisible}"
+                      VerticalAlignment="Center"/>
+            <ProgressRing IsActive="{x:Bind ViewModel.IsProgressVisible}"
+                          Visibility="{x:Bind ViewModel.IsProgressVisible}"
+                          Width="22"
+                          Height="22"/>
+            <FontIcon Glyph="&#xE73E;"
+                      Foreground="Green"
+                      Visibility="{x:Bind ViewModel.IsCompletedVisible}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+            <FontIcon Glyph="&#xE711;"
+                      Foreground="Red"
+                      Visibility="{x:Bind ViewModel.IsFailedVisible}"
+                      ToolTipService.ToolTip="{x:Bind ViewModel.ErrorMessage}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+        </Grid>
 
         <Border Grid.Column="1" Width="36" Height="36" CornerRadius="8" Background="{x:Bind ViewModel.IconColorHex}">
             <TextBlock Text="{x:Bind ViewModel.Initials}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="14" />

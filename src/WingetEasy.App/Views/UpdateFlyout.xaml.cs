@@ -7,18 +7,23 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Extensions.DependencyInjection;
 using Windows.Graphics;
+using WingetEasy.App.ViewModels;
 
 namespace WingetEasy.App.Views;
 
 public sealed partial class UpdateFlyout : Window
 {
+    public UpdatesViewModel ViewModel { get; }
+
     private AppWindow _appWindow;
     private IntPtr _hwnd;
     private bool _isClosing = false;
 
     public UpdateFlyout()
     {
+        ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
         this.InitializeComponent();
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
