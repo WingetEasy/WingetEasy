@@ -169,12 +169,14 @@ namespace WingetEasy.App
             // Repositórios injetados com escopo AddScoped
             services.AddScoped<ISettingsRepository, WingetEasy.Data.Repositories.SettingsRepository>();
             services.AddScoped<IUpdateHistoryRepository, WingetEasy.Data.Repositories.UpdateHistoryRepository>();
+            services.AddScoped<IBackupSnapshotRepository, WingetEasy.Data.Repositories.BackupSnapshotRepository>();
             services.AddScoped<IPackageRepository, WingetEasy.Data.Repositories.PackageRepository>();
             services.AddScoped<ICheckLogRepository, WingetEasy.Data.Repositories.CheckLogRepository>();
 
             // Alinhamento das regras de arquitetura: Serviços principais como Singletons
             services.AddSingleton<IWingetService, WingetEasy.Core.Services.WingetService>();
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
+            services.AddTransient<IBackupService, WingetEasy.Core.Services.BackupService>();
             services.AddSingleton<ISchedulerService, WingetEasy.Core.Services.SchedulerService>();
             services.AddSingleton<INotificationService, ToastNotificationService>();
             services.AddSingleton<IToastNotificationService>(serviceProvider =>

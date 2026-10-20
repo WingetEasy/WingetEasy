@@ -7,5 +7,8 @@ public record BackupSnapshot(
     string Label,
     DateTime CreatedAt,
     int PackageCount,
-    string WingetVersion
+    string WingetVersion,
+    IReadOnlyList<BackupPackage>? Packages = null
 );
+
+public record BackupPackage(string Id, string Name, string Version);

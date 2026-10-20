@@ -8,6 +8,8 @@ namespace WingetEasy.Core.Models;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(ElevatedJob))]
 [JsonSerializable(typeof(List<UpdateResult>))]
+[JsonSerializable(typeof(BackupSnapshot))]
+[JsonSerializable(typeof(List<BackupPackage>))]
 public partial class CoreJsonContext : JsonSerializerContext
 {
 }
