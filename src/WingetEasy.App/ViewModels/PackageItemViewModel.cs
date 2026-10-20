@@ -2,11 +2,21 @@ using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
 
 namespace WingetEasy.App.ViewModels;
+
+public enum PackageUpdateState
+{
+    Pending,
+    Queued,
+    Updating,
+    Completed,
+    Failed
+}
 
 public partial class PackageItemViewModel : ObservableObject
 {
@@ -14,6 +24,24 @@ public partial class PackageItemViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool IsSelected { get; set; } = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSelectionVisible))]
+    [NotifyPropertyChangedFor(nameof(IsProgressVisible))]
+    [NotifyPropertyChangedFor(nameof(IsCompletedVisible))]
+    [NotifyPropertyChangedFor(nameof(IsFailedVisible))]
+    public partial PackageUpdateState UpdateState { get; set; } = PackageUpdateState.Pending;
+
+    [ObservableProperty]
+    public partial int Progress { get; set; }
+
+    [ObservableProperty]
+    public partial string ErrorMessage { get; set; } = string.Empty;
+
+    public Visibility IsSelectionVisible => UpdateState == PackageUpdateState.Pending ? Visibility.Visible : Visibility.Collapsed;
+    public bool IsProgressVisible => UpdateState is PackageUpdateState.Queued or PackageUpdateState.Updating;
+    public Visibility IsCompletedVisible => UpdateState == PackageUpdateState.Completed ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsFailedVisible => UpdateState == PackageUpdateState.Failed ? Visibility.Visible : Visibility.Collapsed;
 
     public string Id { get; }
     public string Name { get; }

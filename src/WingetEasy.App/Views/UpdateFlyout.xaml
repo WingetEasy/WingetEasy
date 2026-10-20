@@ -2,6 +2,7 @@
     x:Class="WingetEasy.App.Views.UpdateFlyout"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WingetEasy.App.Views.Controls"
     Title="Atualizações Disponíveis">
 
     <Border x:Name="RootGrid" CornerRadius="12" Loaded="RootGrid_Loaded" Background="Transparent">
@@ -24,20 +25,29 @@
                            FontWeight="SemiBold"
                            VerticalAlignment="Center"/>
 
-                <Button Grid.Column="1"
-                        Content="&#xE711;"
-                        FontFamily="Segoe Fluent Icons"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Click="CloseButton_Click"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                    <Button Content="&#xE72C;"
+                            FontFamily="Segoe Fluent Icons"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Command="{x:Bind ViewModel.CheckUpdatesCommand}"/>
+                    <Button Content="&#xE711;"
+                            FontFamily="Segoe Fluent Icons"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="CloseButton_Click"/>
+                </StackPanel>
             </Grid>
 
-            <!-- Content Placeholder (Issue #24) -->
-            <ListView Grid.Row="1" Margin="0,8,0,0">
-                <TextBlock Text="Lista de pacotes virá aqui (Issue #24)"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="Gray"/>
+            <ListView Grid.Row="1"
+                      Margin="0,8,0,0"
+                      ItemsSource="{x:Bind ViewModel.Packages}"
+                      SelectionMode="None">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <controls:PackageItemControl/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
             </ListView>
 
             <!-- Footer -->
@@ -47,13 +57,13 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock x:Name="SelectedCountText"
-                           Text="0 selecionados"
+                <TextBlock Text="{x:Bind ViewModel.SelectedCountText, Mode=OneWay}"
                            VerticalAlignment="Center"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
 
                 <Button Grid.Column="1"
                         Content="Atualizar agora"
+                        Command="{x:Bind ViewModel.UpdateSelectedCommand}"
                         Style="{StaticResource AccentButtonStyle}"
                         Width="140"/>
             </Grid>
