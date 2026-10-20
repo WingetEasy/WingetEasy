@@ -7,5 +7,8 @@ public record UpdateResult(
     string PackageName,
     bool Success,
     string? ErrorMessage = null,
-    TimeSpan? Duration = null
+    TimeSpan? Duration = null,
+    string FromVersion = "",
+    string ToVersion = "",
+    DateTime? UpdatedAt = null
 );
