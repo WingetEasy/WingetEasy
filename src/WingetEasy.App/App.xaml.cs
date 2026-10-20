@@ -22,6 +22,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks;
 using WingetEasy.Data;
 using WingetEasy.Core.Interfaces;
+using WingetEasy.Core.Models;
+using WingetEasy.Core.Services;
 using WingetEasy.App.Services;
 using WingetEasy.App.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -179,6 +181,8 @@ namespace WingetEasy.App
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
             services.AddTransient<IBackupService, WingetEasy.Core.Services.BackupService>();
             services.AddTransient<IProfilesService, WingetEasy.Core.Services.ProfilesService>();
+            services.AddSingleton<CliArgumentsParser>();
+            services.AddTransient<HeadlessRunner>();
             services.AddSingleton<ISchedulerService, WingetEasy.Core.Services.SchedulerService>();
             services.AddSingleton<INotificationService, ToastNotificationService>();
             services.AddSingleton<IToastNotificationService>(serviceProvider =>
@@ -195,14 +199,34 @@ namespace WingetEasy.App
             return services.BuildServiceProvider();
         }
 
-        protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+                protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             try
             {
-                // 1. Aplica as migrations do banco antes de inicializar qualquer lógica
+                var commandArgs = Environment.GetCommandLineArgs();
+                var parser = Services.GetRequiredService<CliArgumentsParser>();
+                if (!parser.TryParse(commandArgs, out var command, out var parseError))
+                {
+                    Log.Error("Falha ao interpretar argumentos CLI: {Error}", parseError);
+                    Log.CloseAndFlush();
+                    Environment.Exit(1);
+                    return;
+                }
+
+                if (command.IsHeadless)
+                {
+                    await MigrateDatabaseAsync(Services).ConfigureAwait(true);
+                    using var scope = Services.CreateScope();
+                    var runner = scope.ServiceProvider.GetRequiredService<HeadlessRunner>();
+                    var exitCode = await runner.RunAsync(command).ConfigureAwait(true);
+                    Log.Information("Comando headless {CommandType} finalizado com código {ExitCode}.", command.Type, exitCode);
+                    Log.CloseAndFlush();
+                    Environment.Exit(exitCode);
+                    return;
+                }
+
                 await MigrateDatabaseAsync(Services).ConfigureAwait(true);
 
-                // 2. Acorda o SchedulerService assim que o banco está estável
                 var scheduler = Services.GetRequiredService<ISchedulerService>();
                 await scheduler.StartAsync().ConfigureAwait(true);
                 Services.GetRequiredService<IToastNotificationService>().Register();
@@ -212,20 +236,15 @@ namespace WingetEasy.App
                     updatesViewModel.CheckUpdatesCommand.Execute(null);
                 };
 
-                // 3. Monta e expõe o ícone na System Tray (Bandeja do Sistema)
                 InitializeTrayIcon();
 
-                // 4. Analisa os argumentos recebidos do sistema operacional
-                var commandArgs = Environment.GetCommandLineArgs();
-                bool minimized = commandArgs.Contains("--minimized");
-
-                if (!minimized)
+                if (command.Type == CliCommandType.Minimized)
                 {
-                    Log.Information("Inicialização padrão detectada. Aguardando interação via System Tray.");
+                    Log.Information("WingetEasy carregado silenciosamente via parâmetro --minimized.");
                 }
                 else
                 {
-                    Log.Information("WingetEasy carregado silenciosamente via parâmetro --minimized.");
+                    Log.Information("Inicialização padrão detectada. Aguardando interação via System Tray.");
                 }
             }
             catch (Exception ex)
@@ -400,3 +419,9 @@ namespace WingetEasy.App
         }
     }
 }
+
+
+
+
+
+
