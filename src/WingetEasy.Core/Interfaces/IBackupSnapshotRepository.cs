@@ -14,4 +14,5 @@ public interface IBackupSnapshotRepository
     Task SaveAsync(BackupSnapshot snapshot, CancellationToken ct = default);
     Task<BackupSnapshot?> GetAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<BackupSnapshot>> GetAllAsync(CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
 }

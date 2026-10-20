@@ -106,6 +106,58 @@ public sealed class BackupServiceTests
     }
 
     [Fact]
+    public async Task ExportJsonAsync_WritesSnapshotData()
+    {
+        var snapshot = new BackupSnapshot(
+            Guid.NewGuid(),
+            "Teste",
+            DateTime.UtcNow,
+            1,
+            "1.8",
+            [new BackupPackage("Contoso.App", "Contoso", "1.0")]);
+        var snapshots = new Mock<IBackupSnapshotRepository>();
+        snapshots.Setup(repository => repository.GetAsync(snapshot.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshot);
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}.json");
+        var service = new BackupService(
+            Mock.Of<IWingetService>(),
+            snapshots.Object,
+            Mock.Of<IUpdateHistoryRepository>());
+
+        try
+        {
+            await service.ExportJsonAsync(snapshot.Id, path);
+            var json = await System.IO.File.ReadAllTextAsync(path);
+            json.Should().Contain("Contoso.App");
+            json.Should().Contain("Teste", because: "the exported file should preserve snapshot metadata");
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DelegatesToSnapshotRepository()
+    {
+        var snapshotId = Guid.NewGuid();
+        var repository = new Mock<IBackupSnapshotRepository>();
+        var service = new BackupService(
+            Mock.Of<IWingetService>(),
+            repository.Object,
+            Mock.Of<IUpdateHistoryRepository>());
+
+        await service.DeleteAsync(snapshotId.ToString());
+
+        repository.Verify(
+            item => item.DeleteAsync(snapshotId.ToString(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public void SnapshotSerialization_RoundTripsMetadataAndPackages()
     {
         var snapshot = new BackupSnapshot(

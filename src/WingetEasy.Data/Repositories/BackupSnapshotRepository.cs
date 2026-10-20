@@ -47,6 +47,25 @@ public sealed class BackupSnapshotRepository : IBackupSnapshotRepository
         return entities.Select(ToModel).ToList();
     }
 
+    public async Task DeleteAsync(string id, CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(id, out var snapshotId))
+        {
+            throw new ArgumentException("O identificador do snapshot é inválido.", nameof(id));
+        }
+
+        var entity = await _dbContext.BackupSnapshots
+            .SingleOrDefaultAsync(snapshot => snapshot.Id == snapshotId, ct)
+            .ConfigureAwait(false);
+        if (entity is null)
+        {
+            return;
+        }
+
+        _dbContext.BackupSnapshots.Remove(entity);
+        await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     private static BackupSnapshot ToModel(BackupSnapshotEntity entity)
     {
         var packages = JsonSerializer.Deserialize<List<BackupPackage>>(entity.Data) ?? [];

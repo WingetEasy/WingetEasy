@@ -106,6 +106,24 @@ public sealed class BackupService : IBackupService
         await File.WriteAllTextAsync(path, builder.ToString(), Encoding.UTF8, ct).ConfigureAwait(false);
     }
 
+    public async Task ExportJsonAsync(Guid snapshotId, string path, CancellationToken ct = default)
+    {
+        var snapshot = await _repository.GetAsync(snapshotId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Snapshot '{snapshotId}' não foi encontrado.");
+
+        await File.WriteAllTextAsync(path, Serialize(snapshot), Encoding.UTF8, ct).ConfigureAwait(false);
+    }
+
+    public Task DeleteAsync(string id, CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(id, out var snapshotId))
+        {
+            throw new ArgumentException("O identificador do snapshot é inválido.", nameof(id));
+        }
+
+        return _repository.DeleteAsync(snapshotId.ToString(), ct);
+    }
+
     internal static string Serialize(BackupSnapshot snapshot) =>
         JsonSerializer.Serialize(snapshot, CoreJsonContext.Default.BackupSnapshot);
 
