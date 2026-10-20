@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -6,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
+using WingetEasy.Core.Models;
 
 namespace WingetEasy.App.ViewModels;
 
@@ -90,6 +92,32 @@ public partial class PackageItemViewModel : ObservableObject
         Category = category;
         _parent = parent;
     }
+
+    public static string Classify(WingetPackage package)
+    {
+        if (package.IsSecurityUpdate)
+        {
+            return "Segurança";
+        }
+
+        var identity = $"{package.Id} {package.Name}";
+        if (ContainsAny(identity, "Microsoft.DotNet", "VCRedist", "WindowsAppRuntime",
+            "DirectX", "OpenJDK", "Runtime", "Redistributable", "SDK"))
+        {
+            return "Runtime";
+        }
+
+        if (ContainsAny(identity, "Chrome", "Firefox", "Edge", "Brave", "Opera",
+            "Antivirus", "Defender", "Security", "Crypt", "KeePass", "Malware"))
+        {
+            return "Segurança";
+        }
+
+        return "App";
+    }
+
+    private static bool ContainsAny(string value, params string[] terms) =>
+        terms.Any(term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
 
     partial void OnIsSelectedChanged(bool value)
     {

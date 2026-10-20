@@ -14,9 +14,32 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,16">
-            <Button Content="Buscar atualizações"
-                    Command="{x:Bind ViewModel.CheckUpdatesCommand}"
-                    Style="{StaticResource AccentButtonStyle}"/>
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox PlaceholderText="Buscar por nome ou ID"
+                         Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <Button Grid.Column="1"
+                        Content="Buscar atualizações"
+                        Command="{x:Bind ViewModel.CheckUpdatesCommand}"
+                        Style="{StaticResource AccentButtonStyle}"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="Categoria:" VerticalAlignment="Center"/>
+                <ToggleButton Content="Todos" Tag="Todos" IsChecked="True" Click="CategoryFilter_Click"/>
+                <ToggleButton Content="App" Tag="App" Click="CategoryFilter_Click"/>
+                <ToggleButton Content="Runtime" Tag="Runtime" Click="CategoryFilter_Click"/>
+                <ToggleButton Content="Segurança" Tag="Segurança" Click="CategoryFilter_Click"/>
+                <ComboBox Width="140"
+                          SelectedIndex="0"
+                          SelectionChanged="SortComboBox_SelectionChanged">
+                    <ComboBoxItem Content="Nome (A-Z)"/>
+                    <ComboBoxItem Content="Categoria"/>
+                    <ComboBoxItem Content="Fonte"/>
+                </ComboBox>
+            </StackPanel>
             <ProgressBar Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}"
                          Visibility="{x:Bind ViewModel.IsUpdatingVisibility}"
                          Maximum="100"/>
