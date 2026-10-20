@@ -186,6 +186,7 @@ namespace WingetEasy.App
             // Mantém a lista de atualizações compartilhada entre as superfícies da aplicação
             services.AddSingleton<UpdatesViewModel>();
             services.AddTransient<HistoryViewModel>();
+            services.AddSingleton<BackupViewModel>();
             services.AddTransient<SettingsViewModel>();
 
             return services.BuildServiceProvider();

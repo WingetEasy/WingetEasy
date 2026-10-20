@@ -1,9 +1,52 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WingetEasy.App.ViewModels;
 
-namespace WingetEasy.App.Pages
+namespace WingetEasy.App.Pages;
+
+public sealed partial class BackupPage : Page
 {
-    public sealed partial class BackupPage : Page
+    public BackupViewModel ViewModel { get; }
+
+    public BackupPage()
     {
-        public BackupPage() { this.InitializeComponent(); }
+        ViewModel = App.Services.GetRequiredService<BackupViewModel>();
+        InitializeComponent();
+        DataContext = ViewModel;
+        ViewModel.InitializeFilePicker(App.MainWindowHandle);
+        Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+    }
+
+    private async void RestoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: BackupSnapshotItemViewModel item })
+        {
+            await ViewModel.RestoreSnapshotCommand.ExecuteAsync(item).ConfigureAwait(true);
+        }
+    }
+
+    private async void ExportScriptButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: BackupSnapshotItemViewModel item })
+        {
+            await ViewModel.ExportScriptCommand.ExecuteAsync(item).ConfigureAwait(true);
+        }
+    }
+
+    private async void ExportJsonButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: BackupSnapshotItemViewModel item })
+        {
+            await ViewModel.ExportJsonCommand.ExecuteAsync(item).ConfigureAwait(true);
+        }
+    }
+
+    private async void DeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: BackupSnapshotItemViewModel item })
+        {
+            await ViewModel.DeleteSnapshotCommand.ExecuteAsync(item).ConfigureAwait(true);
+        }
     }
 }

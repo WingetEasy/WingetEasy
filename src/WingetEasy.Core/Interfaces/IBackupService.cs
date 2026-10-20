@@ -18,4 +18,6 @@ public interface IBackupService
         int maxRetries = 1,
         CancellationToken ct = default);
     Task ExportScriptAsync(Guid snapshotId, string path, CancellationToken ct = default);
+    Task ExportJsonAsync(Guid snapshotId, string path, CancellationToken ct = default);
+    Task DeleteAsync(string id, CancellationToken ct = default);
 }
