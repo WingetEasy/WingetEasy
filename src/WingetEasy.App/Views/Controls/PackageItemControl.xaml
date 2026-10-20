@@ -8,65 +8,179 @@
     mc:Ignorable="d"
     x:DataType="vm:PackageItemViewModel">
 
-    <Grid Padding="12" CornerRadius="8" Background="{ThemeResource PackageCardBackgroundBrush}" ColumnSpacing="12" Margin="0,0,0,4">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
+    <Border Padding="12,10"
+            CornerRadius="8"
+            Background="Transparent"
+            BorderBrush="{ThemeResource SurfaceDividerBrush}"
+            BorderThickness="0,0,0,1">
+        <Grid ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Width="32" Height="32" VerticalAlignment="Center">
-            <CheckBox IsChecked="{x:Bind ViewModel.IsSelected, Mode=TwoWay}"
-                      Visibility="{x:Bind ViewModel.IsSelectionVisible}"
-                      VerticalAlignment="Center"/>
-            <ProgressRing IsActive="{x:Bind ViewModel.IsProgressVisible}"
-                          Visibility="{x:Bind ViewModel.IsProgressVisible}"
-                          Width="22"
-                          Height="22"/>
-            <FontIcon Glyph="&#xE73E;"
-                      Foreground="Green"
-                      Visibility="{x:Bind ViewModel.IsCompletedVisible}"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"/>
-            <FontIcon Glyph="&#xE711;"
-                      Foreground="Red"
-                      Visibility="{x:Bind ViewModel.IsFailedVisible}"
-                      ToolTipService.ToolTip="{x:Bind ViewModel.ErrorMessage}"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"/>
-        </Grid>
+            <!-- Coluna 0: Checkbox de seleção / Status -->
+            <Grid Grid.Column="0" Width="28" Height="28" VerticalAlignment="Center">
+                <CheckBox IsChecked="{x:Bind ViewModel.IsSelected, Mode=TwoWay}"
+                          Visibility="{x:Bind ViewModel.IsSelectionVisible, Mode=OneWay}"
+                          MinWidth="0"
+                          Padding="0"
+                          AutomationProperties.Name="Selecionar pacote para atualização"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center" />
+                <ProgressRing IsActive="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.IsProgressVisibility, Mode=OneWay}"
+                              Width="20"
+                              Height="20" />
+                <Border Width="24"
+                        Height="24"
+                        CornerRadius="12"
+                        Background="{ThemeResource BadgeSuccessBgBrush}"
+                        BorderBrush="{ThemeResource BadgeSuccessBorderBrush}"
+                        BorderThickness="1"
+                        Visibility="{x:Bind ViewModel.IsCompletedVisible, Mode=OneWay}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE73E;"
+                              FontSize="12"
+                              Foreground="{ThemeResource BadgeSuccessFgBrush}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                </Border>
+                <Border Width="24"
+                        Height="24"
+                        CornerRadius="12"
+                        Background="{ThemeResource BadgeErrorBgBrush}"
+                        BorderBrush="{ThemeResource BadgeErrorBorderBrush}"
+                        BorderThickness="1"
+                        Visibility="{x:Bind ViewModel.IsFailedVisible, Mode=OneWay}"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE711;"
+                              FontSize="12"
+                              Foreground="{ThemeResource BadgeErrorFgBrush}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                </Border>
+            </Grid>
 
-        <Border Grid.Column="1" Width="36" Height="36" CornerRadius="8" Background="{x:Bind ViewModel.IconColorHex}">
-            <TextBlock Text="{x:Bind ViewModel.Initials}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="14" />
-        </Border>
+            <!-- Coluna 1: Avatar 40x40 CornerRadius=10 com cor vibrante determinística e 2 letras em branco negrito -->
+            <Border Grid.Column="1"
+                    Width="40"
+                    Height="40"
+                    CornerRadius="10"
+                    Background="{x:Bind ViewModel.IconBrush, Mode=OneWay}"
+                    VerticalAlignment="Center">
+                <TextBlock Text="{x:Bind ViewModel.Initials, Mode=OneWay}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="White"
+                           FontWeight="Bold"
+                           FontSize="14.5" />
+            </Border>
 
-        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
-            <TextBlock Text="{x:Bind ViewModel.Name}" FontWeight="SemiBold" FontSize="14" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="{x:Bind ViewModel.Source}" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                <TextBlock Text="•" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                <TextBlock Text="{x:Bind ViewModel.Version}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <TextBlock Text="&#xE72A;" FontFamily="Segoe Fluent Icons" FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{x:Bind ViewModel.AvailableVersion}" FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" FontWeight="SemiBold" />
+            <!-- Coluna 2: Nome do pacote em negrito em cima e Publisher/ID em cinza abaixo -->
+            <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                           FontWeight="SemiBold"
+                           FontSize="13.5"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="1"
+                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                <TextBlock Text="{x:Bind ViewModel.PublisherDisplay, Mode=OneWay}"
+                           FontSize="11.5"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="1"
+                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
             </StackPanel>
-        </StackPanel>
 
-        <Border Grid.Column="3" VerticalAlignment="Center" Padding="8,4" CornerRadius="12" Background="{x:Bind GetBadgeBackground(ViewModel.Category)}" MinWidth="70">
-            <TextBlock Text="{x:Bind ViewModel.Category}" FontSize="11" FontWeight="SemiBold" Foreground="{x:Bind GetBadgeForeground(ViewModel.Category)}" HorizontalAlignment="Center" />
-        </Border>
+            <!-- Coluna 3: Versão atual em cinza + seta → + Nova versão em azul (#3B82F6) -->
+            <StackPanel Grid.Column="3"
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        VerticalAlignment="Center"
+                        Margin="8,0">
+                <TextBlock Text="{x:Bind ViewModel.Version, Mode=OneWay}"
+                           FontSize="12.5"
+                           Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="→"
+                           FontSize="12.5"
+                           Foreground="{ThemeResource BrandTextTertiaryBrush}"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{x:Bind ViewModel.AvailableVersion, Mode=OneWay}"
+                           FontSize="12.5"
+                           FontWeight="SemiBold"
+                           Foreground="#3B82F6"
+                           VerticalAlignment="Center" />
+            </StackPanel>
 
-        <Button Grid.Column="4" Content="&#xE712;" FontFamily="Segoe Fluent Icons" Background="Transparent" BorderThickness="0" VerticalAlignment="Center" Width="36" Height="36">
-            <Button.Flyout>
-                <MenuFlyout>
-                    <MenuFlyoutItem Text="Ignorar esta vez" Command="{x:Bind ViewModel.SkipOnceCommand}" Icon="Cancel" />
-                    <MenuFlyoutItem Text="Ignorar sempre" Command="{x:Bind ViewModel.SkipAlwaysCommand}" Icon="Stop" />
-                    <MenuFlyoutSeparator />
-                    <MenuFlyoutItem Text="Copiar ID" Command="{x:Bind ViewModel.CopyIdCommand}" Icon="Copy" />
-                    <MenuFlyoutItem Text="Ver no Winget" Command="{x:Bind ViewModel.ViewInWingetCommand}" Icon="Globe" />
-                </MenuFlyout>
-            </Button.Flyout>
-        </Button>
-    </Grid>
+            <!-- Coluna 4: Botão individual "Atualizar" / Estado -->
+            <Grid Grid.Column="4" MinWidth="92" VerticalAlignment="Center">
+                <Button Content="Atualizar"
+                        Command="{x:Bind ViewModel.UpdateSingleCommand}"
+                        Visibility="{x:Bind ViewModel.IsActionButtonVisible, Mode=OneWay}"
+                        Style="{ThemeResource SecondaryButtonStyle}"
+                        Padding="14,5"
+                        CornerRadius="6"
+                        FontSize="12.5"
+                        HorizontalAlignment="Right" />
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="6"
+                            Visibility="{x:Bind ViewModel.IsProgressVisibility, Mode=OneWay}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Atualizando…"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               Foreground="#3B82F6" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="5"
+                            Visibility="{x:Bind ViewModel.IsCompletedVisible, Mode=OneWay}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE73E;"
+                              FontSize="13"
+                              Foreground="{ThemeResource BrandSuccessBrush}" />
+                    <TextBlock Text="Atualizado"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandSuccessBrush}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Coluna 5: Menu de opções extras (Adiar, Ignorar sempre, Copiar ID, Ver no Winget) -->
+            <Button Grid.Column="5"
+                    Content="&#xE712;"
+                    FontFamily="Segoe Fluent Icons"
+                    AutomationProperties.Name="Mais opções do pacote"
+                    ToolTipService.ToolTip="Mais opções"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                    VerticalAlignment="Center"
+                    Width="32"
+                    Height="32"
+                    Padding="0"
+                    CornerRadius="6">
+                <Button.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Adiar (Ignorar esta vez)" Command="{x:Bind ViewModel.SkipOnceCommand}" Icon="Clock" />
+                        <MenuFlyoutItem Text="Ignorar sempre" Command="{x:Bind ViewModel.SkipAlwaysCommand}" Icon="Stop" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Copiar ID" Command="{x:Bind ViewModel.CopyIdCommand}" Icon="Copy" />
+                        <MenuFlyoutItem Text="Ver no Winget" Command="{x:Bind ViewModel.ViewInWingetCommand}" Icon="Globe" />
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </Grid>
+    </Border>
 </UserControl>

@@ -8,29 +8,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <ResourceDictionary Source="Themes/AppStyles.xaml" />
+                <ResourceDictionary Source="Styles/AppStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Default">
-                    <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#5A6BFF" />
-                    <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#12131A" />
-                    <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#1C1D24" />
-                    <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#A0A0A5" />
-                    <SolidColorBrush x:Key="BrandSuccessBrush" Color="#28A745" />
-                </ResourceDictionary>
-
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#5A6BFF" />
-                    <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#F3F4F6" />
-                    <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#12131A" />
-                    <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#6B6B70" />
-                    <SolidColorBrush x:Key="BrandSuccessBrush" Color="#28A745" />
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-
         </ResourceDictionary>
     </Application.Resources>
 </Application>

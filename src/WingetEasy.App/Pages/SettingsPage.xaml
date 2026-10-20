@@ -5,136 +5,595 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Background="{ThemeResource MainAreaBackgroundBrush}">
 
-    <ScrollViewer Padding="36,24,36,36" VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="8" MaxWidth="800" HorizontalAlignment="Stretch">
+    <ScrollViewer Padding="32,24,32,36" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="22" MaxWidth="780" HorizontalAlignment="Left">
 
-            <TextBlock Text="Configurações" FontSize="32" FontWeight="SemiBold" Margin="0,0,0,24" />
+            <TextBlock Text="Configurações"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                       Margin="0,0,0,4" />
 
-            <TextBlock Text="Verificação de atualizações" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,4" />
-
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="16">
-                <StackPanel Spacing="16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Frequência" Style="{StaticResource BodyTextBlockStyle}" />
-                            <TextBlock Text="Com que frequência o WingetEasy deve procurar updates" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                        <ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.FrequencyOptions}"
-                                  SelectedItem="{x:Bind ViewModel.SelectedFrequencyOption, Mode=TwoWay}"
-                                  MinWidth="200" VerticalAlignment="Center" />
-                    </Grid>
-
-                    <MenuFlyoutSeparator />
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Horário da verificação" VerticalAlignment="Center" Style="{StaticResource BodyTextBlockStyle}" />
-                        <TimePicker Grid.Column="1" SelectedTime="{x:Bind ViewModel.CheckTime, Mode=TwoWay}"
-                                    IsEnabled="{x:Bind ViewModel.IsScheduleTimeEditable, Mode=OneWay}"
-                                    VerticalAlignment="Center" />
-                    </Grid>
+            <!-- 1. SEÇÃO: ⚙ Geral -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
+                    <FontIcon Glyph="&#xE713;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <TextBlock Text="Geral"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="Sistema e Aparência" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,4" />
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel>
+                        <!-- Iniciar com o Windows -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Iniciar com o Windows"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Abre na bandeja quando você liga o PC"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.StartWithWindows, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Iniciar com o Windows"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
 
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="16">
-                <StackPanel Spacing="16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Iniciar com o Windows" Style="{StaticResource BodyTextBlockStyle}" />
-                            <TextBlock Text="Abre o WingetEasy silenciosamente na bandeja do sistema" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                        <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.StartWithWindows, Mode=TwoWay}"
-                                      VerticalAlignment="Center" Margin="0,0,-8,0" />
-                    </Grid>
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
 
-                    <MenuFlyoutSeparator />
+                        <!-- Manter na bandeja do sistema -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Manter na bandeja do sistema"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Continua verificando em segundo plano ao fechar"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.KeepInSystemTray, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Manter na bandeja do sistema"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Tema do aplicativo" VerticalAlignment="Center" Style="{StaticResource BodyTextBlockStyle}" />
-                        <ComboBox Grid.Column="1" SelectedIndex="{x:Bind ViewModel.ThemeIndex, Mode=TwoWay}" MinWidth="150" VerticalAlignment="Center">
-                            <ComboBoxItem Content="Claro" />
-                            <ComboBoxItem Content="Escuro" />
-                            <ComboBoxItem Content="Sistema" />
-                        </ComboBox>
-                    </Grid>
+            <!-- 2. SEÇÃO: ↻ Atualizações -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
+                    <FontIcon Glyph="&#xE895;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <TextBlock Text="Atualizações"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
                 </StackPanel>
-            </Border>
 
-            <TextBlock Text="Pacotes ignorados" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,4" />
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel>
+                        <!-- Atualizar automaticamente -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Atualizar automaticamente"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Aplica atualizações sem precisar confirmar"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.AutoUpdate, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Atualizar automaticamente"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
 
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="0">
-                <ListView ItemsSource="{x:Bind ViewModel.IgnoredPackages}"
-                          SelectionMode="None" ShowsScrollingPlaceholders="False"
-                          MaxHeight="250">
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
-                            <Grid Padding="16,12" ColumnSpacing="16">
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
+
+                        <!-- Notificar antes de atualizar -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Notificar antes de atualizar"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Você decide o que entra em cada rodada"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.NotifyBeforeUpdate, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Notificar antes de atualizar"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
+
+                        <!-- Frequência de verificação (Botões Segmentados) -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Frequência de verificação"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Com que frequência procurar atualizações"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+
+                            <Border Grid.Column="1"
+                                    Background="{ThemeResource SegmentedTrackBrush}"
+                                    BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="3"
+                                    VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                    <Button x:Name="FreqBtn0"
+                                            Tag="0"
+                                            Content="A cada hora"
+                                            Click="FrequencySegmentedButton_Click"
+                                            Height="28"
+                                            Padding="11,0"
+                                            CornerRadius="6"
+                                            FontSize="12"
+                                            BorderThickness="0"
+                                            Background="Transparent" />
+                                    <Button x:Name="FreqBtn1"
+                                            Tag="1"
+                                            Content="A cada 6 horas"
+                                            Click="FrequencySegmentedButton_Click"
+                                            Height="28"
+                                            Padding="11,0"
+                                            CornerRadius="6"
+                                            FontSize="12"
+                                            BorderThickness="0"
+                                            Background="Transparent" />
+                                    <Button x:Name="FreqBtn2"
+                                            Tag="2"
+                                            Content="Diariamente"
+                                            Click="FrequencySegmentedButton_Click"
+                                            Height="28"
+                                            Padding="11,0"
+                                            CornerRadius="6"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            BorderThickness="0"
+                                            Background="{ThemeResource SegmentedThumbBrush}" />
+                                    <Button x:Name="FreqBtn3"
+                                            Tag="3"
+                                            Content="Semanalmente"
+                                            Click="FrequencySegmentedButton_Click"
+                                            Height="28"
+                                            Padding="11,0"
+                                            CornerRadius="6"
+                                            FontSize="12"
+                                            BorderThickness="0"
+                                            Background="Transparent" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
+
+                        <!-- Incluir versões beta -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Incluir versões beta"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Considera pacotes de pré-lançamento"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.IncludeBetaVersions, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Incluir versões beta"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 3. SEÇÃO: 🔔 Notificações -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
+                    <FontIcon Glyph="&#xEA8F;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <TextBlock Text="Notificações"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                </StackPanel>
+
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel>
+                        <!-- Avisar sobre segurança -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Avisar sobre segurança"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Destacar correções críticas como importantes"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.SecurityAlerts, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Avisar sobre segurança"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
+
+                        <!-- Horário silencioso -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Horário silencioso"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Não notificar entre 22h e 8h"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.QuietHours, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Horário silencioso"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
+
+                        <!-- Som de notificação -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Som de notificação"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="Tocar um som ao notificar"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.NotificationSound, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          AutomationProperties.Name="Som de notificação"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,-8,0" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 4. SEÇÃO: ☀ Aparência -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
+                    <FontIcon Glyph="&#xE790;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <TextBlock Text="Aparência"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                </StackPanel>
+
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <Grid Padding="16,14" ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Tema do aplicativo"
+                                       FontSize="13.5"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                            <TextBlock Text="Claro, escuro ou seguir o Windows"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Background="{ThemeResource SegmentedTrackBrush}"
+                                BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="3"
+                                VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                <Button x:Name="ThemeBtn0"
+                                        Tag="0"
+                                        Content="Claro"
+                                        Click="ThemeSegmentedButton_Click"
+                                        Height="28"
+                                        Padding="14,0"
+                                        CornerRadius="6"
+                                        FontSize="12"
+                                        BorderThickness="0"
+                                        Background="Transparent" />
+                                <Button x:Name="ThemeBtn1"
+                                        Tag="1"
+                                        Content="Escuro"
+                                        Click="ThemeSegmentedButton_Click"
+                                        Height="28"
+                                        Padding="14,0"
+                                        CornerRadius="6"
+                                        FontSize="12"
+                                        BorderThickness="0"
+                                        Background="Transparent" />
+                                <Button x:Name="ThemeBtn2"
+                                        Tag="2"
+                                        Content="Sistema"
+                                        Click="ThemeSegmentedButton_Click"
+                                        Height="28"
+                                        Padding="14,0"
+                                        CornerRadius="6"
+                                        FontSize="12"
+                                        BorderThickness="0"
+                                        Background="Transparent" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- 5. SEÇÃO: 🛠 Manutenção -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
+                    <FontIcon Glyph="&#xE90F;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <TextBlock Text="Manutenção"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                </StackPanel>
+
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel>
+                        <!-- Catálogo de fontes do Winget -->
+                        <StackPanel Padding="16,14" Spacing="10">
+                            <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{x:Bind}" VerticalAlignment="Center" Style="{StaticResource BodyTextBlockStyle}" />
-                                <Button Grid.Column="1" Content="Restaurar" Style="{StaticResource DefaultButtonStyle}"
-                                        CommandParameter="{x:Bind}"
-                                        Command="{Binding ElementName=RootPage, Path=ViewModel.RemoveIgnoredPackageCommand}" />
+                                <StackPanel VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock Text="Catálogo de fontes do Winget"
+                                               FontSize="13.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                    <TextBlock Text="Redefine e atualiza as fontes locais caso a busca de pacotes apresente falhas"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <ProgressRing IsActive="{x:Bind ViewModel.IsRepairingSources, Mode=OneWay}"
+                                                  Visibility="{x:Bind ViewModel.IsRepairingSourcesVisibility, Mode=OneWay}"
+                                                  Width="18"
+                                                  Height="18"
+                                                  VerticalAlignment="Center" />
+                                    <Button Content="Reparar fontes do Winget"
+                                            AutomationProperties.Name="Reparar fontes do Winget"
+                                            Command="{x:Bind ViewModel.RepairWingetSourcesCommand}"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            VerticalAlignment="Center" />
+                                </StackPanel>
                             </Grid>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-            </Border>
 
-            <TextBlock Text="Windows Package Manager" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,4" />
-            <InfoBar IsOpen="True" IsClosable="False" CornerRadius="8"
-                     Severity="{x:Bind ViewModel.WingetInfoBarSeverity, Mode=OneWay}"
-                     Title="Winget"
-                     Message="{x:Bind ViewModel.WingetStatusMessage, Mode=OneWay}" />
+                            <InfoBar IsOpen="{x:Bind ViewModel.IsRepairStatusVisible, Mode=TwoWay}"
+                                     Severity="{x:Bind ViewModel.RepairStatusSeverity, Mode=OneWay}"
+                                     Title="Manutenção do Winget"
+                                     Message="{x:Bind ViewModel.RepairStatusMessage, Mode=OneWay}"
+                                     CornerRadius="8" />
+                        </StackPanel>
 
-            <TextBlock Text="Sobre" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,4" />
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="16">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                        <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
 
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{x:Bind ViewModel.AppVersionDisplay}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                        <TextBlock Text="{x:Bind ViewModel.AppUpdateStatusMessage, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,4,0,0"/>
+                        <!-- Status do Winget -->
+                        <Grid Padding="16,14" ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="Windows Package Manager"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                <TextBlock Text="{x:Bind ViewModel.WingetStatusMessage, Mode=OneWay}"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Lista de pacotes ignorados (quando houver) -->
+                        <StackPanel Visibility="{x:Bind ViewModel.HasIgnoredPackagesVisibility, Mode=OneWay}">
+                            <Border Height="1" Background="{ThemeResource SurfaceDividerBrush}" Margin="16,0" />
+                            <TextBlock Text="Pacotes ignorados"
+                                       FontSize="12.5"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                                       Margin="16,12,16,4" />
+                            <ListView ItemsSource="{x:Bind ViewModel.IgnoredPackages}"
+                                      SelectionMode="None"
+                                      ShowsScrollingPlaceholders="False"
+                                      MaxHeight="200">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Grid Padding="16,8" ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{x:Bind}"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="13"
+                                                       Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                                            <Button Grid.Column="1"
+                                                    Content="Restaurar"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    Padding="12,4"
+                                                    FontSize="12"
+                                                    AutomationProperties.Name="Restaurar pacote ignorado"
+                                                    CommandParameter="{x:Bind}"
+                                                    Command="{Binding ElementName=RootPage, Path=ViewModel.RemoveIgnoredPackageCommand}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </StackPanel>
                     </StackPanel>
+                </Border>
+            </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Button Content="GitHub" Command="{x:Bind ViewModel.OpenGitHubCommand}" />
-                        <Button Content="Verificar atualizações" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.CheckForAppUpdateCommand}" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+            <!-- 6. SEÇÃO: 🛡 Sobre -->
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
+                    <FontIcon Glyph="&#xEA18;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <TextBlock Text="Sobre"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                </StackPanel>
+
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="18,16">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Image Grid.Column="0"
+                               Source="ms-appx:///Assets/WingetEasy-Logo.png"
+                               Width="46"
+                               Height="46"
+                               VerticalAlignment="Center" />
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="WingetEasy"
+                                       FontSize="15.5"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.AppVersionDisplay}"
+                                       FontSize="12.5"
+                                       Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.AppUpdateStatusMessage, Mode=OneWay}"
+                                       FontSize="11.5"
+                                       Foreground="{ThemeResource BrandTextTertiaryBrush}"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button Content="Procurar atualizações do app"
+                                    AutomationProperties.Name="Verificar atualizações do aplicativo"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{x:Bind ViewModel.CheckForAppUpdateCommand}" />
+                            <Button Content="Ver no GitHub"
+                                    AutomationProperties.Name="Abrir repositório no GitHub"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Command="{x:Bind ViewModel.OpenGitHubCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
 
         </StackPanel>
     </ScrollViewer>

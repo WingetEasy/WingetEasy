@@ -2,7 +2,6 @@ using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
@@ -26,25 +25,22 @@ public sealed partial class UpdateFlyout : Window
         ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
         this.InitializeComponent();
         ViewModel.ElevationConfirmation = ConfirmElevationAsync;
+        (Application.Current as App)?.RegisterUpdateFlyout(this);
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
 
-        // 1. CONFIGURAÇÃO DO PRESENTER (Remove a barra nativa e trava o redimensionamento)
         var presenter = _appWindow.Presenter as OverlappedPresenter;
         if (presenter != null)
         {
             presenter.IsMaximizable = false;
             presenter.IsMinimizable = false;
             presenter.IsResizable = false;
-            presenter.IsAlwaysOnTop = true; // Mantém a notificação sempre visível
-
-            // A MÁGICA: Mantém a borda da janela, mas extermina a barra de título nativa!
+            presenter.IsAlwaysOnTop = true;
             presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
         }
 
-        // 2. Aplica o Fundo Translúcido (Acrylic)
         if (Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
         {
             this.SystemBackdrop = new DesktopAcrylicBackdrop();
@@ -85,8 +81,8 @@ public sealed partial class UpdateFlyout : Window
         uint dpi = GetDpiForWindow(_hwnd);
         double scale = dpi / 96.0;
 
-        int width = (int)(380 * scale);
-        int height = (int)(560 * scale);
+        int width = (int)(336 * scale);
+        int height = (int)(340 * scale);
 
         int padding = (int)(12 * scale);
         int x = workArea.X + workArea.Width - width - padding;
@@ -102,20 +98,30 @@ public sealed partial class UpdateFlyout : Window
         var visual = ElementCompositionPreview.GetElementVisual(RootGrid);
         var compositor = visual.Compositor;
 
-        // Animação de Deslize (Slide Up)
         var slideAnim = compositor.CreateVector3KeyFrameAnimation();
-        slideAnim.InsertKeyFrame(0f, new Vector3(0, 80, 0));
+        slideAnim.InsertKeyFrame(0f, new Vector3(0, 48, 0));
         slideAnim.InsertKeyFrame(1f, new Vector3(0, 0, 0));
-        slideAnim.Duration = TimeSpan.FromMilliseconds(280);
+        slideAnim.Duration = TimeSpan.FromMilliseconds(240);
 
-        // Animação de Opacidade (Fade In) para suavizar a entrada
         var fadeAnim = compositor.CreateScalarKeyFrameAnimation();
         fadeAnim.InsertKeyFrame(0f, 0f);
         fadeAnim.InsertKeyFrame(1f, 1f);
-        fadeAnim.Duration = TimeSpan.FromMilliseconds(280);
+        fadeAnim.Duration = TimeSpan.FromMilliseconds(240);
 
         visual.StartAnimation("Translation", slideAnim);
         visual.StartAnimation("Opacity", fadeAnim);
+    }
+
+    private void OpenButton_Click(object sender, RoutedEventArgs e)
+    {
+        (Application.Current as App)?.ShowMainWindowAndFocusUpdates();
+        this.Close();
+    }
+
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        (Application.Current as App)?.ShowMainWindowAndFocusSettings();
+        this.Close();
     }
 
     private async void CloseButton_Click(object sender, RoutedEventArgs e)

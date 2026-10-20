@@ -11,6 +11,7 @@ using Windows.Graphics;
 using Microsoft.Extensions.DependencyInjection;
 using WingetEasy.Core.Interfaces;
 using WingetEasy.App.Views;
+using WingetEasy.App.ViewModels;
 using WingetEasy.Core.Models;
 
 namespace WingetEasy.App
@@ -31,29 +32,44 @@ namespace WingetEasy.App
         private bool _onboardingShown;
         private readonly IAppUpdateService _appUpdateService;
         private AppUpdateInfo? _availableAppUpdate;
+        private string _activeTag = "updates";
+        private string _currentLang = "pt";
 
+        public UpdatesViewModel UpdatesVM { get; }
 
         public MainWindow()
         {
+            UpdatesVM = App.Services.GetRequiredService<UpdatesViewModel>();
             this.InitializeComponent();
 
-            // 1. Resolução do repositório através do nosso injetor central configurado na Issue 19
             _settingsRepo = App.Services.GetRequiredService<ISettingsRepository>();
             _appUpdateService = App.Services.GetRequiredService<IAppUpdateService>();
 
-            // 2. Acesso à API nativa da janela
             var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             _appWindow = AppWindow.GetFromWindowId(windowId);
 
             var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "Logo.ico");
-            _appWindow.SetIcon(iconPath);
+            if (System.IO.File.Exists(iconPath))
+            {
+                _appWindow.SetIcon(iconPath);
+            }
+
+            try
+            {
+                ExtendsContentIntoTitleBar = true;
+                SetTitleBar(TitleBarDragRegion);
+            }
+            catch
+            {
+                CaptionButtonsSpacer.Width = 0;
+            }
 
             _appWindow.Closing += AppWindow_Closing;
             this.Activated += MainWindow_Activated;
 
-            // 3. Aplica o Material Mica (Win 11) ou Acrylic (Win 10)
             ConfigureBackdrop();
+            UpdateThemeToggleGlyph();
         }
 
         private async Task ShowOnboardingIfNeededAsync()
@@ -68,6 +84,19 @@ namespace WingetEasy.App
             if (string.Equals(completed, "true", StringComparison.OrdinalIgnoreCase))
             {
                 return;
+            }
+
+            if (Content is FrameworkElement rootElement && !rootElement.IsLoaded)
+            {
+                var loadedTcs = new TaskCompletionSource();
+                RoutedEventHandler? onLoaded = null;
+                onLoaded = (_, _) =>
+                {
+                    rootElement.Loaded -= onLoaded;
+                    loadedTcs.TrySetResult();
+                };
+                rootElement.Loaded += onLoaded;
+                await loadedTcs.Task.ConfigureAwait(true);
             }
 
             var dialog = new OnboardingDialog
@@ -94,13 +123,146 @@ namespace WingetEasy.App
             if (_isFirstActivation)
             {
                 _isFirstActivation = false;
-                await RestoreOrCenterWindowAsync().ConfigureAwait(true);
+                try
+                {
+                    await RestoreOrCenterWindowAsync().ConfigureAwait(true);
 
-                // Seleciona e carrega a página de Atualizações na primeira abertura
-                NavView.SelectedItem = NavView.MenuItems[0];
-                await ShowOnboardingIfNeededAsync().ConfigureAwait(true);
-                _ = CheckForAppUpdateInBackgroundAsync();
+                    NavigateToTag(_activeTag);
+                    UpdateThemeToggleGlyph();
+                    await ShowOnboardingIfNeededAsync().ConfigureAwait(true);
+                    _ = CheckForAppUpdateInBackgroundAsync();
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Fatal(ex, "Erro durante ativação inicial da MainWindow.");
+                    Serilog.Log.CloseAndFlush();
+                    throw;
+                }
             }
+        }
+
+        private async void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            var isCurrentlyDark = RootShellGrid.ActualTheme == ElementTheme.Dark;
+            var nextTheme = isCurrentlyDark ? ElementTheme.Light : ElementTheme.Dark;
+            var nextAppTheme = isCurrentlyDark ? AppTheme.Light : AppTheme.Dark;
+
+            if (Application.Current is App app)
+            {
+                app.ApplyTheme(nextTheme);
+            }
+
+            UpdateThemeToggleGlyph(nextTheme);
+
+            try
+            {
+                await _settingsRepo.SetAsync(App.AppThemeSettingsKey, nextAppTheme.ToString()).ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Falha ao persistir tema: {ex}");
+            }
+        }
+
+        public void UpdateThemeToggleGlyph(ElementTheme? forcedTheme = null)
+        {
+            var effective = forcedTheme ?? RootShellGrid.ActualTheme;
+            if (effective == ElementTheme.Default)
+            {
+                effective = Application.Current.RequestedTheme == ApplicationTheme.Dark
+                    ? ElementTheme.Dark
+                    : ElementTheme.Light;
+            }
+
+            ThemeToggleIconText.Text = effective == ElementTheme.Dark ? "☀️" : "🌙";
+        }
+
+        private void NavButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string tag)
+            {
+                NavigateToTag(tag);
+            }
+        }
+
+        private void NavigateToTag(string tag)
+        {
+            _activeTag = tag;
+
+            SetNavVisualState(NavUpdatesButton, BarUpdates, LblUpdates, tag == "updates");
+            SetNavVisualState(NavHistoryButton, BarHistory, LblHistory, tag == "history");
+            SetNavVisualState(NavBackupButton, BarBackup, LblBackup, tag == "backup");
+            SetNavVisualState(NavProfilesButton, BarProfiles, LblProfiles, tag == "profiles");
+            SetNavVisualState(NavSettingsButton, BarSettings, LblSettings, tag == "settings");
+
+            Type? pageType = tag switch
+            {
+                "updates" => typeof(Pages.UpdatesPage),
+                "history" => typeof(Pages.HistoryPage),
+                "backup" => typeof(Pages.BackupPage),
+                "profiles" => typeof(Pages.ProfilesPage),
+                "settings" => typeof(Pages.SettingsPage),
+                _ => null
+            };
+
+            if (pageType != null && ContentFrame.CurrentSourcePageType != pageType)
+            {
+                ContentFrame.Navigate(pageType);
+            }
+        }
+
+        private void SetNavVisualState(Button button, Border indicatorBar, TextBlock label, bool isActive)
+        {
+            indicatorBar.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
+            label.FontWeight = isActive
+                ? Microsoft.UI.Text.FontWeights.SemiBold
+                : Microsoft.UI.Text.FontWeights.Normal;
+            button.Background = isActive
+                ? (Brush)Application.Current.Resources["NavItemActiveBrush"]
+                : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        }
+
+        private void LangPtButton_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyLanguage("pt");
+        }
+
+        private void LangEnButton_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyLanguage("en");
+        }
+
+        private void ApplyLanguage(string lang)
+        {
+            _currentLang = lang;
+            bool isPt = lang == "pt";
+
+            LangPtButton.Background = isPt
+                ? (Brush)Application.Current.Resources["SegmentedThumbBrush"]
+                : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            LangPtButton.Foreground = isPt
+                ? (Brush)Application.Current.Resources["BrandTextPrimaryBrush"]
+                : (Brush)Application.Current.Resources["BrandTextSecondaryBrush"];
+            LangPtButton.FontWeight = isPt
+                ? Microsoft.UI.Text.FontWeights.Bold
+                : Microsoft.UI.Text.FontWeights.SemiBold;
+
+            LangEnButton.Background = !isPt
+                ? (Brush)Application.Current.Resources["SegmentedThumbBrush"]
+                : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            LangEnButton.Foreground = !isPt
+                ? (Brush)Application.Current.Resources["BrandTextPrimaryBrush"]
+                : (Brush)Application.Current.Resources["BrandTextSecondaryBrush"];
+            LangEnButton.FontWeight = !isPt
+                ? Microsoft.UI.Text.FontWeights.Bold
+                : Microsoft.UI.Text.FontWeights.SemiBold;
+
+            LibraryHeaderText.Text = isPt ? "BIBLIOTECA" : "LIBRARY";
+            LblUpdates.Text = isPt ? "Atualizações" : "Updates";
+            LblHistory.Text = isPt ? "Histórico" : "History";
+            LblBackup.Text = "Backup";
+            LblProfiles.Text = isPt ? "Perfis" : "Profiles";
+            LblSettings.Text = isPt ? "Configurações" : "Settings";
         }
 
         private async Task CheckForAppUpdateInBackgroundAsync()
@@ -160,8 +322,8 @@ namespace WingetEasy.App
             var displayArea = DisplayArea.GetFromWindowId(_appWindow.Id, DisplayAreaFallback.Primary);
             var workArea = displayArea.WorkArea;
 
-            int width = 1050;
-            int height = 750;
+            int width = 1080;
+            int height = 760;
             int x = (workArea.Width - width) / 2;
             int y = (workArea.Height - height) / 2;
 
@@ -170,7 +332,6 @@ namespace WingetEasy.App
 
         private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
         {
-            // Cancela a morte da janela
             args.Cancel = true;
 
             var pos = _appWindow.Position;
@@ -179,7 +340,6 @@ namespace WingetEasy.App
             await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
             TrimWorkingSet();
 
-            // A API .Hide() nativamente esconde a janela do Alt+Tab e da Barra de Tarefas
             sender.Hide();
         }
 
@@ -212,36 +372,14 @@ namespace WingetEasy.App
             }
         }
 
-        private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-        {
-            if (args.SelectedItem is NavigationViewItem item && item.Tag != null)
-            {
-                // Mapeia o clique no menu para a página física correspondente
-                // O '?' avisa o C# que esta variável pode ser nula de propósito
-                Type? pageType = item.Tag.ToString() switch
-                {
-                    "updates" => typeof(Pages.UpdatesPage),
-                    "history" => typeof(Pages.HistoryPage),
-                    "backup" => typeof(Pages.BackupPage),
-                    "profiles" => typeof(Pages.ProfilesPage),
-                    "settings" => typeof(Pages.SettingsPage),
-                    _ => null
-                };
-
-                if (pageType != null)
-                {
-                    // Navega e injeta a página dentro do ContentFrame
-                    ContentFrame.Navigate(pageType);
-                }
-            }
-        }
-
         public void FocusUpdatesPage()
         {
-            if (NavView.MenuItems.Count > 0)
-            {
-                NavView.SelectedItem = NavView.MenuItems[0];
-            }
+            NavigateToTag("updates");
+        }
+
+        public void FocusSettingsPage()
+        {
+            NavigateToTag("settings");
         }
     }
 }

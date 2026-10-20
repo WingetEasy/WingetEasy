@@ -29,8 +29,9 @@
                      TextChanged="SearchTextBox_TextChanged"/>
             <Button Grid.Column="2"
                     Content="Exportar CSV"
+                    AutomationProperties.Name="Exportar histórico em CSV"
                     Command="{x:Bind ViewModel.ExportCsvCommand}"
-                    Style="{StaticResource AccentButtonStyle}"/>
+                    Style="{ThemeResource AccentButtonStyle}"/>
         </Grid>
 
         <Grid Grid.Row="1">
@@ -48,7 +49,9 @@
                                             <Border Padding="12"
                                                     Margin="0,0,0,6"
                                                     CornerRadius="8"
-                                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                                    Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                                                    BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                                                    BorderThickness="1">
                                                 <Grid ColumnSpacing="12">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
@@ -56,19 +59,19 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
                                                     <FontIcon Glyph="{x:Bind StatusGlyph}"
-                                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                                              Foreground="{ThemeResource BrandPrimaryBrush}"
                                                               VerticalAlignment="Top"/>
                                                     <StackPanel Grid.Column="1" Spacing="3">
                                                         <TextBlock Text="{x:Bind PackageName}" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{x:Bind PackageId}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                        <TextBlock Text="{x:Bind PackageId}" Foreground="{ThemeResource BrandTextSecondaryBrush}"/>
                                                         <TextBlock Text="{x:Bind VersionTransition}"/>
                                                         <TextBlock Text="{x:Bind ErrorMessage}"
-                                                                   Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                                   Foreground="{ThemeResource BadgeErrorFgBrush}"
                                                                    TextWrapping="Wrap"/>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2" HorizontalAlignment="Right">
                                                         <TextBlock Text="{x:Bind StatusText}" HorizontalAlignment="Right"/>
-                                                        <TextBlock Text="{x:Bind Time}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                        <TextBlock Text="{x:Bind Time}" Foreground="{ThemeResource BrandTextSecondaryBrush}"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>

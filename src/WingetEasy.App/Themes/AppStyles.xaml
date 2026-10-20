@@ -3,38 +3,202 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ResourceDictionary.ThemeDictionaries>
-        <!-- Tema Escuro (Baseado no seu Design) -->
+        <!-- Tema Escuro (Default) -->
         <ResourceDictionary x:Key="Default">
-            <!-- Fundo da linha do pacote (Card) -->
-            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#1E1E20" />
-            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#2A2A2D" />
+            <!-- Brand & Accent (WingetEasy Design Tokens - Dark) -->
+            <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#3B82F6" />
+            <SolidColorBrush x:Key="BrandPrimaryHoverBrush" Color="#60A5FA" />
+            <SolidColorBrush x:Key="BrandAccentTextBrush" Color="#60A5FA" />
+            <SolidColorBrush x:Key="BrandAccentSoftBrush" Color="#293B82F6" />
+            <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#D911151F" />
+            <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#D9161B26" />
+            <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#D9161B26" />
+            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#D911151F" />
+            <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#D91C2230" />
+            <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#F8FAFC" />
+            <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#94A3B8" />
+            <SolidColorBrush x:Key="BrandTextTertiaryBrush" Color="#64748B" />
+            <SolidColorBrush x:Key="BrandSuccessBrush" Color="#34D399" />
 
-            <!-- Badges -->
+            <!-- Navegação e Segmented -->
+            <SolidColorBrush x:Key="NavItemHoverBrush" Color="#1E2638" />
+            <SolidColorBrush x:Key="NavItemActiveBrush" Color="#242E42" />
+            <SolidColorBrush x:Key="SegmentedTrackBrush" Color="#11151F" />
+            <SolidColorBrush x:Key="SegmentedThumbBrush" Color="#242E42" />
+
+            <!-- Superfícies de Cards e Bordas -->
+            <SolidColorBrush x:Key="SurfaceCardBackgroundBrush" Color="#CC1C2230" />
+            <SolidColorBrush x:Key="SurfaceCardSecondaryBackgroundBrush" Color="#CC232B3D" />
+            <SolidColorBrush x:Key="SurfaceCardBorderBrush" Color="#283044" />
+            <SolidColorBrush x:Key="SurfaceCardStrongBorderBrush" Color="#334155" />
+            <SolidColorBrush x:Key="SurfaceDividerBrush" Color="#283044" />
+            <SolidColorBrush x:Key="SurfaceLayerFillBrush" Color="#11151F" />
+
+            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#CC1C2230" />
+            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#CC232B3D" />
+            <SolidColorBrush x:Key="PackageCardBorderBrush" Color="#283044" />
+
+            <!-- Badges Semânticos (Sucesso, Alerta, Erro) -->
+            <SolidColorBrush x:Key="BadgeSuccessBgBrush" Color="#2934D399" />
+            <SolidColorBrush x:Key="BadgeSuccessFgBrush" Color="#34D399" />
+            <SolidColorBrush x:Key="BadgeSuccessBorderBrush" Color="#4D34D399" />
+
+            <SolidColorBrush x:Key="BadgeWarningBgBrush" Color="#4A341E" />
+            <SolidColorBrush x:Key="BadgeWarningFgBrush" Color="#FFA04A" />
+            <SolidColorBrush x:Key="BadgeWarningBorderBrush" Color="#66FFA04A" />
+
+            <SolidColorBrush x:Key="BadgeErrorBgBrush" Color="#4A1E1E" />
+            <SolidColorBrush x:Key="BadgeErrorFgBrush" Color="#FF6B6B" />
+            <SolidColorBrush x:Key="BadgeErrorBorderBrush" Color="#66FF6B6B" />
+
+            <!-- Badges de Categorias (Segurança, Runtime, App) -->
             <SolidColorBrush x:Key="BadgeSecurityBgBrush" Color="#4A1E1E" />
             <SolidColorBrush x:Key="BadgeSecurityFgBrush" Color="#FF6B6B" />
+            <SolidColorBrush x:Key="BadgeSecurityBorderBrush" Color="#66FF6B6B" />
 
             <SolidColorBrush x:Key="BadgeRuntimeBgBrush" Color="#4A341E" />
             <SolidColorBrush x:Key="BadgeRuntimeFgBrush" Color="#FFA04A" />
+            <SolidColorBrush x:Key="BadgeRuntimeBorderBrush" Color="#66FFA04A" />
 
             <SolidColorBrush x:Key="BadgeAppBgBrush" Color="#1E2E4A" />
-            <SolidColorBrush x:Key="BadgeAppFgBrush" Color="#4A8BFF" />
+            <SolidColorBrush x:Key="BadgeAppFgBrush" Color="#60A5FA" />
+            <SolidColorBrush x:Key="BadgeAppBorderBrush" Color="#663B82F6" />
         </ResourceDictionary>
 
-        <!-- Tema Claro -->
-        <ResourceDictionary x:Key="Light">
-            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#F3F3F5" />
-            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#E5E5E9" />
+        <!-- Tema Escuro (Dark) -->
+        <ResourceDictionary x:Key="Dark">
+            <!-- Brand & Accent (WingetEasy Design Tokens - Dark) -->
+            <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#3B82F6" />
+            <SolidColorBrush x:Key="BrandPrimaryHoverBrush" Color="#60A5FA" />
+            <SolidColorBrush x:Key="BrandAccentTextBrush" Color="#60A5FA" />
+            <SolidColorBrush x:Key="BrandAccentSoftBrush" Color="#293B82F6" />
+            <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#D911151F" />
+            <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#D9161B26" />
+            <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#D9161B26" />
+            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#D911151F" />
+            <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#D91C2230" />
+            <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#F8FAFC" />
+            <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#94A3B8" />
+            <SolidColorBrush x:Key="BrandTextTertiaryBrush" Color="#64747E" />
+            <SolidColorBrush x:Key="BrandSuccessBrush" Color="#34D399" />
 
+            <!-- Navegação e Segmented -->
+            <SolidColorBrush x:Key="NavItemHoverBrush" Color="#1E2638" />
+            <SolidColorBrush x:Key="NavItemActiveBrush" Color="#242E42" />
+            <SolidColorBrush x:Key="SegmentedTrackBrush" Color="#11151F" />
+            <SolidColorBrush x:Key="SegmentedThumbBrush" Color="#242E42" />
+
+            <!-- Superfícies de Cards e Bordas -->
+            <SolidColorBrush x:Key="SurfaceCardBackgroundBrush" Color="#CC1C2230" />
+            <SolidColorBrush x:Key="SurfaceCardSecondaryBackgroundBrush" Color="#CC232B3D" />
+            <SolidColorBrush x:Key="SurfaceCardBorderBrush" Color="#283044" />
+            <SolidColorBrush x:Key="SurfaceCardStrongBorderBrush" Color="#334155" />
+            <SolidColorBrush x:Key="SurfaceDividerBrush" Color="#283044" />
+            <SolidColorBrush x:Key="SurfaceLayerFillBrush" Color="#11151F" />
+
+            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#CC1C2230" />
+            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#CC232B3D" />
+            <SolidColorBrush x:Key="PackageCardBorderBrush" Color="#283044" />
+
+            <!-- Badges Semânticos (Sucesso, Alerta, Erro) -->
+            <SolidColorBrush x:Key="BadgeSuccessBgBrush" Color="#2934D399" />
+            <SolidColorBrush x:Key="BadgeSuccessFgBrush" Color="#34D399" />
+            <SolidColorBrush x:Key="BadgeSuccessBorderBrush" Color="#4D34D399" />
+
+            <SolidColorBrush x:Key="BadgeWarningBgBrush" Color="#4A341E" />
+            <SolidColorBrush x:Key="BadgeWarningFgBrush" Color="#FFA04A" />
+            <SolidColorBrush x:Key="BadgeWarningBorderBrush" Color="#66FFA04A" />
+
+            <SolidColorBrush x:Key="BadgeErrorBgBrush" Color="#4A1E1E" />
+            <SolidColorBrush x:Key="BadgeErrorFgBrush" Color="#FF6B6B" />
+            <SolidColorBrush x:Key="BadgeErrorBorderBrush" Color="#66FF6B6B" />
+
+            <!-- Badges de Categorias (Segurança, Runtime, App) -->
+            <SolidColorBrush x:Key="BadgeSecurityBgBrush" Color="#4A1E1E" />
+            <SolidColorBrush x:Key="BadgeSecurityFgBrush" Color="#FF6B6B" />
+            <SolidColorBrush x:Key="BadgeSecurityBorderBrush" Color="#66FF6B6B" />
+
+            <SolidColorBrush x:Key="BadgeRuntimeBgBrush" Color="#4A341E" />
+            <SolidColorBrush x:Key="BadgeRuntimeFgBrush" Color="#FFA04A" />
+            <SolidColorBrush x:Key="BadgeRuntimeBorderBrush" Color="#66FFA04A" />
+
+            <SolidColorBrush x:Key="BadgeAppBgBrush" Color="#1E2E4A" />
+            <SolidColorBrush x:Key="BadgeAppFgBrush" Color="#60A5FA" />
+            <SolidColorBrush x:Key="BadgeAppBorderBrush" Color="#663B82F6" />
+        </ResourceDictionary>
+
+        <!-- Tema Claro (Light) -->
+        <ResourceDictionary x:Key="Light">
+            <!-- Brand & Accent (WingetEasy Design Tokens - Light) -->
+            <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#3B82F6" />
+            <SolidColorBrush x:Key="BrandPrimaryHoverBrush" Color="#2563EB" />
+            <SolidColorBrush x:Key="BrandAccentTextBrush" Color="#3B82F6" />
+            <SolidColorBrush x:Key="BrandAccentSoftBrush" Color="#1F3B82F6" />
+            <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#F2F3F6FC" />
+            <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#EEF0F4F9" />
+            <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#EEF0F4F9" />
+            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#F2F8FAFC" />
+            <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#F2FFFFFF" />
+            <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#0F172A" />
+            <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#475569" />
+            <SolidColorBrush x:Key="BrandTextTertiaryBrush" Color="#64748B" />
+            <SolidColorBrush x:Key="BrandSuccessBrush" Color="#16A34A" />
+
+            <!-- Navegação e Segmented -->
+            <SolidColorBrush x:Key="NavItemHoverBrush" Color="#E2E8F0" />
+            <SolidColorBrush x:Key="NavItemActiveBrush" Color="#DCE5F2" />
+            <SolidColorBrush x:Key="SegmentedTrackBrush" Color="#E2E8F0" />
+            <SolidColorBrush x:Key="SegmentedThumbBrush" Color="#FFFFFF" />
+
+            <!-- Superfícies de Cards e Bordas -->
+            <SolidColorBrush x:Key="SurfaceCardBackgroundBrush" Color="#F2FFFFFF" />
+            <SolidColorBrush x:Key="SurfaceCardSecondaryBackgroundBrush" Color="#EEF1F5F9" />
+            <SolidColorBrush x:Key="SurfaceCardBorderBrush" Color="#CBD5E1" />
+            <SolidColorBrush x:Key="SurfaceCardStrongBorderBrush" Color="#CBD5E1" />
+            <SolidColorBrush x:Key="SurfaceDividerBrush" Color="#E2E8F0" />
+            <SolidColorBrush x:Key="SurfaceLayerFillBrush" Color="#F8FAFC" />
+
+            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#F2FFFFFF" />
+            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#EEF8FAFC" />
+            <SolidColorBrush x:Key="PackageCardBorderBrush" Color="#CBD5E1" />
+
+            <!-- Badges Semânticos (Sucesso, Alerta, Erro) -->
+            <SolidColorBrush x:Key="BadgeSuccessBgBrush" Color="#1F16A34A" />
+            <SolidColorBrush x:Key="BadgeSuccessFgBrush" Color="#16A34A" />
+            <SolidColorBrush x:Key="BadgeSuccessBorderBrush" Color="#4D16A34A" />
+
+            <SolidColorBrush x:Key="BadgeWarningBgBrush" Color="#FFF3E0" />
+            <SolidColorBrush x:Key="BadgeWarningFgBrush" Color="#D97706" />
+            <SolidColorBrush x:Key="BadgeWarningBorderBrush" Color="#66D97706" />
+
+            <SolidColorBrush x:Key="BadgeErrorBgBrush" Color="#FFEBEB" />
+            <SolidColorBrush x:Key="BadgeErrorFgBrush" Color="#D92D2D" />
+            <SolidColorBrush x:Key="BadgeErrorBorderBrush" Color="#66D92D2D" />
+
+            <!-- Badges de Categorias (Segurança, Runtime, App) -->
             <SolidColorBrush x:Key="BadgeSecurityBgBrush" Color="#FFEBEB" />
             <SolidColorBrush x:Key="BadgeSecurityFgBrush" Color="#D92D2D" />
+            <SolidColorBrush x:Key="BadgeSecurityBorderBrush" Color="#66D92D2D" />
 
             <SolidColorBrush x:Key="BadgeRuntimeBgBrush" Color="#FFF3E0" />
             <SolidColorBrush x:Key="BadgeRuntimeFgBrush" Color="#D97706" />
+            <SolidColorBrush x:Key="BadgeRuntimeBorderBrush" Color="#66D97706" />
 
-            <SolidColorBrush x:Key="BadgeAppBgBrush" Color="#E8F0FE" />
-            <SolidColorBrush x:Key="BadgeAppFgBrush" Color="#1A73E8" />
+            <SolidColorBrush x:Key="BadgeAppBgBrush" Color="#EFF6FF" />
+            <SolidColorBrush x:Key="BadgeAppFgBrush" Color="#2563EB" />
+            <SolidColorBrush x:Key="BadgeAppBorderBrush" Color="#663B82F6" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
+
+    <CornerRadius x:Key="CardCornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="ItemCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="BadgeCornerRadius">12</CornerRadius>
+
+    <LinearGradientBrush x:Key="HeroBannerGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1E3A8A" Offset="0.0" />
+        <GradientStop Color="#3B82F6" Offset="0.48" />
+        <GradientStop Color="#6366F1" Offset="1.0" />
+    </LinearGradientBrush>
 
     <Style x:Key="AccentButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource BrandPrimaryBrush}" />
@@ -42,7 +206,37 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="Padding" Value="16,8" />
-        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource SurfaceCardBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource SurfaceCardStrongBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{ThemeResource BrandTextPrimaryBrush}" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="HeroWhiteButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#1E3A8A" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="HeroGhostButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#26FFFFFF" />
+        <Setter Property="BorderBrush" Value="#66FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 </ResourceDictionary>

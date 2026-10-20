@@ -20,8 +20,8 @@
                 <TextBox Grid.Column="1" Text="{Binding DescriptionInput, Mode=TwoWay}" PlaceholderText="Descrição"/>
                 <TextBox Grid.Column="2" Text="{Binding PackageIdsInput, Mode=TwoWay}" PlaceholderText="ID|Nome (um por linha)"/>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
-                    <Button Content="Salvar perfil" Command="{Binding SaveProfileCommand}" Style="{StaticResource AccentButtonStyle}"/>
-                    <Button Content="Cancelar" Command="{Binding CancelEditCommand}"/>
+                    <Button Content="Salvar perfil" AutomationProperties.Name="Salvar perfil" Command="{Binding SaveProfileCommand}" Style="{ThemeResource AccentButtonStyle}"/>
+                    <Button Content="Cancelar" AutomationProperties.Name="Cancelar edição" Command="{Binding CancelEditCommand}"/>
                 </StackPanel>
             </Grid>
             <Button Content="Carregar pacotes instalados" Command="{Binding LoadInstalledPackagesCommand}" HorizontalAlignment="Left"/>
@@ -31,8 +31,10 @@
             <ListView ItemsSource="{Binding Profiles}" SelectionMode="None">
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <Border Padding="16" Margin="0,0,0,10" CornerRadius="8"
-                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                        <Border Padding="16" Margin="0,0,0,10" CornerRadius="10"
+                                Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                                BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                                BorderThickness="1">
                             <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

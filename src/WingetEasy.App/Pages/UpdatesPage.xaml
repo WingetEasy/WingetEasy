@@ -5,63 +5,458 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:WingetEasy.App.Views.Controls"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Background="{ThemeResource MainAreaBackgroundBrush}">
 
-    <Grid Padding="24">
+    <Grid Padding="28,22,28,20" RowSpacing="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,16">
-            <Grid ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox PlaceholderText="Buscar por nome ou ID"
-                         Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Grid.Column="1"
-                        Content="Buscar atualizações"
-                        Command="{x:Bind ViewModel.CheckUpdatesCommand}"
-                        Style="{StaticResource AccentButtonStyle}"/>
-            </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="Categoria:" VerticalAlignment="Center"/>
-                <ToggleButton Content="Todos" Tag="Todos" IsChecked="True" Click="CategoryFilter_Click"/>
-                <ToggleButton Content="App" Tag="App" Click="CategoryFilter_Click"/>
-                <ToggleButton Content="Runtime" Tag="Runtime" Click="CategoryFilter_Click"/>
-                <ToggleButton Content="Segurança" Tag="Segurança" Click="CategoryFilter_Click"/>
-                <ComboBox Width="140"
-                          SelectedIndex="0"
-                          SelectionChanged="SortComboBox_SelectionChanged">
-                    <ComboBoxItem Content="Nome (A-Z)"/>
-                    <ComboBoxItem Content="Categoria"/>
-                    <ComboBoxItem Content="Fonte"/>
-                </ComboBox>
-            </StackPanel>
-            <ProgressBar Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}"
-                         Visibility="{x:Bind ViewModel.IsUpdatingVisibility}"
-                         Maximum="100"/>
-            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"/>
-            <TextBlock Visibility="{x:Bind ViewModel.IsUpdatingVisibility}"
-                       Text="{x:Bind ViewModel.BatchStatus, Mode=OneWay}"/>
-            <InfoBar IsOpen="{x:Bind ViewModel.IsUpdateSummaryVisible, Mode=OneWay}"
-                     Severity="Informational"
-                     Title="Resumo da atualização"
-                     Message="{x:Bind ViewModel.UpdateSummary, Mode=OneWay}"/>
-        </StackPanel>
+        <!-- Conteúdo rolável principal -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+            <StackPanel Spacing="18">
 
-        <!-- A Lista que renderiza o nosso novo controle -->
-        <ListView Grid.Row="1"
-                  ItemsSource="{x:Bind ViewModel.Packages}"
-                  SelectionMode="None"
-                  ShowsScrollingPlaceholders="False">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <controls:PackageItemControl />
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+                <!-- 1. TOPO: Hero Banner (Azul/Roxo) -->
+                <Grid>
+
+                    <!-- Hero Banner Card -->
+                    <Border Grid.Column="0"
+                            CornerRadius="14"
+                            Padding="26,22">
+                        <Border.Background>
+                            <StaticResource ResourceKey="HeroBannerGradientBrush" />
+                        </Border.Background>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Spacing="8" VerticalAlignment="Center" Canvas.ZIndex="2">
+                                <!-- Badge pill WINGETEASY -->
+                                <Border Background="#2EFFFFFF"
+                                        CornerRadius="12"
+                                        Padding="10,4"
+                                        HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE945;" FontSize="11" Foreground="White" />
+                                        <TextBlock Text="WINGETEASY"
+                                                   FontSize="11"
+                                                   FontWeight="Bold"
+                                                   CharacterSpacing="70"
+                                                   Foreground="White" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Título grande: X atualizações disponíveis / Sistema atualizado -->
+                                <TextBlock Text="{x:Bind ViewModel.HeroTitle, Mode=OneWay}"
+                                           FontSize="24"
+                                           FontWeight="Bold"
+                                           Foreground="White"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0" />
+
+                                <!-- Subtítulo -->
+                                <TextBlock Text="{x:Bind ViewModel.HeroSubtitle, Mode=OneWay}"
+                                           FontSize="13"
+                                           Foreground="#E2E8F0"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="420"
+                                           HorizontalAlignment="Left" />
+
+                                <!-- Botões: Atualizar tudo (branco) + Verificar agora (translúcido) -->
+                                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                                    <Button Command="{x:Bind ViewModel.UpdateAllCommand}"
+                                            Style="{StaticResource HeroWhiteButtonStyle}"
+                                            AutomationProperties.Name="Atualizar tudo">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE896;" FontSize="14" Foreground="#1E3A8A" />
+                                            <TextBlock Text="Atualizar tudo" FontWeight="SemiBold" Foreground="#1E3A8A" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Command="{x:Bind ViewModel.CheckUpdatesCommand}"
+                                            Style="{StaticResource HeroGhostButtonStyle}"
+                                            AutomationProperties.Name="Verificar agora">
+                                        <Button.KeyboardAccelerators>
+                                            <KeyboardAccelerator Key="F5" />
+                                            <KeyboardAccelerator Key="R" Modifiers="Control" />
+                                        </Button.KeyboardAccelerators>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE895;" FontSize="14" Foreground="White" />
+                                            <TextBlock Text="Verificar agora" FontWeight="SemiBold" Foreground="White" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- Barra de progresso no banner durante verificação/atualização -->
+                                <ProgressBar IsIndeterminate="{x:Bind ViewModel.IsChecking, Mode=OneWay}"
+                                             Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}"
+                                             Visibility="{x:Bind ViewModel.IsProgressBarVisible, Mode=OneWay}"
+                                             Maximum="100"
+                                             Foreground="White"
+                                             Margin="0,6,0,0" />
+                            </StackPanel>
+
+                            <!-- Logo W estilizado à direita -->
+                            <Image Grid.Column="1"
+                                   Source="ms-appx:///Assets/WingetEasy-Logo.png"
+                                   Width="190"
+                                   Height="150"
+                                   Stretch="Uniform"
+                                   Opacity="0.92"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Right"
+                                   Margin="18,-8,-4,-8" />
+                        </Grid>
+                    </Border>
+
+                </Grid>
+
+                <!-- 2. CABEÇALHO DA SEÇÃO DE ATUALIZAÇÕES -->
+                <Grid ColumnSpacing="16" Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="Atualizações"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.HeaderSubtitle, Mode=OneWay}"
+                                   FontSize="13"
+                                   Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button Command="{x:Bind ViewModel.CheckUpdatesCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                AutomationProperties.Name="Verificar agora">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE895;" FontSize="14" />
+                                <TextBlock Text="Verificar agora" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{x:Bind ViewModel.UpdateAllCommand}"
+                                Style="{StaticResource AccentButtonStyle}"
+                                AutomationProperties.Name="Atualizar tudo">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE896;" FontSize="14" Foreground="White" />
+                                <TextBlock Text="Atualizar tudo" Foreground="White" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Resumo pós-atualização -->
+                <InfoBar IsOpen="{x:Bind ViewModel.IsUpdateSummaryVisible, Mode=OneWay}"
+                         Severity="Informational"
+                         Title="Resumo da atualização"
+                         Message="{x:Bind ViewModel.UpdateSummary, Mode=OneWay}"
+                         CornerRadius="8" />
+
+                <!-- 3. SEÇÃO DE PACOTES ADIADOS ("Adiados") -->
+                <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="8,8,8,6"
+                        Visibility="{x:Bind ViewModel.HasDeferredPackagesVisibility, Mode=OneWay}">
+                    <StackPanel Spacing="4">
+                        <Grid Padding="12,8,12,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Border Width="24"
+                                        Height="24"
+                                        CornerRadius="6"
+                                        Background="{ThemeResource SurfaceCardSecondaryBackgroundBrush}">
+                                    <FontIcon Glyph="&#xE81C;"
+                                              FontSize="13"
+                                              Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="Adiados"
+                                           FontSize="14.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                           VerticalAlignment="Center" />
+                                <Border Background="{ThemeResource SurfaceCardSecondaryBackgroundBrush}"
+                                        CornerRadius="10"
+                                        Padding="8,2"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.DeferredCount, Mode=OneWay}"
+                                               FontSize="11.5"
+                                               FontWeight="Bold"
+                                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                                </Border>
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="1"
+                                       Text="Você optou por não atualizar da última vez"
+                                       FontSize="11.5"
+                                       Foreground="{ThemeResource BrandTextTertiaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.DeferredPackages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:PackageItemControl />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- 4. CARD PRINCIPAL DE PACOTES DISPONÍVEIS ("Disponíveis") -->
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.1*" />
+                        <ColumnDefinition Width="1*" />
+                    </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="8,8,8,10">
+                    <StackPanel Spacing="4">
+                        <!-- Cabeçalho do Card Disponíveis + Busca e Filtros -->
+                        <Grid Padding="12,8,12,8" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Column="0"
+                                      IsChecked="{x:Bind ViewModel.IsAllSelected, Mode=TwoWay}"
+                                      MinWidth="0"
+                                      Padding="0"
+                                      AutomationProperties.Name="Selecionar todos os pacotes"
+                                      VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="Disponíveis"
+                                           FontSize="14.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                           VerticalAlignment="Center" />
+                                <Border Background="{ThemeResource BrandAccentSoftBrush}"
+                                        CornerRadius="10"
+                                        Padding="8,2"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind ViewModel.FilteredCount, Mode=OneWay}"
+                                               FontSize="11.5"
+                                               FontWeight="Bold"
+                                               Foreground="#3B82F6" />
+                                </Border>
+                            </StackPanel>
+
+                            <TextBox x:Name="SearchBox"
+                                     Grid.Column="2"
+                                     PlaceholderText="Buscar por nome ou ID..."
+                                     AutomationProperties.Name="Buscar por nome ou ID"
+                                     MaxWidth="280"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"
+                                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="SearchAccelerator_Invoked" />
+                                </TextBox.KeyboardAccelerators>
+                            </TextBox>
+
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <ToggleButton Content="Todos" Tag="Todos" IsChecked="True" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
+                                <ToggleButton Content="App" Tag="App" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
+                                <ToggleButton Content="Runtime" Tag="Runtime" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
+                                <ToggleButton Content="Segurança" Tag="Segurança" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
+                                <ComboBox Width="130"
+                                          SelectedIndex="0"
+                                          FontSize="12"
+                                          AutomationProperties.Name="Ordenar pacotes"
+                                          SelectionChanged="SortComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="Nome (A-Z)" />
+                                    <ComboBoxItem Content="Categoria" />
+                                    <ComboBoxItem Content="Fonte" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Lista de pacotes disponíveis -->
+                        <ListView ItemsSource="{x:Bind ViewModel.Packages}"
+                                  SelectionMode="None"
+                                  ShowsScrollingPlaceholders="False">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:PackageItemControl />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <!-- Estado vazio quando tudo atualizado -->
+                        <StackPanel Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}"
+                                    HorizontalAlignment="Center"
+                                    Padding="0,28,0,24"
+                                    Spacing="8">
+                            <Border Width="48"
+                                    Height="48"
+                                    CornerRadius="24"
+                                    Background="{ThemeResource BadgeSuccessBgBrush}"
+                                    HorizontalAlignment="Center">
+                                <FontIcon Glyph="&#xE73E;"
+                                          FontSize="22"
+                                          Foreground="{ThemeResource BrandSuccessBrush}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Card Lateral: Rodando em segundo plano -->
+                <Border Grid.Column="1"
+                        Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                        BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Padding="20,18"
+                        VerticalAlignment="Top">
+                    <Grid RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                Width="38"
+                                Height="38"
+                                CornerRadius="10"
+                                Background="{ThemeResource BrandAccentSoftBrush}"
+                                HorizontalAlignment="Left">
+                            <FontIcon Glyph="&#xEA8F;"
+                                      FontSize="17"
+                                      Foreground="{ThemeResource BrandPrimaryBrush}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Row="1" Spacing="3" Margin="0,4,0,0">
+                            <TextBlock Text="Rodando em segundo plano"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                            <TextBlock Text="Notificamos você quando houver novidades. Sem terminal."
+                                       FontSize="12"
+                                       Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="3" Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="Atualização automática"
+                                       FontSize="13"
+                                       FontWeight="Medium"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.AutoUpdateEnabled, Mode=TwoWay}"
+                                          OnContent=""
+                                          OffContent=""
+                                          MinWidth="0"
+                                          Margin="0,0,-8,0"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Border Grid.Row="4"
+                                BorderBrush="{ThemeResource SurfaceDividerBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="0,10,0,0"
+                                Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE823;"
+                                          FontSize="12"
+                                          Foreground="{ThemeResource BrandTextTertiaryBrush}"
+                                          VerticalAlignment="Center" />
+                                <TextBlock Text="Próxima verificação:"
+                                           FontSize="11.5"
+                                           Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                                <TextBlock Text="{x:Bind ViewModel.NextCheckScheduleText, Mode=OneWay}"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource BrandTextPrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 5. BARRA INFERIOR FIXA (Sticky Footer) -->
+        <Border Grid.Row="1"
+                Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="18,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{x:Bind ViewModel.SelectedCountText, Mode=OneWay}"
+                           FontSize="13.5"
+                           FontWeight="Medium"
+                           Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                           VerticalAlignment="Center" />
+
+                <Button Grid.Column="1"
+                        Command="{x:Bind ViewModel.UpdateSelectedCommand}"
+                        Style="{StaticResource AccentButtonStyle}"
+                        AutomationProperties.Name="Atualizar pacotes selecionados">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE896;" FontSize="14" Foreground="White" />
+                        <TextBlock Text="{x:Bind ViewModel.UpdateSelectedButtonText, Mode=OneWay}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

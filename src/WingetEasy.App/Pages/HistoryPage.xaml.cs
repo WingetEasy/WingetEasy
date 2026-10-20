@@ -18,14 +18,17 @@ namespace WingetEasy.App.Pages
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ViewModel.SearchText = SearchTextBox.Text;
+            if (sender is TextBox textBox && ViewModel is not null)
+            {
+                ViewModel.SearchText = textBox.Text;
+            }
         }
 
         private void PeriodComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PeriodComboBox.SelectedIndex >= 0)
+            if (sender is ComboBox comboBox && comboBox.SelectedIndex >= 0 && ViewModel is not null)
             {
-                ViewModel.SelectedPeriod = (HistoryPeriod)PeriodComboBox.SelectedIndex;
+                ViewModel.SelectedPeriod = (HistoryPeriod)comboBox.SelectedIndex;
             }
         }
     }

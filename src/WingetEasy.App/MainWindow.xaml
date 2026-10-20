@@ -4,67 +4,382 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="WingetEasy">
 
-    <Grid>
+    <Grid x:Name="RootShellGrid" Background="{ThemeResource MainAreaBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="42" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <InfoBar x:Name="AppUpdateInfoBar"
-                 Grid.Row="0"
-                 IsOpen="False"
-                 IsClosable="True"
-                 Severity="Informational"
-                 Title="Atualização do WingetEasy"
-                 Message=""
-                 Margin="12,8,12,0">
-            <InfoBar.ActionButton>
-                <Button Content="Reiniciar e atualizar" Click="ApplyAppUpdate_Click" />
-            </InfoBar.ActionButton>
-        </InfoBar>
+        <!-- Barra Superior Customizada (Ícone W + WingetEasy à esquerda, Botão Lua/Sol à direita) -->
+        <Grid Grid.Row="0"
+              Background="{ThemeResource TitleBarBackgroundBrush}"
+              BorderBrush="{ThemeResource SurfaceDividerBrush}"
+              BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-        <NavigationView x:Name="NavView"
-                        Grid.Row="1"
-                        PaneDisplayMode="Left"
-                        IsSettingsVisible="False"
-                        SelectionChanged="NavView_SelectionChanged">
+            <Grid x:Name="TitleBarDragRegion" Grid.Column="0" Background="Transparent" Padding="14,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Image Source="ms-appx:///Assets/WingetEasy-Logo.png"
+                           Width="20"
+                           Height="20" />
+                    <TextBlock Text="WingetEasy"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
 
-            <NavigationView.MenuItems>
-                <NavigationViewItem Content="Atualizações" Tag="updates">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE895;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
+            <Button x:Name="ThemeToggleButton"
+                    Grid.Column="1"
+                    Click="ThemeToggleButton_Click"
+                    ToolTipService.ToolTip="Alternar tema Claro / Escuro"
+                    AutomationProperties.Name="Alternar tema Claro ou Escuro"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Width="36"
+                    Height="32"
+                    Padding="0"
+                    CornerRadius="6"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center">
+                <TextBlock x:Name="ThemeToggleIconText"
+                           Text="🌙"
+                           FontSize="14"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Button>
 
-                <NavigationViewItem Content="Histórico" Tag="history">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE81C;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
+            <Border x:Name="CaptionButtonsSpacer" Grid.Column="2" Width="138" />
+        </Grid>
 
-                <NavigationViewItem Content="Backup" Tag="backup">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE74E;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
+        <!-- Corpo Principal: Sidebar Customizada + Área de Conteúdo -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <NavigationViewItem Content="Profiles" Tag="profiles">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8FD;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.MenuItems>
+            <!-- Sidebar Customizada -->
+            <Grid Grid.Column="0"
+                  Background="{ThemeResource SidebarBackgroundBrush}"
+                  BorderBrush="{ThemeResource SurfaceDividerBrush}"
+                  BorderThickness="0,0,1,0"
+                  Padding="10,12,10,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="Configurações" Tag="settings">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE713;"/>
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.FooterMenuItems>
+                <!-- Rótulo BIBLIOTECA -->
+                <TextBlock x:Name="LibraryHeaderText"
+                           Grid.Row="0"
+                           Text="BIBLIOTECA"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           CharacterSpacing="60"
+                           Foreground="{ThemeResource BrandTextTertiaryBrush}"
+                           Margin="12,4,12,8" />
 
-            <Frame x:Name="ContentFrame" />
+                <!-- Itens de Navegação -->
+                <StackPanel Grid.Row="1" Spacing="4">
+                    <!-- Atualizações -->
+                    <Button x:Name="NavUpdatesButton"
+                            Tag="updates"
+                            Click="NavButton_Click"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="{ThemeResource NavItemActiveBrush}"
+                            BorderThickness="0"
+                            Padding="0"
+                            Height="40"
+                            CornerRadius="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="BarUpdates"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="18"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource BrandPrimaryBrush}"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0" />
+                            <FontIcon Grid.Column="1"
+                                      Glyph="&#xE895;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                      Margin="4,0,12,0"
+                                      VerticalAlignment="Center" />
+                            <TextBlock x:Name="LblUpdates"
+                                       Grid.Column="2"
+                                       Text="Atualizações"
+                                       FontSize="13.5"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <Border Grid.Column="3"
+                                    MinWidth="22"
+                                    Height="20"
+                                    Padding="6,0"
+                                    CornerRadius="10"
+                                    Background="{ThemeResource BrandPrimaryBrush}"
+                                    Visibility="{x:Bind UpdatesVM.AvailableCountBadgeVisibility, Mode=OneWay}"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,10,0">
+                                <TextBlock Text="{x:Bind UpdatesVM.AvailableCount, Mode=OneWay}"
+                                           Foreground="White"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Button>
 
-        </NavigationView>
+                    <!-- Histórico -->
+                    <Button x:Name="NavHistoryButton"
+                            Tag="history"
+                            Click="NavButton_Click"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Height="40"
+                            CornerRadius="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="BarHistory"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="18"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource BrandPrimaryBrush}"
+                                    Visibility="Collapsed"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0" />
+                            <FontIcon Grid.Column="1"
+                                      Glyph="&#xE81C;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                      Margin="4,0,12,0"
+                                      VerticalAlignment="Center" />
+                            <TextBlock x:Name="LblHistory"
+                                       Grid.Column="2"
+                                       Text="Histórico"
+                                       FontSize="13.5"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <!-- Backup -->
+                    <Button x:Name="NavBackupButton"
+                            Tag="backup"
+                            Click="NavButton_Click"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Height="40"
+                            CornerRadius="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="BarBackup"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="18"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource BrandPrimaryBrush}"
+                                    Visibility="Collapsed"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0" />
+                            <FontIcon Grid.Column="1"
+                                      Glyph="&#xE74E;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                      Margin="4,0,12,0"
+                                      VerticalAlignment="Center" />
+                            <TextBlock x:Name="LblBackup"
+                                       Grid.Column="2"
+                                       Text="Backup"
+                                       FontSize="13.5"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <!-- Perfis -->
+                    <Button x:Name="NavProfilesButton"
+                            Tag="profiles"
+                            Click="NavButton_Click"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Height="40"
+                            CornerRadius="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="BarProfiles"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="18"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource BrandPrimaryBrush}"
+                                    Visibility="Collapsed"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0" />
+                            <FontIcon Grid.Column="1"
+                                      Glyph="&#xE8FD;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                      Margin="4,0,12,0"
+                                      VerticalAlignment="Center" />
+                            <TextBlock x:Name="LblProfiles"
+                                       Grid.Column="2"
+                                       Text="Perfis"
+                                       FontSize="13.5"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <!-- Rodapé da Sidebar: Seletor PT | EN + Configurações -->
+                <StackPanel Grid.Row="2" Spacing="8">
+                    <!-- Seletor Segmentado PT | EN -->
+                    <Border Background="{ThemeResource SegmentedTrackBrush}"
+                            BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="3"
+                            Margin="2,0,2,0">
+                        <Grid ColumnSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="LangPtButton"
+                                    Grid.Column="0"
+                                    Content="PT"
+                                    Click="LangPtButton_Click"
+                                    HorizontalAlignment="Stretch"
+                                    Height="28"
+                                    Padding="0"
+                                    CornerRadius="6"
+                                    FontSize="11.5"
+                                    FontWeight="Bold"
+                                    Background="{ThemeResource SegmentedThumbBrush}"
+                                    Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                    BorderThickness="0" />
+                            <Button x:Name="LangEnButton"
+                                    Grid.Column="1"
+                                    Content="EN"
+                                    Click="LangEnButton_Click"
+                                    HorizontalAlignment="Stretch"
+                                    Height="28"
+                                    Padding="0"
+                                    CornerRadius="6"
+                                    FontSize="11.5"
+                                    FontWeight="SemiBold"
+                                    Background="Transparent"
+                                    Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                                    BorderThickness="0" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Botão Configurações -->
+                    <Button x:Name="NavSettingsButton"
+                            Tag="settings"
+                            Click="NavButton_Click"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Height="40"
+                            CornerRadius="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="BarSettings"
+                                    Grid.Column="0"
+                                    Width="3"
+                                    Height="18"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource BrandPrimaryBrush}"
+                                    Visibility="Collapsed"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0" />
+                            <FontIcon Grid.Column="1"
+                                      Glyph="&#xE713;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                      Margin="4,0,12,0"
+                                      VerticalAlignment="Center" />
+                            <TextBlock x:Name="LblSettings"
+                                       Grid.Column="2"
+                                       Text="Configurações"
+                                       FontSize="13.5"
+                                       Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Área de Conteúdo -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <InfoBar x:Name="AppUpdateInfoBar"
+                         Grid.Row="0"
+                         IsOpen="False"
+                         IsClosable="True"
+                         Severity="Informational"
+                         Title="Atualização do WingetEasy"
+                         Message=""
+                         Margin="16,8,16,0">
+                    <InfoBar.ActionButton>
+                        <Button Content="Reiniciar e atualizar" Click="ApplyAppUpdate_Click" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <Frame x:Name="ContentFrame"
+                       Grid.Row="1"
+                       Background="{ThemeResource MainAreaBackgroundBrush}" />
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

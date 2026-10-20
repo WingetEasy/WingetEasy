@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
+using Windows.UI;
 using WingetEasy.Core.Models;
 
 namespace WingetEasy.App.ViewModels;
@@ -22,6 +23,16 @@ public enum PackageUpdateState
 
 public partial class PackageItemViewModel : ObservableObject
 {
+    // Paleta determinística vibrante: Azul, Verde, Roxo, Laranja, Preto
+    private static readonly string[] PaletteHex =
+    [
+        "#0A84FF", // Azul
+        "#16A34A", // Verde
+        "#8B5CF6", // Roxo
+        "#F1502F", // Laranja
+        "#111827"  // Preto
+    ];
+
     private readonly UpdatesViewModel _parent;
 
     [ObservableProperty]
@@ -30,8 +41,10 @@ public partial class PackageItemViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSelectionVisible))]
     [NotifyPropertyChangedFor(nameof(IsProgressVisible))]
+    [NotifyPropertyChangedFor(nameof(IsProgressVisibility))]
     [NotifyPropertyChangedFor(nameof(IsCompletedVisible))]
     [NotifyPropertyChangedFor(nameof(IsFailedVisible))]
+    [NotifyPropertyChangedFor(nameof(IsActionButtonVisible))]
     public partial PackageUpdateState UpdateState { get; set; } = PackageUpdateState.Pending;
 
     [ObservableProperty]
@@ -42,8 +55,12 @@ public partial class PackageItemViewModel : ObservableObject
 
     public Visibility IsSelectionVisible => UpdateState == PackageUpdateState.Pending ? Visibility.Visible : Visibility.Collapsed;
     public bool IsProgressVisible => UpdateState is PackageUpdateState.Queued or PackageUpdateState.Updating;
+    public Visibility IsProgressVisibility => IsProgressVisible ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsCompletedVisible => UpdateState == PackageUpdateState.Completed ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsFailedVisible => UpdateState == PackageUpdateState.Failed ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsActionButtonVisible => UpdateState is PackageUpdateState.Pending or PackageUpdateState.Failed
+        ? Visibility.Visible
+        : Visibility.Collapsed;
 
     public string Id { get; }
     public string Name { get; }
@@ -51,14 +68,144 @@ public partial class PackageItemViewModel : ObservableObject
     public string AvailableVersion { get; }
     public string Source { get; }
     public string Category { get; }
+    public string Publisher { get; }
+    public string PublisherDisplay { get; }
+
+    public Visibility IsSecurityCategory => Category == "Segurança" ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsRuntimeCategory => Category == "Runtime" ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsAppCategory => Category != "Segurança" && Category != "Runtime" ? Visibility.Visible : Visibility.Collapsed;
+
+    public string Initials { get; }
+    public string IconColorHex { get; }
+    public SolidColorBrush IconBrush { get; }
+
+    public PackageItemViewModel(
+        string id,
+        string name,
+        string version,
+        string availableVersion,
+        string source,
+        string category,
+        UpdatesViewModel parent)
+    {
+        Id = id;
+        Name = string.IsNullOrWhiteSpace(name) ? id : name;
+        Version = version;
+        AvailableVersion = availableVersion;
+        Source = string.IsNullOrWhiteSpace(source) ? "winget" : source;
+        Category = category;
+        _parent = parent;
+
+        Publisher = ExtractPublisher(id);
+        PublisherDisplay = string.Equals(Publisher, Id, StringComparison.OrdinalIgnoreCase)
+            ? Id
+            : $"{Publisher} · {Id}";
+
+        Initials = ComputeInitials(Name, Id);
+        IconColorHex = ComputeColorHex(Name, Id);
+        IconBrush = new SolidColorBrush(ParseHexColor(IconColorHex));
+    }
+
+    private static string ExtractPublisher(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return "winget";
+
+        var dotIndex = id.IndexOf('.');
+        return dotIndex > 0 ? id[..dotIndex] : id;
+    }
+
+    private static string ComputeInitials(string name, string id)
+    {
+        var combined = $"{name} {id}";
+        if (combined.Contains("Visual Studio Code", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("VSCode", StringComparison.OrdinalIgnoreCase))
+            return "VS";
+        if (combined.Contains("Chrome", StringComparison.OrdinalIgnoreCase))
+            return "Ch";
+        if (combined.Contains("PowerToys", StringComparison.OrdinalIgnoreCase))
+            return "PT";
+        if (combined.Contains("Notion", StringComparison.OrdinalIgnoreCase))
+            return "N";
+        if (combined.Contains("Git", StringComparison.OrdinalIgnoreCase) && !combined.Contains("GitHub", StringComparison.OrdinalIgnoreCase))
+            return "Gi";
+        if (combined.Contains("Spotify", StringComparison.OrdinalIgnoreCase))
+            return "Sp";
+        if (combined.Contains("7-Zip", StringComparison.OrdinalIgnoreCase) || combined.Contains("7zip", StringComparison.OrdinalIgnoreCase))
+            return "7z";
+
+        var clean = name.Trim();
+        if (string.IsNullOrEmpty(clean))
+            return "PK";
+
+        var words = clean.Split([' ', '-', '.', '_'], StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => char.IsLetterOrDigit(w[0]))
+            .ToArray();
+
+        if (words.Length >= 2 && char.IsLetter(words[0][0]) && char.IsLetter(words[1][0]))
+        {
+            return $"{char.ToUpperInvariant(words[0][0])}{char.ToUpperInvariant(words[1][0])}";
+        }
+
+        if (clean.Length >= 2)
+        {
+            return $"{char.ToUpperInvariant(clean[0])}{char.ToLowerInvariant(clean[1])}";
+        }
+
+        return clean.ToUpperInvariant();
+    }
+
+    private static string ComputeColorHex(string name, string id)
+    {
+        var combined = $"{name} {id}";
+        if (combined.Contains("Visual Studio", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("VSCode", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Docker", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Telegram", StringComparison.OrdinalIgnoreCase))
+            return PaletteHex[0]; // Azul
+        if (combined.Contains("Chrome", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Spotify", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Node", StringComparison.OrdinalIgnoreCase))
+            return PaletteHex[1]; // Verde
+        if (combined.Contains("PowerToys", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Figma", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Discord", StringComparison.OrdinalIgnoreCase))
+            return PaletteHex[2]; // Roxo
+        if (combined.Contains("Git", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("VLC", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Postman", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Brave", StringComparison.OrdinalIgnoreCase))
+            return PaletteHex[3]; // Laranja
+        if (combined.Contains("Notion", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("Terminal", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("OBS", StringComparison.OrdinalIgnoreCase))
+            return PaletteHex[4]; // Preto
+
+        int hash = 0;
+        foreach (var ch in id)
+        {
+            hash = ((hash * 31) + char.ToLowerInvariant(ch)) & 0x7FFFFFFF;
+        }
+
+        return PaletteHex[hash % PaletteHex.Length];
+    }
+
+    private static Color ParseHexColor(string hex)
+    {
+        var s = hex.TrimStart('#');
+        byte r = Convert.ToByte(s[..2], 16);
+        byte g = Convert.ToByte(s[2..4], 16);
+        byte b = Convert.ToByte(s[4..6], 16);
+        return Color.FromArgb(255, r, g, b);
+    }
 
     public Brush GetBadgeBackground(string category)
     {
         var resourceKey = category switch
         {
-            "Segurança" => "#D92D2D",
-            "Runtime" => "#D97706",
-            _ => "#1A73E8"
+            "Segurança" => "BadgeSecurityBgBrush",
+            "Runtime" => "BadgeRuntimeBgBrush",
+            _ => "BadgeAppBgBrush"
         };
 
         return (Brush)App.Current.Resources[resourceKey];
@@ -74,23 +221,6 @@ public partial class PackageItemViewModel : ObservableObject
         };
 
         return (Brush)App.Current.Resources[resourceKey];
-    }
-
-    // Iniciais para gerar o ícone "VS", "Ch", etc (igual ao design)
-    public string Initials => Name.Length >= 2 ? Name.Substring(0, 2).ToUpper() : Name.ToUpper();
-
-    // Cores dinâmicas para o ícone com base no tamanho do nome (simulando a variedade do design)
-    public string IconColorHex => (Name.Length % 3) == 0 ? "#4A8BFF" : (Name.Length % 2) == 0 ? "#10B981" : "#A855F7";
-
-    public PackageItemViewModel(string id, string name, string version, string availableVersion, string source, string category, UpdatesViewModel parent)
-    {
-        Id = id;
-        Name = name;
-        Version = version;
-        AvailableVersion = availableVersion;
-        Source = source;
-        Category = category;
-        _parent = parent;
     }
 
     public static string Classify(WingetPackage package)
@@ -125,6 +255,12 @@ public partial class PackageItemViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task UpdateSingleAsync()
+    {
+        await _parent.UpdateSinglePackageAsync(this).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
     private void CopyId()
     {
         var dp = new DataPackage();
@@ -135,14 +271,13 @@ public partial class PackageItemViewModel : ObservableObject
     [RelayCommand]
     private async Task ViewInWingetAsync()
     {
-        // Abre o navegador padrão na página do pacote com o ConfigureAwait explícito
         await Launcher.LaunchUriAsync(new Uri($"https://winget.run/pkg/{Source}/{Id}")).AsTask().ConfigureAwait(true);
     }
 
     [RelayCommand]
     private void SkipOnce()
     {
-        _parent.RemovePackageFromList(this);
+        _parent.DeferPackage(this);
     }
 
     [RelayCommand]

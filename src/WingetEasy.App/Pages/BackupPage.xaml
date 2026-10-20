@@ -23,8 +23,9 @@
                          PlaceholderText="Rótulo opcional do snapshot"/>
                 <Button Grid.Column="1"
                         Content="Criar Snapshot Agora"
+                        AutomationProperties.Name="Criar Snapshot Agora"
                         Command="{Binding CreateSnapshotCommand}"
-                        Style="{StaticResource AccentButtonStyle}"/>
+                        Style="{ThemeResource AccentButtonStyle}"/>
             </Grid>
             <InfoBar IsOpen="{Binding IsStatusVisible}"
                      Message="{Binding StatusMessage}"
@@ -39,8 +40,10 @@
                     <DataTemplate>
                         <Border Padding="16"
                                 Margin="0,0,0,10"
-                                CornerRadius="8"
-                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                CornerRadius="10"
+                                Background="{ThemeResource SurfaceCardBackgroundBrush}"
+                                BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
+                                BorderThickness="1">
                             <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

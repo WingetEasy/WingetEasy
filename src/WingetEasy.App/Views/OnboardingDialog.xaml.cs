@@ -39,15 +39,34 @@ public sealed partial class OnboardingDialog : ContentDialog
             return;
         }
 
+        var deferral = args.GetDeferral();
         try
         {
-            await SavePreferencesAsync().ConfigureAwait(true);
+            var config = await SavePreferencesAsync().ConfigureAwait(true);
             _completed = true;
+            deferral.Complete();
+            _ = UpdateScheduleAfterCloseAsync(config);
         }
-        catch
+        catch (Exception ex)
         {
             args.Cancel = true;
-            throw;
+            Serilog.Log.Error(ex, "Não foi possível concluir o onboarding do WingetEasy.");
+            if (!_completed)
+            {
+                deferral.Complete();
+            }
+        }
+    }
+
+    private async Task UpdateScheduleAfterCloseAsync(ScheduleConfig config)
+    {
+        try
+        {
+            await _schedulerService.UpdateScheduleAsync(config).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Não foi possível atualizar o agendamento após concluir o onboarding.");
         }
     }
 
@@ -67,6 +86,11 @@ public sealed partial class OnboardingDialog : ContentDialog
 
     private void UpdateStepIndicators()
     {
+        if (StepsFlipView is null || StepOne is null || StepTwo is null || StepThree is null || StepFour is null)
+        {
+            return;
+        }
+
         SecondaryButtonText = StepsFlipView.SelectedIndex > 0 ? "Voltar" : string.Empty;
         PrimaryButtonText = StepsFlipView.SelectedIndex == StepsFlipView.Items.Count - 1
             ? "Concluir"
@@ -82,18 +106,19 @@ public sealed partial class OnboardingDialog : ContentDialog
         }
     }
 
-    private async Task SavePreferencesAsync()
+    private async Task<ScheduleConfig> SavePreferencesAsync()
     {
         var selectedItem = FrequencyComboBox.SelectedItem as ComboBoxItem;
+        var startWithWindows = StartWithWindowsToggle.IsOn;
         var frequency = Enum.TryParse<ScheduleFrequency>(selectedItem?.Tag?.ToString(), out var parsedFrequency)
             ? parsedFrequency
             : ScheduleFrequency.OnceDaily;
         var config = new ScheduleConfig(frequency, TimeSpan.Zero);
 
-        await _settingsRepository.SetAsync(ScheduleConfigKey, config).ConfigureAwait(false);
-        await _schedulerService.UpdateScheduleAsync(config).ConfigureAwait(false);
-        SetStartWithWindows(StartWithWindowsToggle.IsOn);
-        await _settingsRepository.SetAsync(OnboardingCompletedKey, "true").ConfigureAwait(false);
+        await _settingsRepository.SetAsync(ScheduleConfigKey, config).ConfigureAwait(true);
+        SetStartWithWindows(startWithWindows);
+        await _settingsRepository.SetAsync(OnboardingCompletedKey, "true").ConfigureAwait(true);
+        return config;
     }
 
     private static void SetStartWithWindows(bool enabled)
