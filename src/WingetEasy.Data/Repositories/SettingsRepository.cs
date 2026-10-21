@@ -1,9 +1,11 @@
 using System;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using WingetEasy.Core.Interfaces;
+using WingetEasy.Core.Models;
 using WingetEasy.Data.Entities;
 
 namespace WingetEasy.Data.Repositories;
@@ -45,6 +47,11 @@ public class SettingsRepository : ISettingsRepository
 
         try
         {
+            if (CoreJsonContext.Default.GetTypeInfo(typeof(T)) is JsonTypeInfo<T> typeInfo)
+            {
+                return JsonSerializer.Deserialize(value, typeInfo);
+            }
+
             return JsonSerializer.Deserialize<T>(value, JsonSerializerOptions.Default);
         }
         catch
@@ -55,7 +62,9 @@ public class SettingsRepository : ISettingsRepository
 
     public async Task SetAsync<T>(string key, T value, CancellationToken ct = default) where T : class
     {
-        var json = JsonSerializer.Serialize(value, JsonSerializerOptions.Default);
+        var json = CoreJsonContext.Default.GetTypeInfo(typeof(T)) is JsonTypeInfo<T> typeInfo
+            ? JsonSerializer.Serialize(value, typeInfo)
+            : JsonSerializer.Serialize(value, JsonSerializerOptions.Default);
         await SetAsync(key, json, ct).ConfigureAwait(false);
     }
 }

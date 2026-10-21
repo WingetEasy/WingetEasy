@@ -116,7 +116,15 @@ public sealed partial class OnboardingDialog : ContentDialog
         var config = new ScheduleConfig(frequency, TimeSpan.Zero);
 
         await _settingsRepository.SetAsync(ScheduleConfigKey, config).ConfigureAwait(true);
-        SetStartWithWindows(startWithWindows);
+        try
+        {
+            SetStartWithWindows(startWithWindows);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Não foi possível atualizar a inicialização automática com o Windows durante o onboarding.");
+        }
+
         await _settingsRepository.SetAsync(OnboardingCompletedKey, "true").ConfigureAwait(true);
         return config;
     }
