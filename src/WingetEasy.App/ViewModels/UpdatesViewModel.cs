@@ -29,31 +29,60 @@ public partial class UpdatesViewModel : ObservableObject
     private string _searchText = string.Empty;
     private string _categoryFilter = "Todos";
     private string _sortBy = "Nome";
+    private DateTime? _lastCheckTime;
 
-    // Sintaxe moderna para propriedades observáveis
+    public bool HasCheckedOnce { get; private set; }
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBusy))]
+    [NotifyPropertyChangedFor(nameof(IsNotBusy))]
+    [NotifyPropertyChangedFor(nameof(IsProgressBarVisible))]
+    [NotifyPropertyChangedFor(nameof(HeroTitle))]
+    [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateAllCommand))]
     public partial bool IsChecking { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsUpdatingVisibility))]
+    [NotifyPropertyChangedFor(nameof(IsBusy))]
+    [NotifyPropertyChangedFor(nameof(IsNotBusy))]
+    [NotifyPropertyChangedFor(nameof(IsProgressBarVisible))]
+    [NotifyPropertyChangedFor(nameof(HeroTitle))]
+    [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
     [NotifyCanExecuteChangedFor(nameof(UpdateSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateAllCommand))]
     public partial bool IsUpdating { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeroTitle))]
+    [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
+    [NotifyPropertyChangedFor(nameof(HeaderSubtitle))]
+    [NotifyPropertyChangedFor(nameof(UpdateAllButtonText))]
+    [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
+    [NotifyPropertyChangedFor(nameof(FlyoutHasUpdatesVisibility))]
+    [NotifyPropertyChangedFor(nameof(FlyoutCleanVisibility))]
+    [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
+    [NotifyPropertyChangedFor(nameof(AvailableCountBadgeVisibility))]
+    [NotifyCanExecuteChangedFor(nameof(UpdateAllCommand))]
     public partial bool HasUpdates { get; set; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = string.Empty;
+    public partial string StatusMessage { get; set; } = "Clique em Verificar agora para buscar atualizações.";
 
     [ObservableProperty]
     public partial int UpdateProgress { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BatchStatus))]
+    [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
     public partial int BatchCompleted { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BatchStatus))]
+    [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
     public partial int BatchTotal { get; set; }
 
     [ObservableProperty]
@@ -70,7 +99,15 @@ public partial class UpdatesViewModel : ObservableObject
     [ObservableProperty]
     public partial string CurrentUpdatingPackage { get; set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial bool AutoUpdateEnabled { get; set; } = true;
+
+    [ObservableProperty]
+    public partial string NextCheckScheduleText { get; set; } = "Hoje, 18:00";
+
     public ObservableCollection<PackageItemViewModel> Packages { get; } = new();
+    public ObservableCollection<PackageItemViewModel> DeferredPackages { get; } = new();
+    public ObservableCollection<PackageItemViewModel> FlyoutPackages { get; } = new();
 
     public string SearchText
     {
@@ -108,8 +145,83 @@ public partial class UpdatesViewModel : ObservableObject
         }
     }
 
+    public int AvailableCount => _allPackages.Count;
+    public Visibility AvailableCountBadgeVisibility => AvailableCount > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public int FilteredCount => Packages.Count;
+    public int DeferredCount => DeferredPackages.Count;
+    public Visibility HasDeferredPackagesVisibility => DeferredPackages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility EmptyStateVisibility => (!HasUpdates && !IsChecking) ? Visibility.Visible : Visibility.Collapsed;
+
+    public bool IsBusy => IsChecking || IsUpdating;
+    public bool IsNotBusy => !IsChecking && !IsUpdating;
+    public Visibility IsProgressBarVisible => (IsChecking || IsUpdating) ? Visibility.Visible : Visibility.Collapsed;
+
+    public string HeroTitle => IsChecking
+        ? "Verificando atualizações…"
+        : IsUpdating
+            ? "Atualizando pacotes…"
+            : HasUpdates
+                ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+                : "Sistema atualizado";
+
+    public string HeroSubtitle => IsChecking
+        ? "Consultando as fontes do Winget."
+        : IsUpdating
+            ? $"{BatchCompleted} de {BatchTotal} concluídos"
+            : HasUpdates
+                ? "Recomendamos atualizar para manter tudo seguro e rápido."
+                : "Seu sistema está em dia. Última verificação agora há pouco.";
+
+    public string HeaderSubtitle => IsChecking
+        ? "Verificando atualizações…"
+        : IsUpdating
+            ? $"Atualizando ({BatchCompleted}/{BatchTotal})…"
+            : HasUpdates
+                ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+                : "Tudo atualizado";
+
+    public string UpdateAllButtonText => HasUpdates ? "Atualizar tudo" : "Tudo atualizado";
+
     public int SelectedCount => _allPackages.Count(p => p.IsSelected);
-    public string SelectedCountText => $"{SelectedCount} selecionados";
+    public string SelectedCountText => $"Total selecionado: {SelectedCount} {(SelectedCount == 1 ? "pacote" : "pacotes")}";
+    public string UpdateSelectedButtonText => $"Atualizar selecionados ({SelectedCount})";
+
+    public bool IsAllSelected
+    {
+        get => _allPackages.Count > 0 && _allPackages.All(p => p.IsSelected);
+        set
+        {
+            foreach (var p in _allPackages)
+            {
+                p.IsSelected = value;
+            }
+            UpdateSelectionState();
+        }
+    }
+
+    // Propriedades para o Flyout da Bandeja
+    public string FlyoutStatusText => HasUpdates
+        ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+        : "Tudo atualizado";
+
+    public Visibility FlyoutHasUpdatesVisibility => HasUpdates ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility FlyoutCleanVisibility => HasUpdates ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility FlyoutMoreVisibility => AvailableCount > 4 ? Visibility.Visible : Visibility.Collapsed;
+    public string FlyoutMoreText => AvailableCount > 4
+        ? $"+ {AvailableCount - 4} {(AvailableCount - 4 == 1 ? "outro pacote" : "outros pacotes")}"
+        : string.Empty;
+
+    public string LastCheckText
+    {
+        get
+        {
+            if (!_lastCheckTime.HasValue)
+                return "Última verificação há 1 min";
+
+            var mins = Math.Max(1, (int)Math.Round((DateTime.Now - _lastCheckTime.Value).TotalMinutes));
+            return $"Última verificação há {mins} min";
+        }
+    }
 
     /// <summary>
     /// Callback usado pela view ativa para confirmar a abertura do prompt UAC.
@@ -139,16 +251,48 @@ public partial class UpdatesViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(SelectedCount));
         OnPropertyChanged(nameof(SelectedCountText));
+        OnPropertyChanged(nameof(UpdateSelectedButtonText));
+        OnPropertyChanged(nameof(IsAllSelected));
         UpdateSelectedCommand.NotifyCanExecuteChanged();
+        UpdateAllCommand.NotifyCanExecuteChanged();
+    }
+
+    private void NotifyCountsChanged()
+    {
+        OnPropertyChanged(nameof(AvailableCount));
+        OnPropertyChanged(nameof(AvailableCountBadgeVisibility));
+        OnPropertyChanged(nameof(FilteredCount));
+        OnPropertyChanged(nameof(DeferredCount));
+        OnPropertyChanged(nameof(HasDeferredPackagesVisibility));
+        OnPropertyChanged(nameof(EmptyStateVisibility));
+        OnPropertyChanged(nameof(HeroTitle));
+        OnPropertyChanged(nameof(HeroSubtitle));
+        OnPropertyChanged(nameof(HeaderSubtitle));
+        OnPropertyChanged(nameof(UpdateAllButtonText));
+        OnPropertyChanged(nameof(FlyoutStatusText));
+        OnPropertyChanged(nameof(FlyoutHasUpdatesVisibility));
+        OnPropertyChanged(nameof(FlyoutCleanVisibility));
+        OnPropertyChanged(nameof(FlyoutMoreVisibility));
+        OnPropertyChanged(nameof(FlyoutMoreText));
+        OnPropertyChanged(nameof(LastCheckText));
+        UpdateSelectionState();
     }
 
     [RelayCommand]
     private async Task CheckUpdatesAsync()
     {
+        if (IsChecking)
+            return;
+
         try
         {
-            IsChecking = true;
-            StatusMessage = "Procurando atualizações disponíveis...";
+            HasCheckedOnce = true;
+            await RunOnUIAsync(() =>
+            {
+                IsChecking = true;
+                StatusMessage = "Procurando atualizações disponíveis...";
+            }).ConfigureAwait(false);
+
             _logger.LogInformation("Iniciando verificação de atualizações...");
 
             using var cancellationTokenSource = new CancellationTokenSource();
@@ -158,6 +302,8 @@ public partial class UpdatesViewModel : ObservableObject
                 .CheckUpdatesAsync(cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 
+            _lastCheckTime = DateTime.Now;
+
             await RunOnUIAsync(() =>
             {
                 _allPackages.Clear();
@@ -165,6 +311,10 @@ public partial class UpdatesViewModel : ObservableObject
 
                 foreach (var package in updates)
                 {
+                    // Se o pacote já estava em DeferredPackages, não duplica
+                    if (DeferredPackages.Any(d => string.Equals(d.Id, package.Id, StringComparison.OrdinalIgnoreCase)))
+                        continue;
+
                     _allPackages.Add(new PackageItemViewModel(
                         package.Id,
                         package.Name,
@@ -181,7 +331,8 @@ public partial class UpdatesViewModel : ObservableObject
                     ? $"{_allPackages.Count} atualizações encontradas."
                     : "O seu sistema está totalmente atualizado!";
 
-                UpdateSelectionState();
+                NotifyCountsChanged();
+                (Application.Current as App)?.UpdateTrayState(_allPackages.Count);
 
                 if (HasUpdates)
                 {
@@ -202,22 +353,50 @@ public partial class UpdatesViewModel : ObservableObject
         finally
         {
             _cancellationTokenSource = null;
-            await RunOnUIAsync(() => IsChecking = false).ConfigureAwait(false);
+            await RunOnUIAsync(() =>
+            {
+                IsChecking = false;
+                NotifyCountsChanged();
+            }).ConfigureAwait(false);
         }
     }
 
-    private bool CanUpdate() => SelectedCount > 0 && !IsUpdating;
+    private bool CanUpdate() => SelectedCount > 0 && !IsUpdating && !IsChecking;
+    private bool CanUpdateAll() => _allPackages.Count > 0 && !IsUpdating && !IsChecking;
+
+    [RelayCommand(CanExecute = nameof(CanUpdateAll))]
+    private async Task UpdateAllAsync()
+    {
+        SelectAll();
+        await UpdateSelectedAsync().ConfigureAwait(true);
+    }
 
     [RelayCommand(CanExecute = nameof(CanUpdate))]
     private async Task UpdateSelectedAsync()
     {
+        var pacotesParaAtualizar = _allPackages.Where(p => p.IsSelected).ToList();
+        await ExecutePackageBatchAsync(pacotesParaAtualizar).ConfigureAwait(false);
+    }
+
+    public async Task UpdateSinglePackageAsync(PackageItemViewModel package)
+    {
+        if (IsUpdating)
+            return;
+
+        await ExecutePackageBatchAsync([package]).ConfigureAwait(false);
+    }
+
+    private async Task ExecutePackageBatchAsync(System.Collections.Generic.List<PackageItemViewModel> pacotesParaAtualizar)
+    {
+        if (pacotesParaAtualizar.Count == 0)
+            return;
+
         try
         {
-            IsUpdating = true;
+            await RunOnUIAsync(() => IsUpdating = true).ConfigureAwait(false);
             using var cancellationTokenSource = new CancellationTokenSource();
             _cancellationTokenSource = cancellationTokenSource;
 
-            var pacotesParaAtualizar = _allPackages.Where(p => p.IsSelected).ToList();
             await RunOnUIAsync(() =>
             {
                 BatchCompleted = 0;
@@ -290,10 +469,17 @@ public partial class UpdatesViewModel : ObservableObject
                     ? $"{SuccessfulUpdates} atualizações concluídas com sucesso."
                     : $"{SuccessfulUpdates} atualizações concluídas; {FailedUpdates} falharam.";
             }).ConfigureAwait(false);
+
             _logger.LogInformation("Processo de atualização finalizado.");
             _notificationService.ShowUpdateComplete(SuccessfulUpdates, FailedUpdates);
 
-            await RunOnUIAsync(() => HasUpdates = false).ConfigureAwait(false);
+            await RunOnUIAsync(() =>
+            {
+                var remainingCount = _allPackages.Count(p => p.UpdateState != PackageUpdateState.Completed);
+                HasUpdates = remainingCount > 0;
+                NotifyCountsChanged();
+                (Application.Current as App)?.UpdateTrayState(remainingCount);
+            }).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -313,6 +499,7 @@ public partial class UpdatesViewModel : ObservableObject
                 IsUpdating = false;
                 CurrentUpdatingPackage = string.Empty;
                 UpdateProgress = 0;
+                NotifyCountsChanged();
             }).ConfigureAwait(false);
         }
     }
@@ -375,12 +562,37 @@ public partial class UpdatesViewModel : ObservableObject
         UpdateSelectionState();
     }
 
+    public void DeferPackage(PackageItemViewModel package)
+    {
+        if (_allPackages.Remove(package))
+        {
+            Packages.Remove(package);
+            if (!DeferredPackages.Contains(package))
+            {
+                DeferredPackages.Add(package);
+            }
+        }
+        else if (DeferredPackages.Remove(package))
+        {
+            _allPackages.Add(package);
+            ApplyFilters();
+        }
+
+        HasUpdates = _allPackages.Count > 0;
+        RefreshFlyoutPackages();
+        NotifyCountsChanged();
+        (Application.Current as App)?.UpdateTrayState(_allPackages.Count);
+    }
+
     public void RemovePackageFromList(PackageItemViewModel package)
     {
         _allPackages.Remove(package);
         Packages.Remove(package);
-        UpdateSelectionState();
+        DeferredPackages.Remove(package);
         HasUpdates = _allPackages.Count > 0;
+        RefreshFlyoutPackages();
+        NotifyCountsChanged();
+        (Application.Current as App)?.UpdateTrayState(_allPackages.Count);
     }
 
     public async Task SkipPackagePermanentlyAsync(PackageItemViewModel package)
@@ -389,6 +601,15 @@ public partial class UpdatesViewModel : ObservableObject
         _logger.LogInformation("Pacote {PackageId} adicionado à lista de ignorados permanentes.", package.Id);
 
         RemovePackageFromList(package);
+    }
+
+    private void RefreshFlyoutPackages()
+    {
+        FlyoutPackages.Clear();
+        foreach (var pkg in _allPackages.Take(4))
+        {
+            FlyoutPackages.Add(pkg);
+        }
     }
 
     public void ApplyFilters()
@@ -414,8 +635,8 @@ public partial class UpdatesViewModel : ObservableObject
             Packages.Add(package);
         }
 
-        OnPropertyChanged(nameof(SelectedCount));
-        OnPropertyChanged(nameof(SelectedCountText));
+        RefreshFlyoutPackages();
+        NotifyCountsChanged();
     }
 
     private static int CategoryOrder(string category) => category switch

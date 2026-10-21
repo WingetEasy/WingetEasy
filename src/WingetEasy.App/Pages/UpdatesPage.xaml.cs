@@ -16,8 +16,17 @@ namespace WingetEasy.App.Pages
         public UpdatesPage()
         {
             ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
-            this.InitializeComponent(); // OBRIGATÓRIO PARA O XAML COMPILAR
+            this.InitializeComponent();
             ViewModel.ElevationConfirmation = ConfirmElevationAsync;
+
+            Loaded += (_, _) =>
+            {
+                if (!ViewModel.HasCheckedOnce && !ViewModel.IsChecking)
+                {
+                    ViewModel.CheckUpdatesCommand.Execute(null);
+                }
+            };
+
             Unloaded += (_, _) =>
             {
                 if (ViewModel.ElevationConfirmation == (Func<Task<bool>>)ConfirmElevationAsync)
@@ -53,6 +62,15 @@ namespace WingetEasy.App.Pages
                     _ => "Nome"
                 };
             }
+        }
+
+        private void SearchAccelerator_Invoked(
+            Microsoft.UI.Xaml.Input.KeyboardAccelerator sender,
+            Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+        {
+            SearchBox.Focus(FocusState.Programmatic);
+            SearchBox.SelectAll();
+            args.Handled = true;
         }
 
         private async Task<bool> ConfirmElevationAsync()

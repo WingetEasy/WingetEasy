@@ -18,5 +18,6 @@ public interface IWingetService
     Task<IEnumerable<WingetPackage>> GetInstalledPackagesAsync(CancellationToken ct = default);
     Task<bool> IsWingetAvailableAsync();
     Task<string> GetWingetVersionAsync();
+    Task<bool> RepairSourcesAsync(CancellationToken ct = default);
 }
 

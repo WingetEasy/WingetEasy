@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -40,8 +41,14 @@ namespace WingetEasy.App
     /// </summary>
     public partial class App : Application
     {
+        [DllImport("psapi.dll")]
+        private static extern int EmptyWorkingSet(IntPtr hProcess);
+
         private Window? _window;
+        private Views.UpdateFlyout? _updateFlyout;
         private H.NotifyIcon.TaskbarIcon? _trayIcon;
+        private readonly Windows.UI.ViewManagement.UISettings _uiSettings = new();
+        private ElementTheme _currentTheme = ElementTheme.Default;
         public static IntPtr MainWindowHandle { get; private set; }
 
         /// <summary>
@@ -93,6 +100,11 @@ namespace WingetEasy.App
             }
 
             InitializeComponent();
+            this.UnhandledException += (_, e) =>
+            {
+                Log.Fatal(e.Exception, "Exceção não tratada na UI: {Message}", e.Message);
+                Log.CloseAndFlush();
+            };
 
             Services = ConfigureServices();
             AppNotificationManager.Default.NotificationInvoked += OnNotificationInvoked;
@@ -123,7 +135,7 @@ namespace WingetEasy.App
                                     StartInfo = new ProcessStartInfo
                                     {
                                         FileName = "winget.exe",
-                                        Arguments  = $"update --exact --id {id} --accept-package-agreements --accept-source-agreements --silent",
+                                        Arguments = $"update --exact --id {id} --accept-package-agreements --accept-source-agreements --silent",
                                         UseShellExecute = false,
                                         CreateNoWindow = true,
                                         RedirectStandardOutput = true,
@@ -212,7 +224,7 @@ namespace WingetEasy.App
             return services.BuildServiceProvider();
         }
 
-                protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             try
             {
@@ -239,6 +251,12 @@ namespace WingetEasy.App
                 }
 
                 await MigrateDatabaseAsync(Services).ConfigureAwait(true);
+                var isMinimized = command.Type == CliCommandType.Minimized;
+                if (!isMinimized)
+                {
+                    await ApplySavedThemeAsync().ConfigureAwait(true);
+                    _uiSettings.ColorValuesChanged += OnColorValuesChanged;
+                }
 
                 var scheduler = Services.GetRequiredService<ISchedulerService>();
                 await scheduler.StartAsync().ConfigureAwait(true);
@@ -251,13 +269,18 @@ namespace WingetEasy.App
 
                 InitializeTrayIcon();
 
-                if (command.Type == CliCommandType.Minimized)
+                var initialUpdatesVm = Services.GetRequiredService<UpdatesViewModel>();
+                await initialUpdatesVm.CheckUpdatesCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+                if (isMinimized)
                 {
+                    OptimizeBackgroundMemory();
                     Log.Information("WingetEasy carregado silenciosamente via parâmetro --minimized.");
                 }
                 else
                 {
-                    Log.Information("Inicialização padrão detectada. Aguardando interação via System Tray.");
+                    Log.Information("Inicialização padrão detectada. Abrindo janela principal.");
+                    ShowMainWindow();
                 }
             }
             catch (Exception ex)
@@ -267,11 +290,23 @@ namespace WingetEasy.App
             }
         }
 
+        private static void OptimizeBackgroundMemory()
+        {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: false, compacting: false);
+            GC.WaitForPendingFinalizers();
+
+            using var process = Process.GetCurrentProcess();
+            if (EmptyWorkingSet(process.Handle) == 0)
+            {
+                Log.Debug("Não foi possível reduzir o working set do processo em modo minimizado.");
+            }
+        }
+
         private void InitializeTrayIcon()
         {
-            // 1. CRIANDO OS ITENS USANDO "COMMANDS" (À prova de falhas na Bandeja do Sistema)
             var menuVerificar = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Verificar agora", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE72C" } };
-            menuVerificar.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+            menuVerificar.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
+            {
                 try
                 {
                     Log.Information("Usuário clicou em Verificar Agora.");
@@ -285,29 +320,33 @@ namespace WingetEasy.App
             });
 
             var menuAtualizacoes = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Atualizações disponíveis (0)", Visibility = Microsoft.UI.Xaml.Visibility.Collapsed, Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE895" } };
-            menuAtualizacoes.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+            menuAtualizacoes.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindowAndFocusUpdates);
+
+            var menuFlyoutPainel = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Painel rápido", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE8A7" } };
+            menuFlyoutPainel.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ToggleUpdateFlyout);
 
             var menuConfig = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Configurações", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE713" } };
-            menuConfig.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+            menuConfig.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindowAndFocusSettings);
 
             var menuHistorico = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Histórico", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE81C" } };
             menuHistorico.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
 
             var menuSobre = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Sobre", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE946" } };
-            menuSobre.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow);
+            menuSobre.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindowAndFocusSettings);
 
             var menuSair = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Sair", Icon = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = "\xE7E8" } };
-            menuSair.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+            menuSair.Command = new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
+            {
                 Log.Information("Usuário solicitou encerramento via System Tray. Finalizando...");
-                Log.CloseAndFlush(); // Força a gravação do log antes de matar o processo
+                Log.CloseAndFlush();
                 _trayIcon?.Dispose();
-                Environment.Exit(0); // Marreta do sistema operativo: encerra TUDO na hora!
+                Environment.Exit(0);
             });
 
-            // 2. MONTANDO O FLYOUT (A CAIXINHA DO MENU)
             var contextMenu = new Microsoft.UI.Xaml.Controls.MenuFlyout();
             contextMenu.Items.Add(menuVerificar);
             contextMenu.Items.Add(menuAtualizacoes);
+            contextMenu.Items.Add(menuFlyoutPainel);
             contextMenu.Items.Add(new Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator());
             contextMenu.Items.Add(menuConfig);
             contextMenu.Items.Add(menuHistorico);
@@ -315,42 +354,45 @@ namespace WingetEasy.App
             contextMenu.Items.Add(menuSobre);
             contextMenu.Items.Add(menuSair);
 
-            // 3. CONFIGURANDO A IMAGEM COLORIDA COM CAMINHO ABSOLUTO
             var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "WingetEasy-Logo.ico");
 
-            // 4. INSTANCIANDO O TRAY ICON
             _trayIcon = new H.NotifyIcon.TaskbarIcon
             {
-                ToolTipText = "WingetEasy",
+                ToolTipText = "WingetEasy — Sistema atualizado",
                 IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath)),
                 ContextFlyout = contextMenu,
-                LeftClickCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(ShowMainWindow)
+                LeftClickCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(ToggleUpdateFlyout)
             };
 
-            // Manda para a bandeja do Windows
-            _trayIcon.ForceCreate();
+            try
+            {
+                _trayIcon.ForceCreate();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Não foi possível registrar o ícone na bandeja do sistema.");
+            }
         }
 
         /// <summary>
-        /// Atualiza o estado visual da bandeja do sistema (Ícone e Menu) com base no número de atualizações.
+        /// Atualiza o estado visual da bandeja do sistema (Ícone, ToolTip e Menu) com base no número de atualizações.
         /// </summary>
         public void UpdateTrayState(int updateCount)
         {
             if (_trayIcon == null) return;
 
             bool hasUpdates = updateCount > 0;
+            _trayIcon.ToolTipText = hasUpdates
+                ? $"WingetEasy — {updateCount} atualizações disponíveis"
+                : "WingetEasy — Sistema atualizado";
 
-            // 1. Alterna entre o ficheiro normal e o ficheiro com o Badge
-            // NOTA: Certifique-se de que o nome do ficheiro com o badge bate certo com o que colocar na pasta Assets
             var fileName = hasUpdates ? "WingetEasy-Logo-update.ico" : "WingetEasy-Logo.ico";
             var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
 
             _trayIcon.IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath));
 
-            // 2. Atualiza o botão no Menu Contextual
             if (_trayIcon.ContextFlyout is Microsoft.UI.Xaml.Controls.MenuFlyout menuFlyout)
             {
-                // No nosso código, o item de atualizações é o segundo elemento (índice 1)
                 if (menuFlyout.Items[1] is Microsoft.UI.Xaml.Controls.MenuFlyoutItem menuAtualizacoes)
                 {
                     menuAtualizacoes.Visibility = hasUpdates ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
@@ -359,18 +401,76 @@ namespace WingetEasy.App
             }
         }
 
-        private void ShowMainWindow()
+        public void ToggleUpdateFlyout()
         {
-            if (_window == null)
+            try
             {
-                _window = new MainWindow();
-                MainWindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
-                // Limpa a instância ao fechar para permitir a recriação limpa posterior
-                _window.Closed += (s, e) => _window = null;
+                if (_updateFlyout != null)
+                {
+                    _updateFlyout.Close();
+                    _updateFlyout = null;
+                    return;
+                }
 
-                _ = ApplySavedThemeAsync();
+                _updateFlyout = new Views.UpdateFlyout();
+                _updateFlyout.Activate();
             }
-            _window.Activate();
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Falha ao abrir UpdateFlyout; abrindo MainWindow como fallback.");
+                ShowMainWindow();
+            }
+        }
+
+        public void ShowMainWindow()
+        {
+            try
+            {
+                if (_window == null)
+                {
+                    _window = new MainWindow();
+                    MainWindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+                    _window.Closed += (s, e) => _window = null;
+
+                    _ = ApplySavedThemeAsync();
+                }
+                _window.Activate();
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Falha ao abrir ou ativar a MainWindow.");
+                Log.CloseAndFlush();
+                throw;
+            }
+        }
+
+        public void ShowMainWindowAndFocusUpdates()
+        {
+            ShowMainWindow();
+            (_window as MainWindow)?.FocusUpdatesPage();
+        }
+
+        public void ShowMainWindowAndFocusSettings()
+        {
+            ShowMainWindow();
+            (_window as MainWindow)?.FocusSettingsPage();
+        }
+
+        /// <summary>
+        /// Registra a janela UpdateFlyout ativa para que receba mudanças de tema em tempo real.
+        /// </summary>
+        public void RegisterUpdateFlyout(Views.UpdateFlyout flyout)
+        {
+            _updateFlyout = flyout;
+            flyout.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_updateFlyout, flyout))
+                {
+                    _updateFlyout = null;
+                }
+            };
+
+            ApplyTheme(_currentTheme);
         }
 
         private void OnNotificationInvoked(
@@ -395,17 +495,57 @@ namespace WingetEasy.App
             });
         }
 
+        private void OnColorValuesChanged(Windows.UI.ViewManagement.UISettings sender, object args)
+        {
+            var dispatcherQueue = Services.GetRequiredService<DispatcherQueue>();
+            dispatcherQueue.TryEnqueue(() =>
+            {
+                ApplyTheme(_currentTheme);
+            });
+        }
+
         /// <summary>
-        /// Aplica de imediato o tema (Claro/Escuro/Sistema) ao elemento raiz da janela informado.
-        /// Chamado tanto na abertura da janela quanto em tempo real pela SettingsPage.
+        /// Aplica de imediato o tema (Claro/Escuro/Sistema) ao elemento raiz da MainWindow e do UpdateFlyout.
         /// </summary>
         public void ApplyTheme(ElementTheme theme)
         {
-            if (_window?.Content is FrameworkElement rootElement)
+            _currentTheme = theme;
+            var dispatcherQueue = Services.GetRequiredService<DispatcherQueue>();
+
+            void ApplyToRoots()
             {
-                rootElement.RequestedTheme = theme;
+                if (_window?.Content is FrameworkElement rootElement)
+                {
+                    rootElement.RequestedTheme = theme;
+                }
+
+                if (_window is MainWindow mainWin)
+                {
+                    mainWin.UpdateThemeToggleGlyph(theme);
+                }
+
+                if (_updateFlyout?.Content is FrameworkElement flyoutRoot)
+                {
+                    flyoutRoot.RequestedTheme = theme;
+                }
+            }
+
+            if (dispatcherQueue.HasThreadAccess)
+            {
+                ApplyToRoots();
+            }
+            else
+            {
+                dispatcherQueue.TryEnqueue(ApplyToRoots);
             }
         }
+
+        public static ElementTheme ParseElementTheme(string? themeName) => themeName switch
+        {
+            nameof(AppTheme.Light) or nameof(ElementTheme.Light) => ElementTheme.Light,
+            nameof(AppTheme.Dark) or nameof(ElementTheme.Dark) => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
 
         private async Task ApplySavedThemeAsync()
         {
@@ -414,7 +554,7 @@ namespace WingetEasy.App
                 using var scope = Services.CreateScope();
                 var settingsRepo = scope.ServiceProvider.GetRequiredService<ISettingsRepository>();
                 var themeName = await settingsRepo.GetAsync(AppThemeSettingsKey).ConfigureAwait(true);
-                var theme = Enum.TryParse<ElementTheme>(themeName, out var parsed) ? parsed : ElementTheme.Default;
+                var theme = ParseElementTheme(themeName);
 
                 ApplyTheme(theme);
             }
@@ -432,7 +572,3 @@ namespace WingetEasy.App
         }
     }
 }
-
-
-
-

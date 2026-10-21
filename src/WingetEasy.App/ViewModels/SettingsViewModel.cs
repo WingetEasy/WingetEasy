@@ -25,6 +25,7 @@ public partial class SettingsViewModel : ObservableObject
     private const string StartWithWindowsRunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string StartWithWindowsValueName = "WingetEasy";
     private const string GitHubRepoUrl = "https://github.com/WingetEasy/WingetEasy";
+
     private readonly ISettingsRepository _settingsRepository;
     private readonly ISchedulerService _schedulerService;
     private readonly IPackageRepository _packageRepository;
@@ -37,9 +38,9 @@ public partial class SettingsViewModel : ObservableObject
 
     public ObservableCollection<FrequencyOption> FrequencyOptions { get; } =
     [
-        new FrequencyOption(ScheduleFrequency.Manual, "Manual"),
-        new FrequencyOption(ScheduleFrequency.TwiceDaily, "Duas vezes ao dia"),
-        new FrequencyOption(ScheduleFrequency.OnceDaily, "Uma vez ao dia"),
+        new FrequencyOption(ScheduleFrequency.Manual, "A cada hora"),
+        new FrequencyOption(ScheduleFrequency.TwiceDaily, "A cada 6 horas"),
+        new FrequencyOption(ScheduleFrequency.OnceDaily, "Diariamente"),
         new FrequencyOption(ScheduleFrequency.Weekly, "Semanalmente")
     ];
 
@@ -47,13 +48,35 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsScheduleTimeEditable))]
+    [NotifyPropertyChangedFor(nameof(FrequencyIndex))]
     public partial FrequencyOption SelectedFrequencyOption { get; set; }
 
     [ObservableProperty]
     public partial TimeSpan CheckTime { get; set; }
 
     [ObservableProperty]
-    public partial bool StartWithWindows { get; set; }
+    public partial bool StartWithWindows { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool KeepInSystemTray { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool AutoUpdate { get; set; } = false;
+
+    [ObservableProperty]
+    public partial bool NotifyBeforeUpdate { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IncludeBetaVersions { get; set; } = false;
+
+    [ObservableProperty]
+    public partial bool SecurityAlerts { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool QuietHours { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool NotificationSound { get; set; } = false;
 
     [ObservableProperty]
     public partial int ThemeIndex { get; set; }
@@ -72,19 +95,56 @@ public partial class SettingsViewModel : ObservableObject
     public partial bool IsCheckingAppUpdate { get; set; }
 
     [ObservableProperty]
-    public partial string AppUpdateStatusMessage { get; set; } = string.Empty;
+    public partial string AppUpdateStatusMessage { get; set; } = "Distribuído sob licença MIT · Não afiliado à Microsoft";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRepairingSourcesVisibility))]
+    [NotifyCanExecuteChangedFor(nameof(RepairWingetSourcesCommand))]
+    public partial bool IsRepairingSources { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsRepairStatusVisible { get; set; }
+
+    [ObservableProperty]
+    public partial string RepairStatusMessage { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial InfoBarSeverity RepairStatusSeverity { get; set; } = InfoBarSeverity.Informational;
+
+    public Visibility IsRepairingSourcesVisibility => IsRepairingSources ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility HasIgnoredPackagesVisibility => IgnoredPackages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public bool IsScheduleTimeEditable => SelectedFrequencyOption?.Value != ScheduleFrequency.Manual;
 
+    public int FrequencyIndex
+    {
+        get => SelectedFrequencyOption?.Value switch
+        {
+            ScheduleFrequency.Manual => 0,
+            ScheduleFrequency.TwiceDaily => 1,
+            ScheduleFrequency.OnceDaily => 2,
+            ScheduleFrequency.Weekly => 3,
+            _ => 2
+        };
+        set
+        {
+            var clamped = Math.Clamp(value, 0, FrequencyOptions.Count - 1);
+            SelectedFrequencyOption = FrequencyOptions[clamped];
+            OnPropertyChanged(nameof(FrequencyIndex));
+        }
+    }
+
     public string AppVersion { get; } = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
 
-    public string AppVersionDisplay => $"WingetEasy v{AppVersion}";
+    public string AppVersionDisplay => $"Versão {AppVersion} · canal estável";
 
     public string WingetStatusMessage => IsWingetAvailable
-        ? $"Winget instalado (versão {WingetVersion})."
-        : "Winget não foi encontrado. Instale o Windows Package Manager para habilitar as verificações de atualização.";
+        ? $"Winget instalado ({WingetVersion})"
+        : "Winget não foi encontrado. Instale o Windows Package Manager para habilitar as verificações.";
 
     public InfoBarSeverity WingetInfoBarSeverity => IsWingetAvailable ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+
+    public event EventHandler? SettingsLoaded;
 
     public SettingsViewModel(
         ISettingsRepository settingsRepository,
@@ -101,7 +161,7 @@ public partial class SettingsViewModel : ObservableObject
         _appUpdateService = appUpdateService;
         _logger = logger;
 
-        SelectedFrequencyOption = FrequencyOptions[2]; // Uma vez ao dia, alinhado ao padrão do SchedulerService
+        SelectedFrequencyOption = FrequencyOptions[2]; // Diariamente
     }
 
     /// <summary>
@@ -116,14 +176,21 @@ public partial class SettingsViewModel : ObservableObject
             var config = await _settingsRepository.GetAsync<ScheduleConfig>(ScheduleConfigKey).ConfigureAwait(true)
                 ?? new ScheduleConfig(ScheduleFrequency.OnceDaily, TimeSpan.Zero);
 
-            SelectedFrequencyOption = FrequencyOptions.First(f => f.Value == config.Frequency);
+            SelectedFrequencyOption = FrequencyOptions.FirstOrDefault(f => f.Value == config.Frequency) ?? FrequencyOptions[2];
             CheckTime = config.CheckTime;
 
             StartWithWindows = ReadStartWithWindowsFromRegistry();
+            KeepInSystemTray = await ReadBoolSettingAsync("KeepInSystemTray", true).ConfigureAwait(true);
+            AutoUpdate = await ReadBoolSettingAsync("AutoUpdate", false).ConfigureAwait(true);
+            NotifyBeforeUpdate = await ReadBoolSettingAsync("NotifyBeforeUpdate", true).ConfigureAwait(true);
+            IncludeBetaVersions = await ReadBoolSettingAsync("IncludeBetaVersions", false).ConfigureAwait(true);
+            SecurityAlerts = await ReadBoolSettingAsync("SecurityAlerts", true).ConfigureAwait(true);
+            QuietHours = await ReadBoolSettingAsync("QuietHours", true).ConfigureAwait(true);
+            NotificationSound = await ReadBoolSettingAsync("NotificationSound", false).ConfigureAwait(true);
 
             var themeName = await _settingsRepository.GetAsync(App.AppThemeSettingsKey).ConfigureAwait(true);
-            var theme = Enum.TryParse<ElementTheme>(themeName, out var parsedTheme) ? parsedTheme : ElementTheme.Default;
-            ApplyThemeToApp(theme); // Garante a aplicação mesmo se o índice calculado não mudar (ex.: já é 0)
+            var theme = App.ParseElementTheme(themeName);
+            ApplyThemeToApp(theme);
             ThemeIndex = ThemeToIndex(theme);
 
             var skippedIds = await _packageRepository.GetSkippedIdsAsync().ConfigureAwait(true);
@@ -132,6 +199,7 @@ public partial class SettingsViewModel : ObservableObject
             {
                 IgnoredPackages.Add(id);
             }
+            OnPropertyChanged(nameof(HasIgnoredPackagesVisibility));
 
             IsWingetAvailable = await _wingetService.IsWingetAvailableAsync().ConfigureAwait(true);
             WingetVersion = IsWingetAvailable ? await _wingetService.GetWingetVersionAsync().ConfigureAwait(true) : string.Empty;
@@ -143,8 +211,29 @@ public partial class SettingsViewModel : ObservableObject
         finally
         {
             _isLoading = false;
+            SettingsLoaded?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    private async Task<bool> ReadBoolSettingAsync(string key, bool defaultValue)
+    {
+        var raw = await _settingsRepository.GetAsync(key).ConfigureAwait(true);
+        return bool.TryParse(raw, out var parsed) ? parsed : defaultValue;
+    }
+
+    private void SaveBoolSetting(string key, bool value)
+    {
+        if (_isLoading) return;
+        _ = _settingsRepository.SetAsync(key, value.ToString());
+    }
+
+    partial void OnKeepInSystemTrayChanged(bool value) => SaveBoolSetting("KeepInSystemTray", value);
+    partial void OnAutoUpdateChanged(bool value) => SaveBoolSetting("AutoUpdate", value);
+    partial void OnNotifyBeforeUpdateChanged(bool value) => SaveBoolSetting("NotifyBeforeUpdate", value);
+    partial void OnIncludeBetaVersionsChanged(bool value) => SaveBoolSetting("IncludeBetaVersions", value);
+    partial void OnSecurityAlertsChanged(bool value) => SaveBoolSetting("SecurityAlerts", value);
+    partial void OnQuietHoursChanged(bool value) => SaveBoolSetting("QuietHours", value);
+    partial void OnNotificationSoundChanged(bool value) => SaveBoolSetting("NotificationSound", value);
 
     partial void OnSelectedFrequencyOptionChanged(FrequencyOption value) => _ = PersistScheduleAsync();
 
@@ -182,12 +271,13 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnThemeIndexChanged(int value)
     {
+        var appTheme = IndexToAppTheme(value);
         var theme = IndexToTheme(value);
         ApplyThemeToApp(theme);
 
         if (_isLoading) return;
 
-        _ = _settingsRepository.SetAsync(App.AppThemeSettingsKey, theme.ToString());
+        _ = _settingsRepository.SetAsync(App.AppThemeSettingsKey, appTheme.ToString());
     }
 
     [RelayCommand]
@@ -204,6 +294,7 @@ public partial class SettingsViewModel : ObservableObject
         {
             await _packageRepository.UnskipPackageAsync(packageId).ConfigureAwait(true);
             IgnoredPackages.Remove(packageId);
+            OnPropertyChanged(nameof(HasIgnoredPackagesVisibility));
             _logger.LogInformation("Exclusão removida para o pacote {PackageId}.", packageId);
         }
         catch (Exception ex)
@@ -216,6 +307,43 @@ public partial class SettingsViewModel : ObservableObject
     private async Task OpenGitHubAsync()
     {
         await Launcher.LaunchUriAsync(new Uri(GitHubRepoUrl)).AsTask().ConfigureAwait(true);
+    }
+
+    private bool CanRepairWingetSources() => !IsRepairingSources;
+
+    [RelayCommand(CanExecute = nameof(CanRepairWingetSources))]
+    private async Task RepairWingetSourcesAsync()
+    {
+        try
+        {
+            IsRepairingSources = true;
+            IsRepairStatusVisible = true;
+            RepairStatusSeverity = InfoBarSeverity.Informational;
+            RepairStatusMessage = "Reparando e atualizando as fontes do Winget...";
+
+            var success = await _wingetService.RepairSourcesAsync().ConfigureAwait(true);
+            if (success)
+            {
+                RepairStatusSeverity = InfoBarSeverity.Success;
+                RepairStatusMessage = "Fontes do Winget reparadas e atualizadas com sucesso.";
+            }
+            else
+            {
+                RepairStatusSeverity = InfoBarSeverity.Warning;
+                RepairStatusMessage = "Não foi possível reparar as fontes do Winget. Verifique as permissões de administrador e tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao reparar as fontes do Winget na SettingsPage.");
+            RepairStatusSeverity = InfoBarSeverity.Error;
+            RepairStatusMessage = "Ocorreu um erro inesperado ao reparar as fontes do Winget.";
+            IsRepairStatusVisible = true;
+        }
+        finally
+        {
+            IsRepairingSources = false;
+        }
     }
 
     private bool CanCheckForAppUpdate() => !IsCheckingAppUpdate;
@@ -263,6 +391,13 @@ public partial class SettingsViewModel : ObservableObject
             app.ApplyTheme(theme);
         }
     }
+
+    private static AppTheme IndexToAppTheme(int index) => index switch
+    {
+        0 => AppTheme.Light,
+        1 => AppTheme.Dark,
+        _ => AppTheme.System
+    };
 
     private static ElementTheme IndexToTheme(int index) => index switch
     {

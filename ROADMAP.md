@@ -60,7 +60,7 @@
 | # | Issue | Descrição | Dependências |
 |---|---|---|---|
 | **#30** | HistoryViewModel + HistoryPage | Timeline agrupada por dia, filtros (Hoje/7d/Mês/Tudo), busca, exportação CSV | #11, #21 |
-| **#28** | Detecção e troca de tema em tempo real | `UISettings.ColorValuesChanged`, aplicar via `DispatcherQueue`, modo Sistema/Claro/Escuro | #25 |
+| **#28** | Detecção e troca de tema em tempo real ✅ | `UISettings.ColorValuesChanged`, aplicar via `DispatcherQueue`, modo Sistema/Claro/Escuro | #25 |
 | **#31** | OnboardingDialog — primeira execução | ContentDialog 4 passos via FlipView; detectar via banco se já concluído | #19, #25 |
 
 ---
@@ -80,20 +80,20 @@
 
 ---
 
-## Milestone 5 — Identidade Visual 🎨 (Pendente — aguardando design)
+## Milestone 5 — Identidade Visual 🎨 ✅ (Concluído)
 
-> **Nota:** O design visual completo do WingetEasy foi criado no Claude Design.
-> Cole o conteúdo do arquivo `WingetEasy.html` aqui para incorporar as especificações.
+> **Nota:** O design visual completo do WingetEasy foi incorporado em `Styles/AppStyles.xaml` com `ThemeDictionaries` (Light e Dark), atalhos de teclado, acessibilidade e auto-cura das fontes do Winget.
 
 ### O que precisa ser implementado:
-- [ ] Design tokens: cores de accent, tipografia, espaçamentos, corner radius
-- [ ] Ícones do app em todas as resoluções (16/32/44/48/150/310px) com badge de notificação
-- [ ] Ícone da tray com variante "updates disponíveis"
-- [ ] Visual refinado do `PackageItemControl` (badges de categoria, estados visuais)
-- [ ] Visual da `UpdateFlyout` (header, footer, animações)
-- [ ] Tema claro e escuro consistentes com Fluent Design
-- [ ] Splash screen
-- [ ] Consistência visual entre todas as páginas
+- [x] Design tokens: cores de accent, tipografia, espaçamentos, corner radius (`Styles/AppStyles.xaml`)
+- [x] Ícones do app em todas as resoluções (16/32/44/48/150/310px) com badge de notificação
+- [x] Ícone da tray com variante "updates disponíveis" e `ToolTipText` dinâmico
+- [x] Visual refinado do `PackageItemControl` (badges semânticos e de categoria via `{ThemeResource}`, estados visuais)
+- [x] Visual da `UpdateFlyout` (header, footer, animações e propagação de tema em tempo real)
+- [x] Tema claro e escuro consistentes com Fluent Design (`UISettings.ColorValuesChanged` + `DispatcherQueue.TryEnqueue`)
+- [x] Splash screen
+- [x] Consistência visual entre todas as páginas, `KeyboardAccelerators` (F5 / Ctrl+R / Ctrl+F) e `AutomationProperties.Name`
+- [x] Auto-Cura das Fontes do Winget (`RepairSourcesAsync` + card de Manutenção na `SettingsPage`)
 
 ---
 
@@ -114,10 +114,10 @@
 
 | Item | Descrição |
 |---|---|
-| `Directory.Build.props` | Atualizar `TargetFramework` de `net8.0` para `net10.0` |
-| Migration `CheckLogs` | Corrigir tipo da coluna `DurationMs` de `bool` para `long` |
-| Tray "Verificar agora" | Disparar verificação real (hoje só loga) |
-| Salvar posição da janela | Implementar save/restore comentado em `MainWindow` |
+| `Directory.Build.props` | Atualizar `TargetFramework` de `net8.0` para `net10.0` ✅ |
+| Migration `CheckLogs` | Corrigir tipo da coluna `DurationMs` de `bool` para `long` ✅ |
+| Tray "Verificar agora" | Disparar verificação real ✅ |
+| Salvar posição da janela | Implementar save/restore em `MainWindow` ✅ |
 
 ---
 
@@ -140,9 +140,9 @@ Semana 7:  #43 → #44 → #45            (Distribuição pública)
 | Fase | Issues | Status |
 |---|---|---|
 | Milestone 1 — Core | #1–#18 | ✅ 18/18 |
-| Milestone 2 — UI Base | #19–#25 | ⚠️ 6/7 (UpdatesViewModel parcial) |
-| Milestone 3 — Polimento | #22-fix, #26–#31 | ❌ 0/7 |
-| Milestone 4 — Avançado | #32–#39 | ❌ 0/8 |
-| Milestone 5 — Visual | Design tokens + assets | ❌ 0/1 |
+| Milestone 2 — UI Base | #19–#25 | ✅ 7/7 |
+| Milestone 3 — Polimento | #22-fix, #26–#31 | ✅ 7/7 |
+| Milestone 4 — Avançado | #32–#39 | ✅ 8/8 |
+| Milestone 5 — Visual | Design tokens + temas + acessibilidade | ✅ 1/1 |
 | Milestone 6 — Distribuição | #40–#45 | ❌ 0/6 |
-| **Total** | | **24/45** (53%) |
+| **Total** | | **40/45** (89%) |

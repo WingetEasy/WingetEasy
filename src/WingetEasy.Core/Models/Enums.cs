@@ -17,3 +17,10 @@ public enum ScheduleFrequency
     OnceDaily, // 1x por dia a cada 24 horas
     Weekly // 1x por semana a cada 7 dias
 }
+
+public enum AppTheme
+{
+    System,
+    Light,
+    Dark
+}
