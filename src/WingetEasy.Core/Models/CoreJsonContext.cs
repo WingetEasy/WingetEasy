@@ -14,6 +14,9 @@ namespace WingetEasy.Core.Models;
 [JsonSerializable(typeof(ProfilePackage))]
 [JsonSerializable(typeof(List<Profile>))]
 [JsonSerializable(typeof(List<ProfilePackage>))]
+[JsonSerializable(typeof(ScheduleConfig))]
+[JsonSerializable(typeof(List<string>))]
+[JsonSerializable(typeof(string))]
 public partial class CoreJsonContext : JsonSerializerContext
 {
 }

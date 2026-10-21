@@ -26,7 +26,7 @@ public sealed class BackupSnapshotRepository : IBackupSnapshotRepository
             CreatedAt = snapshot.CreatedAt,
             PackageCount = snapshot.PackageCount,
             WingetVersion = snapshot.WingetVersion,
-            Data = JsonSerializer.Serialize(snapshot.Packages ?? [])
+            Data = JsonSerializer.Serialize(snapshot.Packages?.ToList() ?? [], CoreJsonContext.Default.ListBackupPackage)
         };
         _dbContext.BackupSnapshots.Add(entity);
         await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -68,7 +68,7 @@ public sealed class BackupSnapshotRepository : IBackupSnapshotRepository
 
     private static BackupSnapshot ToModel(BackupSnapshotEntity entity)
     {
-        var packages = JsonSerializer.Deserialize<List<BackupPackage>>(entity.Data) ?? [];
+        var packages = JsonSerializer.Deserialize(entity.Data, CoreJsonContext.Default.ListBackupPackage) ?? [];
         return new BackupSnapshot(entity.Id, entity.Label, entity.CreatedAt, entity.PackageCount, entity.WingetVersion, packages);
     }
 }
