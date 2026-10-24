@@ -512,7 +512,7 @@ public class WingetService : IWingetService
         var processStartInfo = new ProcessStartInfo
         {
             FileName = "winget",
-            Arguments = $"upgrade --id {packageId} --silent --accept-source-agreements --accept-package-agreements",
+            Arguments = $"upgrade --id {packageId} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -594,11 +594,11 @@ public class WingetService : IWingetService
         }
 
         sw.Stop();
-        progress?.Report(100); // Fim a 100%
 
         int exitCode = process.ExitCode;
         // 0 = Sucesso | -1978335189 = Não há atualizações aplicáveis (já atualizado)
         bool success = exitCode == 0 || exitCode == -1978335189;
+        progress?.Report(success ? 100 : -1);
 
         if (success)
         {
@@ -617,7 +617,8 @@ public class WingetService : IWingetService
             }
         }
 
-        return new UpdateResult(packageId, packageId, success, errorMessage, sw.Elapsed);
+        var cachedPkg = _cachedPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
+        return new UpdateResult(packageId, cachedPkg?.Name ?? packageId, success, errorMessage, sw.Elapsed, cachedPkg?.CurrentVersion ?? string.Empty, cachedPkg?.AvailableVersion ?? string.Empty);
     }
 
     public async Task<IEnumerable<WingetPackage>> GetInstalledPackagesAsync(CancellationToken ct = default)

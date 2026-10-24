@@ -423,14 +423,29 @@ public partial class UpdatesViewModel : ObservableObject
                     var package = pacotesParaAtualizar.FirstOrDefault(p => p.Id == update.name);
                     if (package is not null)
                     {
-                        package.UpdateState = PackageUpdateState.Updating;
-                        package.Progress = update.pct;
+                        if (update.pct >= 100)
+                        {
+                            package.UpdateState = PackageUpdateState.Completed;
+                            package.Progress = 100;
+                            _allPackages.Remove(package);
+                            Packages.Remove(package);
+                        }
+                        else if (update.pct < 0)
+                        {
+                            package.UpdateState = PackageUpdateState.Failed;
+                        }
+                        else
+                        {
+                            package.UpdateState = PackageUpdateState.Updating;
+                            package.Progress = update.pct;
+                        }
                     }
 
-                    BatchCompleted = Math.Max(0, update.cur - 1);
+                    BatchCompleted = update.pct >= 100 ? update.cur : Math.Max(0, update.cur - 1);
                     CurrentUpdatingPackage = package?.Name ?? update.name;
                     StatusMessage = $"Atualizando {update.cur} de {update.total}...";
-                    UpdateProgress = (int)(((update.cur - 1) * 100d + update.pct) / update.total);
+                    UpdateProgress = (int)(((update.cur - 1) * 100d + Math.Max(0, update.pct)) / update.total);
+                    NotifyCountsChanged();
                 });
             });
 
@@ -458,6 +473,12 @@ public partial class UpdatesViewModel : ObservableObject
                         : PackageUpdateState.Failed;
                     package.Progress = result.Success ? 100 : package.Progress;
                     package.ErrorMessage = result.ErrorMessage ?? string.Empty;
+
+                    if (result.Success)
+                    {
+                        _allPackages.Remove(package);
+                        Packages.Remove(package);
+                    }
                 }
 
                 BatchCompleted = results.Count;
@@ -475,6 +496,7 @@ public partial class UpdatesViewModel : ObservableObject
 
             await RunOnUIAsync(() =>
             {
+                RefreshFlyoutPackages();
                 var remainingCount = _allPackages.Count(p => p.UpdateState != PackageUpdateState.Completed);
                 HasUpdates = remainingCount > 0;
                 NotifyCountsChanged();
@@ -496,6 +518,11 @@ public partial class UpdatesViewModel : ObservableObject
             _cancellationTokenSource = null;
             await RunOnUIAsync(() =>
             {
+                foreach (var package in pacotesParaAtualizar.Where(p => p.UpdateState is PackageUpdateState.Queued or PackageUpdateState.Updating))
+                {
+                    package.UpdateState = PackageUpdateState.Failed;
+                }
+
                 IsUpdating = false;
                 CurrentUpdatingPackage = string.Empty;
                 UpdateProgress = 0;

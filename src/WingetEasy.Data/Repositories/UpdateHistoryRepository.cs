@@ -25,8 +25,8 @@ public class UpdateHistoryRepository : IUpdateHistoryRepository
         {
             PackageId = result.PackageId,
             PackageName = result.PackageName,
-            FromVersion = string.Empty, // Compatibilidade com a entidade atual
-            ToVersion = string.Empty, // Compatibilidade com a entidade atual
+            FromVersion = result.FromVersion ?? string.Empty,
+            ToVersion = result.ToVersion ?? string.Empty,
             Status = result.Success ? UpdateStatus.Success : UpdateStatus.Failed,
             ErrorMessage = result.ErrorMessage,
             DurationMs = result.Duration.HasValue ? (long)result.Duration.Value.TotalMilliseconds : 0,

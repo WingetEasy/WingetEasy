@@ -110,7 +110,29 @@ namespace WingetEasy.App.Pages
             args.Handled = true;
         }
 
-        private async Task<bool> ConfirmElevationAsync()
+        private Task<bool> ConfirmElevationAsync()
+        {
+            if (DispatcherQueue.HasThreadAccess)
+            {
+                return ShowElevationDialogCoreAsync();
+            }
+
+            var tcs = new TaskCompletionSource<bool>();
+            DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    tcs.TrySetResult(await ShowElevationDialogCoreAsync().ConfigureAwait(true));
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            return tcs.Task;
+        }
+
+        private async Task<bool> ShowElevationDialogCoreAsync()
         {
             var dialog = new ContentDialog
             {

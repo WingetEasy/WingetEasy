@@ -99,6 +99,26 @@ namespace WingetEasy.App
                 RunElevatedModeAndExit(args);
             }
 
+            if (!args.Contains("--no-elevate") && !args.Contains("--minimized") && !args.Contains("--check") && !args.Contains("--update-all") && !args.Contains("--help") && !args.Contains("--version") && !new AdminElevationHelper().IsRunningAsAdmin())
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = Environment.ProcessPath ?? throw new InvalidOperationException(),
+                        Arguments = string.Join(" ", args.Skip(1).Select(a => $"\"{a}\"")),
+                        UseShellExecute = true,
+                        Verb = "runas"
+                    });
+                    Log.CloseAndFlush();
+                    Environment.Exit(0);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Elevação inicial recusada; continuando em modo padrão.");
+                }
+            }
+
             InitializeComponent();
             this.UnhandledException += (_, e) =>
             {
@@ -135,7 +155,7 @@ namespace WingetEasy.App
                                     StartInfo = new ProcessStartInfo
                                     {
                                         FileName = "winget.exe",
-                                        Arguments = $"update --exact --id {id} --accept-package-agreements --accept-source-agreements --silent",
+                                        Arguments = $"upgrade --id {id} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
                                         UseShellExecute = false,
                                         CreateNoWindow = true,
                                         RedirectStandardOutput = true,
