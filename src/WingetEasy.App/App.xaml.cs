@@ -218,6 +218,7 @@ namespace WingetEasy.App
 
             // Alinhamento das regras de arquitetura: Serviços principais como Singletons
             services.AddSingleton<IWingetService, WingetEasy.Core.Services.WingetService>();
+            services.AddSingleton<IRunningProcessService, WingetEasy.Core.Services.RunningProcessService>();
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
             services.AddSingleton<ITaskSchedulerProcessRunner, WindowsTaskSchedulerProcessRunner>();
             services.AddSingleton<ITaskSchedulerService, WindowsTaskSchedulerService>();
@@ -280,16 +281,24 @@ namespace WingetEasy.App
                 var scheduler = Services.GetRequiredService<ISchedulerService>();
                 await scheduler.StartAsync().ConfigureAwait(true);
                 Services.GetRequiredService<IToastNotificationService>().Register();
-                scheduler.CheckRequested += (_, _) =>
+                scheduler.CheckRequested += async (_, _) =>
                 {
                     var updatesViewModel = Services.GetRequiredService<UpdatesViewModel>();
-                    updatesViewModel.CheckUpdatesCommand.Execute(null);
+                    await updatesViewModel.CheckUpdatesCommand.ExecuteAsync(null).ConfigureAwait(false);
+                    if (updatesViewModel.AutoUpdateEnabled && updatesViewModel.Packages.Count > 0)
+                    {
+                        await updatesViewModel.ExecuteAutoUpdateAsync().ConfigureAwait(false);
+                    }
                 };
 
                 InitializeTrayIcon();
 
                 var initialUpdatesVm = Services.GetRequiredService<UpdatesViewModel>();
                 await initialUpdatesVm.CheckUpdatesCommand.ExecuteAsync(null).ConfigureAwait(true);
+                if (isMinimized && initialUpdatesVm.AutoUpdateEnabled && initialUpdatesVm.Packages.Count > 0)
+                {
+                    _ = Task.Run(() => initialUpdatesVm.ExecuteAutoUpdateAsync());
+                }
 
                 if (isMinimized)
                 {

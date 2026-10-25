@@ -8,6 +8,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using WingetEasy.App.ViewModels;
+using WingetEasy.Core.Models;
 
 namespace WingetEasy.App.Pages
 {
@@ -21,10 +22,12 @@ namespace WingetEasy.App.Pages
             this.InitializeComponent();
             NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
             ViewModel.ElevationConfirmation = ConfirmElevationAsync;
+            ViewModel.AppRunningPrompt = ConfirmAppRunningResolutionAsync;
 
             Loaded += (_, _) =>
             {
                 ViewModel.ElevationConfirmation = ConfirmElevationAsync;
+                ViewModel.AppRunningPrompt = ConfirmAppRunningResolutionAsync;
                 ApplyHeroLogoShadow();
                 if (!ViewModel.HasCheckedOnce && !ViewModel.IsChecking)
                 {
@@ -37,6 +40,10 @@ namespace WingetEasy.App.Pages
                 if (ViewModel.ElevationConfirmation == (Func<Task<bool>>)ConfirmElevationAsync)
                 {
                     ViewModel.ElevationConfirmation = null;
+                }
+                if (ViewModel.AppRunningPrompt == (Func<string, Task<AppRunningResolution>>)ConfirmAppRunningResolutionAsync)
+                {
+                    ViewModel.AppRunningPrompt = null;
                 }
             };
         }
@@ -148,6 +155,46 @@ namespace WingetEasy.App.Pages
             };
 
             return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+
+        private Task<AppRunningResolution> ConfirmAppRunningResolutionAsync(string appName)
+        {
+            if (DispatcherQueue.HasThreadAccess)
+            {
+                return ShowAppRunningDialogCoreAsync(appName);
+            }
+
+            var tcs = new TaskCompletionSource<AppRunningResolution>();
+            DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    tcs.TrySetResult(await ShowAppRunningDialogCoreAsync(appName).ConfigureAwait(true));
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            return tcs.Task;
+        }
+
+        private async Task<AppRunningResolution> ShowAppRunningDialogCoreAsync(string appName)
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = Content?.XamlRoot ?? this.XamlRoot,
+                Title = "Aplicativo em execução",
+                Content = $"O aplicativo '{appName}' está aberto no momento.\n\nDeseja pular esta atualização por enquanto ou fechar o aplicativo e atualizar?",
+                PrimaryButtonText = "Fechar e atualizar",
+                CloseButtonText = "Pular por enquanto",
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary
+                ? AppRunningResolution.CloseAndUpdate
+                : AppRunningResolution.Skip;
         }
     }
 }

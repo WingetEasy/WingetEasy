@@ -11,5 +11,7 @@ public class PackageEntity
     public bool IsSkipped { get; set; }
     public string? SkipReason { get; set; }
     public DateTime? SkippedAt { get; set; }
+    public DateTime? DeferredUntilUtc { get; set; }
+    public string? IgnoredVersion { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

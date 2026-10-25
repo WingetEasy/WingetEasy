@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
+using WingetEasy.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
@@ -25,12 +26,17 @@ public sealed partial class UpdateFlyout : Window
         ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
         this.InitializeComponent();
         ViewModel.ElevationConfirmation = ConfirmElevationAsync;
+        ViewModel.AppRunningPrompt = ConfirmAppRunningResolutionAsync;
         this.Closed += (_, _) =>
         {
             this.Bindings.StopTracking();
             if (ViewModel.ElevationConfirmation == (Func<Task<bool>>)ConfirmElevationAsync)
             {
                 ViewModel.ElevationConfirmation = null;
+            }
+            if (ViewModel.AppRunningPrompt == (Func<string, Task<AppRunningResolution>>)ConfirmAppRunningResolutionAsync)
+            {
+                ViewModel.AppRunningPrompt = null;
             }
         };
         (Application.Current as App)?.RegisterUpdateFlyout(this);
@@ -71,6 +77,24 @@ public sealed partial class UpdateFlyout : Window
         };
 
         return await dialog.ShowAsync() == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary;
+    }
+
+    private async Task<AppRunningResolution> ConfirmAppRunningResolutionAsync(string appName)
+    {
+        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = "Aplicativo em execução",
+            Content = $"O aplicativo '{appName}' está aberto no momento.\n\nDeseja pular esta atualização por enquanto ou fechar o aplicativo e atualizar?",
+            PrimaryButtonText = "Fechar e atualizar",
+            CloseButtonText = "Pular por enquanto",
+            DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
+        };
+
+        var result = await dialog.ShowAsync();
+        return result == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary
+            ? AppRunningResolution.CloseAndUpdate
+            : AppRunningResolution.Skip;
     }
 
     private void HideFromTaskbarAndAltTab()
