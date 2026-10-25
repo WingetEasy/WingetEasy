@@ -58,7 +58,21 @@ namespace WingetEasy.App
 
             try
             {
-                ExtendsContentIntoTitleBar = true;
+                if (AppWindowTitleBar.IsCustomizationSupported())
+                {
+                    var titleBar = _appWindow.TitleBar;
+                    titleBar.ExtendsContentIntoTitleBar = true;
+                    titleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
+                    titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+                    titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
+                    titleBar.ButtonHoverBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(24, 128, 128, 128);
+                    titleBar.ButtonPressedBackgroundColor = Microsoft.UI.ColorHelper.FromArgb(40, 128, 128, 128);
+                }
+                else
+                {
+                    ExtendsContentIntoTitleBar = true;
+                }
+
                 SetTitleBar(TitleBarDragRegion);
             }
             catch
@@ -175,7 +189,14 @@ namespace WingetEasy.App
                     : ElementTheme.Light;
             }
 
-            ThemeToggleIconText.Text = effective == ElementTheme.Dark ? "☀️" : "🌙";
+            var isDark = effective == ElementTheme.Dark;
+            ThemeToggleIcon.Glyph = isDark ? "\uE706" : "\uE708";
+
+            if (AppWindowTitleBar.IsCustomizationSupported() && _appWindow?.TitleBar != null)
+            {
+                _appWindow.TitleBar.ButtonForegroundColor = isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black;
+                _appWindow.TitleBar.ButtonHoverForegroundColor = isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black;
+            }
         }
 
         private void NavButton_Click(object sender, RoutedEventArgs e)

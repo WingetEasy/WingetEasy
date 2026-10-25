@@ -6,12 +6,14 @@
 
     <Grid x:Name="RootShellGrid" Background="{ThemeResource MainAreaBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="42" />
+            <RowDefinition Height="32" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Barra Superior Customizada (Ícone W + WingetEasy à esquerda, Botão Lua/Sol à direita) -->
-        <Grid Grid.Row="0"
+        <Grid x:Name="AppTitleBar"
+              Grid.Row="0"
+              Height="32"
               Background="{ThemeResource TitleBarBackgroundBrush}"
               BorderBrush="{ThemeResource SurfaceDividerBrush}"
               BorderThickness="0,0,0,1">
@@ -21,13 +23,19 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Grid x:Name="TitleBarDragRegion" Grid.Column="0" Background="Transparent" Padding="14,0,0,0">
-                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <Grid x:Name="TitleBarDragRegion"
+                  Grid.Column="0"
+                  Background="Transparent"
+                  Height="32"
+                  VerticalAlignment="Center"
+                  Padding="12,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
                     <Image Source="ms-appx:///Assets/WingetEasy-Logo.png"
-                           Width="20"
-                           Height="20" />
+                           Width="18"
+                           Height="18"
+                           VerticalAlignment="Center" />
                     <TextBlock Text="WingetEasy"
-                               FontSize="13"
+                               FontSize="12.5"
                                FontWeight="SemiBold"
                                Foreground="{ThemeResource BrandTextPrimaryBrush}"
                                VerticalAlignment="Center" />
@@ -41,20 +49,25 @@
                     AutomationProperties.Name="Alternar tema Claro ou Escuro"
                     Background="Transparent"
                     BorderThickness="0"
-                    Width="36"
+                    Width="32"
                     Height="32"
                     Padding="0"
                     CornerRadius="6"
-                    Margin="0,0,8,0"
+                    Margin="0,0,4,0"
                     VerticalAlignment="Center">
-                <TextBlock x:Name="ThemeToggleIconText"
-                           Text="🌙"
-                           FontSize="14"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
+                <FontIcon x:Name="ThemeToggleIcon"
+                          Glyph="&#xE708;"
+                          FontSize="14"
+                          Foreground="{ThemeResource BrandTextPrimaryBrush}"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center" />
             </Button>
 
-            <Border x:Name="CaptionButtonsSpacer" Grid.Column="2" Width="138" />
+            <Border x:Name="CaptionButtonsSpacer"
+                    Grid.Column="2"
+                    Width="138"
+                    Height="32"
+                    VerticalAlignment="Center" />
         </Grid>
 
         <!-- Corpo Principal: Sidebar Customizada + Área de Conteúdo -->
