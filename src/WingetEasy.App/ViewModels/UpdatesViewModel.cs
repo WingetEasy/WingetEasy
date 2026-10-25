@@ -110,11 +110,15 @@ public partial class UpdatesViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsUpdateSummaryVisible { get; set; }
 
-    [ObservableProperty]
+[ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentUpdatingPackageDisplay))]
     [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
     [NotifyPropertyChangedFor(nameof(FlyoutUpdatingButtonText))]
     public partial string CurrentUpdatingPackage { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentUpdatingPackageDisplay))]
+    public partial string CurrentUpdatingPhase { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool AutoUpdateEnabled { get; set; } = false;
@@ -257,9 +261,19 @@ public partial class UpdatesViewModel : ObservableObject
             ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)}/{BatchTotal})..."
             : $"Updating ({Math.Min(BatchCompleted + 1, BatchTotal)}/{BatchTotal})...")
         : LocalizationService.Instance.Get("Atualizando...");
-    public string CurrentUpdatingPackageDisplay => !string.IsNullOrWhiteSpace(CurrentUpdatingPackage)
-        ? (LocalizationService.Instance.IsPortuguese ? $"Atualizando {CurrentUpdatingPackage}..." : $"Updating {CurrentUpdatingPackage}...")
-        : (LocalizationService.Instance.IsPortuguese ? "Preparando atualização..." : "Preparing update...");
+    public string CurrentUpdatingPackageDisplay
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(CurrentUpdatingPackage))
+                return LocalizationService.Instance.IsPortuguese ? "Preparando atualização..." : "Preparing update...";
+
+            if (!string.IsNullOrWhiteSpace(CurrentUpdatingPhase))
+                return $"{CurrentUpdatingPackage} — {CurrentUpdatingPhase}";
+
+            return LocalizationService.Instance.IsPortuguese ? $"Atualizando {CurrentUpdatingPackage}..." : $"Updating {CurrentUpdatingPackage}...";
+        }
+    }
     public string BatchStatusDisplay => BatchTotal > 0
         ? (LocalizationService.Instance.IsPortuguese
             ? $"{Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal}"
@@ -529,8 +543,10 @@ public partial class UpdatesViewModel : ObservableObject
                 {
                     package.UpdateState = PackageUpdateState.Queued;
                     package.Progress = 0;
+                    package.CurrentPhase = "Aguardando…";
                     package.ErrorMessage = string.Empty;
                 }
+                CurrentUpdatingPhase = string.Empty;
             }).ConfigureAwait(false);
 
             _logger.LogInformation("Iniciando atualização de {Count} pacotes.", pacotesParaAtualizar.Count);
@@ -568,6 +584,20 @@ public partial class UpdatesViewModel : ObservableObject
                 });
             });
 
+            var phaseProgress = new Progress<(string packageId, string phase)>(update =>
+            {
+                _ = RunOnUIAsync(() =>
+                {
+                    var package = pacotesParaAtualizar.FirstOrDefault(p => string.Equals(p.Id, update.packageId, StringComparison.OrdinalIgnoreCase));
+                    if (package is not null)
+                    {
+                        package.CurrentPhase = update.phase;
+                    }
+
+                    CurrentUpdatingPhase = update.phase;
+                });
+            });
+
             var results = await _updateService
                 .ExecuteUpdatesAsync(
                     pacotesParaAtualizar.Select(package => package.Id),
@@ -575,7 +605,8 @@ public partial class UpdatesViewModel : ObservableObject
                     ElevationConfirmation,
                     AppRunningPrompt,
                     isAutoUpdate: false,
-                    cancellationTokenSource.Token)
+                    cancellationTokenSource.Token,
+                    phaseProgress)
                 .ConfigureAwait(false);
 
             var failedCount = results.Count(result => !result.Success && !result.Skipped);
@@ -704,11 +735,15 @@ public partial class UpdatesViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Cancel()
+    private void CancelUpdates()
     {
-        _logger.LogInformation("CancelCommand acionado via interface.");
+        _logger.LogInformation("CancelUpdatesCommand acionado via interface.");
+        StatusMessage = "Cancelando atualizações...";
         _cancellationTokenSource?.Cancel();
     }
+
+    [RelayCommand]
+    private void Cancel() => CancelUpdates();
 
     [RelayCommand]
     private void SelectAll()
@@ -857,6 +892,7 @@ public partial class UpdatesViewModel : ObservableObject
             await RunOnUIAsync(() =>
             {
                 IsUpdating = false;
+                CurrentUpdatingPhase = string.Empty;
                 NotifyCountsChanged();
             }).ConfigureAwait(false);
         }

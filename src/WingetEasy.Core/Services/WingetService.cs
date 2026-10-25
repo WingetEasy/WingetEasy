@@ -506,15 +506,53 @@ public partial class WingetService : IWingetService
     }
 
     public Task<UpdateResult> InstallUpdateAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default) =>
-        RunInstallCommandAsync("upgrade", packageId, progress, ct);
+        RunInstallCommandAsync("upgrade", packageId, progress, ct, null);
+
+    public Task<UpdateResult> InstallUpdateAsync(string packageId, IProgress<int>? progress, CancellationToken ct, IProgress<string>? phaseProgress) =>
+        RunInstallCommandAsync("upgrade", packageId, progress, ct, phaseProgress);
 
     /// <summary>
     /// Instala um pacote que pode ainda não existir na máquina (winget install), ao contrário de InstallUpdateAsync (winget upgrade).
     /// </summary>
     public Task<UpdateResult> InstallPackageAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default) =>
-        RunInstallCommandAsync("install", packageId, progress, ct);
+        RunInstallCommandAsync("install", packageId, progress, ct, null);
 
-    private async Task<UpdateResult> RunInstallCommandAsync(string verb, string packageId, IProgress<int>? progress, CancellationToken ct)
+    public Task<UpdateResult> InstallPackageAsync(string packageId, IProgress<int>? progress, CancellationToken ct, IProgress<string>? phaseProgress) =>
+        RunInstallCommandAsync("install", packageId, progress, ct, phaseProgress);
+    internal static string? DetectInstallPhase(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return null;
+
+        if (line.Contains("Downloading", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Baixando", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains(" MB /", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains(" KB /", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains(" GB /", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Baixando instalador...";
+        }
+
+        if (line.Contains("Hash", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Verifying", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Verificando", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Validating", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Validando", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Verificando integridade (hash)...";
+        }
+
+        if (line.Contains("Installing", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Instalando", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Iniciando a instalação", StringComparison.OrdinalIgnoreCase) ||
+            line.Contains("Starting package install", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Instalando pacote...";
+        }
+
+        return null;
+    }
+
+    private async Task<UpdateResult> RunInstallCommandAsync(string verb, string packageId, IProgress<int>? progress, CancellationToken ct, IProgress<string>? phaseProgress = null)
     {
         // 1. Validação estrita do ID para evitar injeção de comandos no terminal
         ValidatePackageId(packageId);
@@ -572,11 +610,23 @@ public partial class WingetService : IWingetService
                     lastOutputLines.Enqueue(line);
                     if (lastOutputLines.Count > 3) lastOutputLines.Dequeue();
 
-                    // Lógica simples de progresso lendo as palavras-chave do winget
-                    if (line.Contains("Downloading", StringComparison.OrdinalIgnoreCase) || line.Contains("Baixando", StringComparison.OrdinalIgnoreCase))
-                        progress?.Report(25);
-                    else if (line.Contains("Installing", StringComparison.OrdinalIgnoreCase) || line.Contains("Instalando", StringComparison.OrdinalIgnoreCase))
-                        progress?.Report(75);
+                    var phase = DetectInstallPhase(line);
+                    if (phase is not null)
+                    {
+                        phaseProgress?.Report(phase);
+                        if (phase == "Baixando instalador...")
+                        {
+                            progress?.Report(25);
+                        }
+                        else if (phase == "Verificando integridade (hash)...")
+                        {
+                            progress?.Report(50);
+                        }
+                        else if (phase == "Instalando pacote...")
+                        {
+                            progress?.Report(75);
+                        }
+                    }
                 }
             }
             catch (OperationCanceledException) { /* Ignorado na leitura */ }
