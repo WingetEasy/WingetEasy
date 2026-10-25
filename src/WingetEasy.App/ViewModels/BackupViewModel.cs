@@ -301,26 +301,9 @@ public partial class BackupViewModel : ObservableObject
         }
     }
 
-    private async Task<string?> PickSavePathAsync(IntPtr windowHandle, string fileType, string extension, string suggestedName)
-    {
-        try
-        {
-            var picker = new FileSavePicker
-            {
-                SuggestedFileName = suggestedName,
-                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
-            };
-            picker.FileTypeChoices.Add(fileType, [extension]);
-            InitializeWithWindow.Initialize(picker, windowHandle);
-            var file = await picker.PickSaveFileAsync();
-            return file?.Path;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "FileSavePicker indisponível; usando o diálogo Win32 como alternativa.");
-            return Win32SaveFileDialog.Show(windowHandle, fileType, extension, suggestedName);
-        }
-    }
+    private Task<string?> PickSavePathAsync(IntPtr windowHandle, string fileType, string extension, string suggestedName) =>
+        SaveFilePicker.PickAsync(windowHandle, fileType, extension, suggestedName, _logger);
+
     private void BeginOperation(string message, double value)
     {
         IsBusy = true;

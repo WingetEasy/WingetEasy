@@ -1,5 +1,6 @@
 using WingetEasy.App.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -193,8 +194,135 @@ public partial class ProfilesViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private async Task InstallProfileAsync(ProfileItemViewModel? item)
+    /// <summary>
+    /// Pacotes atualmente instalados (vazio em caso de falha).
+    /// </summary>
+    public async Task<IReadOnlyList<WingetPackage>> GetInstalledAsync()
+    {
+        try
+        {
+            return (await _wingetService.GetInstalledPackagesAsync().ConfigureAwait(true))
+                .OrderBy(package => package.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Não foi possível listar os pacotes instalados.");
+            return [];
+        }
+    }
+
+    public async Task<bool> CreateProfileAsync(string name, string description, IReadOnlyList<ProfilePackage> packages)
+    {
+        try
+        {
+            var profile = new Profile(Guid.Empty, name.Trim(), description.Trim(), DateTime.UtcNow, packages);
+            await _profilesService.SaveAsync(profile).ConfigureAwait(true);
+            await LoadAsync().ConfigureAwait(true);
+            StatusMessage = $"Perfil \"{profile.Name}\" criado com {packages.Count} pacote(s).";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao criar o perfil.");
+            StatusMessage = "Não foi possível criar o perfil.";
+            return false;
+        }
+    }
+
+    public async Task ImportAsync()
+    {
+        var handle = App.MainWindowHandle;
+        if (handle == IntPtr.Zero)
+        {
+            StatusMessage = "Não foi possível abrir o seletor de arquivos: janela principal indisponível.";
+            return;
+        }
+
+        try
+        {
+            var path = await OpenFilePicker.PickAsync(handle, "Arquivo JSON", ".json", _logger).ConfigureAwait(true);
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                StatusMessage = "Importação cancelada.";
+                return;
+            }
+
+            var profile = await _profilesService.ImportJsonAsync(path).ConfigureAwait(true);
+            await LoadAsync().ConfigureAwait(true);
+            StatusMessage = $"Perfil \"{profile.Name}\" importado com {profile.Packages.Count} pacote(s).";
+        }
+        catch (System.IO.InvalidDataException ex)
+        {
+            StatusMessage = $"Não foi possível importar: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao importar perfil.");
+            StatusMessage = $"Não foi possível importar o perfil: {ex.Message}";
+        }
+    }
+    public async Task ExportAsync(ProfileItemViewModel item, bool asScript)
+    {
+        var handle = App.MainWindowHandle;
+        if (handle == IntPtr.Zero)
+        {
+            StatusMessage = "Não foi possível abrir o seletor de arquivos: janela principal indisponível.";
+            return;
+        }
+
+        try
+        {
+            var invalid = System.IO.Path.GetInvalidFileNameChars();
+            var safeName = new string(item.Name.Select(c => invalid.Contains(c) ? '_' : c).ToArray());
+            var path = await SaveFilePicker.PickAsync(
+                handle,
+                asScript ? "Script PowerShell" : "Arquivo JSON",
+                asScript ? ".ps1" : ".json",
+                $"perfil-{safeName}",
+                _logger).ConfigureAwait(true);
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                StatusMessage = "Exportação cancelada.";
+                return;
+            }
+
+            if (asScript)
+            {
+                await _profilesService.ExportScriptAsync(item.Profile.Id, path).ConfigureAwait(true);
+            }
+            else
+            {
+                await _profilesService.ExportJsonAsync(item.Profile.Id, path).ConfigureAwait(true);
+            }
+
+            StatusMessage = $"Perfil exportado com sucesso em: {path}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao exportar o perfil {ProfileId}.", item.Profile.Id);
+            StatusMessage = $"Não foi possível exportar o perfil: {ex.Message}";
+        }
+    }
+    public async Task<bool> UpdateProfileAsync(ProfileItemViewModel item, string name, string description, IReadOnlyList<ProfilePackage> packages)
+    {
+        try
+        {
+            var profile = new Profile(item.Profile.Id, name.Trim(), description.Trim(), item.Profile.CreatedAt, packages);
+            await _profilesService.SaveAsync(profile).ConfigureAwait(true);
+            await LoadAsync().ConfigureAwait(true);
+            StatusMessage = $"Perfil \"{profile.Name}\" atualizado com {packages.Count} pacote(s).";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar o perfil {ProfileId}.", item.Profile.Id);
+            StatusMessage = "Não foi possível atualizar o perfil.";
+            return false;
+        }
+    }
+
+    public async Task InstallSelectedAsync(ProfileItemViewModel? item, IReadOnlyCollection<string>? packageIds)
     {
         if (item is null)
         {
@@ -211,7 +339,7 @@ public partial class ProfilesViewModel : ObservableObject
                     ProgressValue = value.total == 0 ? 0 : value.current * 100d / value.total;
                     ProgressMessage = $"Instalando {value.packageId} ({value.current} de {value.total})...";
                 }));
-            var results = await _profilesService.InstallProfileAsync(item.Profile.Id, progress).ConfigureAwait(true);
+            var results = await _profilesService.InstallProfileAsync(item.Profile.Id, progress, default, packageIds).ConfigureAwait(true);
             StatusMessage = $"Instalação concluída: {results.Count(result => result.Success)} sucesso(s) e {results.Count(result => !result.Success)} falha(s).";
         }
         catch (Exception ex)
