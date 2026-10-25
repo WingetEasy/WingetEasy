@@ -113,8 +113,8 @@ public sealed partial class UpdateFlyout : Window
         uint dpi = GetDpiForWindow(_hwnd);
         double scale = dpi / 96.0;
 
-        int width = (int)(336 * scale);
-        int height = (int)(340 * scale);
+        int width = (int)(360 * scale);
+        int height = (int)(420 * scale);
 
         int padding = (int)(12 * scale);
         int x = workArea.X + workArea.Width - width - padding;
