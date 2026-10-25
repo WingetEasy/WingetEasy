@@ -200,17 +200,6 @@ public partial class PackageItemViewModel : ObservableObject
         return Color.FromArgb(255, r, g, b);
     }
 
-    public Brush GetBadgeBackground(string category)
-    {
-        var resourceKey = category switch
-        {
-            "Segurança" => "BadgeSecurityBgBrush",
-            "Runtime" => "BadgeRuntimeBgBrush",
-            _ => "BadgeAppBgBrush"
-        };
-
-        return (Brush)App.Current.Resources[resourceKey];
-    }
 
     public Brush GetBadgeForeground(string category)
     {

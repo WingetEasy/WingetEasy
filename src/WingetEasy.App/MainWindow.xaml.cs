@@ -301,18 +301,10 @@ namespace WingetEasy.App
 
         private async Task RestoreOrCenterWindowAsync()
         {
-            var savedX = await GetWindowCoordinateAsync(WindowXKey).ConfigureAwait(true);
-            var savedY = await GetWindowCoordinateAsync(WindowYKey).ConfigureAwait(true);
-            var savedWidth = await GetWindowCoordinateAsync(WindowWidthKey).ConfigureAwait(true);
-            var savedHeight = await GetWindowCoordinateAsync(WindowHeightKey).ConfigureAwait(true);
-
-            if (savedX.HasValue && savedY.HasValue && savedWidth > 0 && savedHeight > 0)
+            var bounds = (await _settingsRepo.GetAsync("WindowBounds").ConfigureAwait(true))?.Split(',');
+            if (bounds is { Length: 4 } && int.TryParse(bounds[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) && int.TryParse(bounds[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && int.TryParse(bounds[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var w) && int.TryParse(bounds[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var h) && w > 0 && h > 0)
             {
-                _appWindow.MoveAndResize(new RectInt32(
-                    savedX.Value,
-                    savedY!.Value,
-                    savedWidth.Value,
-                    savedHeight.Value));
+                _appWindow.MoveAndResize(new RectInt32(x, y, w, h));
             }
             else
             {
@@ -369,10 +361,7 @@ namespace WingetEasy.App
 
         private async Task SaveWindowStateAsync(PointInt32 position, SizeInt32 size)
         {
-            await _settingsRepo.SetAsync(WindowXKey, position.X.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
-            await _settingsRepo.SetAsync(WindowYKey, position.Y.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
-            await _settingsRepo.SetAsync(WindowWidthKey, size.Width.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
-            await _settingsRepo.SetAsync(WindowHeightKey, size.Height.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
+            await _settingsRepo.SetAsync("WindowBounds", string.Create(CultureInfo.InvariantCulture, $"{position.X},{position.Y},{size.Width},{size.Height}")).ConfigureAwait(true);
         }
 
         private static void TrimWorkingSet()

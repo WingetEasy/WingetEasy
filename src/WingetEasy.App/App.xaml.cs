@@ -158,9 +158,7 @@ namespace WingetEasy.App
                                         FileName = "winget.exe",
                                         Arguments = $"upgrade --id {id} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
                                         UseShellExecute = false,
-                                        CreateNoWindow = true,
-                                        RedirectStandardOutput = true,
-                                        RedirectStandardError = true
+                                        CreateNoWindow = true
                                     }
                                 };
                                 process.Start();
@@ -180,7 +178,7 @@ namespace WingetEasy.App
                                 results.Add(new Core.Models.UpdateResult(id, id, success, success ? null : $"Erro {process.ExitCode}", sw.Elapsed));
                             }
 
-                            var resultFile = jobFile.Replace("job", "result");
+                            var resultFile = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(jobFile) ?? string.Empty, System.IO.Path.GetFileName(jobFile).Replace("job", "result", StringComparison.Ordinal));
                             File.WriteAllText(resultFile, JsonSerializer.Serialize(results, Core.Models.CoreJsonContext.Default.ListUpdateResult));
                         }
                     }

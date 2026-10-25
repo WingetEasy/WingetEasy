@@ -18,16 +18,24 @@ namespace WingetEasy.Core.Services;
 /// Responsável por executar comandos via CLI, gerir processos do sistema, evitar deadlocks de I/O
 /// e fazer o parsing robusto do output devolvido pelo terminal.
 /// </summary>
-public class WingetService : IWingetService
+public partial class WingetService : IWingetService
 {
-    private static readonly Regex PkgIdRegex = new(@"^[A-Za-z0-9._\-+]+$", RegexOptions.Compiled);
-    private static readonly Regex NonWhitespaceRegex = new(@"\S+", RegexOptions.Compiled);
-    private static readonly Regex FooterLineRegex = new(
-        @"^\d+\s+(atualiza\S*|upgrades?\b|pacotes?\b|packages?\b)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"^[A-Za-z0-9._\-+]+$")]
+    private static partial Regex GetPkgIdRegex();
+    private static Regex PkgIdRegex => GetPkgIdRegex();
+
+    [GeneratedRegex(@"\S+")]
+    private static partial Regex GetNonWhitespaceRegex();
+    private static Regex NonWhitespaceRegex => GetNonWhitespaceRegex();
+
+    [GeneratedRegex(@"^\d+\s+(atualiza\S*|upgrades?\b|pacotes?\b|packages?\b)", RegexOptions.IgnoreCase)]
+    private static partial Regex GetFooterLineRegex();
+    private static Regex FooterLineRegex => GetFooterLineRegex();
 
     // Regex para extrair a versão no formato v1.x.x
-    private static readonly Regex VersionRegex = new(@"v\d+\.\d+\.\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"v\d+\.\d+\.\d+", RegexOptions.IgnoreCase)]
+    private static partial Regex GetVersionRegex();
+    private static Regex VersionRegex => GetVersionRegex();
 
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(30);
