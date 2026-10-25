@@ -19,10 +19,12 @@ namespace WingetEasy.App.Pages
         {
             ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
             this.InitializeComponent();
+            NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
             ViewModel.ElevationConfirmation = ConfirmElevationAsync;
 
             Loaded += (_, _) =>
             {
+                ViewModel.ElevationConfirmation = ConfirmElevationAsync;
                 ApplyHeroLogoShadow();
                 if (!ViewModel.HasCheckedOnce && !ViewModel.IsChecking)
                 {
@@ -57,6 +59,7 @@ namespace WingetEasy.App.Pages
                 return;
             }
 
+            if (ElementCompositionPreview.GetElementChildVisual(HeroLogoShadowHost) is not null) return;
             var hostVisual = ElementCompositionPreview.GetElementVisual(HeroLogoShadowHost);
             var compositor = hostVisual.Compositor;
 

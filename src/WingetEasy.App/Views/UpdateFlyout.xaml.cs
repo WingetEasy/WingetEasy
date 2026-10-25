@@ -25,6 +25,14 @@ public sealed partial class UpdateFlyout : Window
         ViewModel = App.Services.GetRequiredService<UpdatesViewModel>();
         this.InitializeComponent();
         ViewModel.ElevationConfirmation = ConfirmElevationAsync;
+        this.Closed += (_, _) =>
+        {
+            this.Bindings.StopTracking();
+            if (ViewModel.ElevationConfirmation == (Func<Task<bool>>)ConfirmElevationAsync)
+            {
+                ViewModel.ElevationConfirmation = null;
+            }
+        };
         (Application.Current as App)?.RegisterUpdateFlyout(this);
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);

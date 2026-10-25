@@ -41,6 +41,7 @@ namespace WingetEasy.App
         {
             UpdatesVM = App.Services.GetRequiredService<UpdatesViewModel>();
             this.InitializeComponent();
+            ContentFrame.CacheSize = 5;
 
             _settingsRepo = App.Services.GetRequiredService<ISettingsRepository>();
             _appUpdateService = App.Services.GetRequiredService<IAppUpdateService>();
@@ -205,9 +206,11 @@ namespace WingetEasy.App
                 _ => null
             };
 
-            if (pageType != null && ContentFrame.CurrentSourcePageType != pageType)
+            if (pageType != null && (ContentFrame.CurrentSourcePageType != pageType || ContentFrame.Content == null))
             {
                 ContentFrame.Navigate(pageType);
+                ContentFrame.BackStack.Clear();
+                _ = Task.Run(async () => { await Task.Delay(400).ConfigureAwait(false); TrimWorkingSet(); });
             }
         }
 
@@ -337,10 +340,17 @@ namespace WingetEasy.App
             var pos = _appWindow.Position;
             var size = _appWindow.Size;
 
-            await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
-            TrimWorkingSet();
-
             sender.Hide();
+            await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
+            await Task.Delay(150).ConfigureAwait(true);
+            TrimWorkingSet();
+        }
+
+        public void RestoreFromTray()
+        {
+            if (this.SystemBackdrop == null) ConfigureBackdrop();
+            if (ContentFrame.Content == null) NavigateToTag(_activeTag);
+            _ = Task.Run(async () => { await Task.Delay(1000).ConfigureAwait(false); TrimWorkingSet(); });
         }
 
         private async Task<int?> GetWindowCoordinateAsync(string key)
@@ -361,15 +371,7 @@ namespace WingetEasy.App
 
         private static void TrimWorkingSet()
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            using var process = Process.GetCurrentProcess();
-            if (EmptyWorkingSet(process.Handle) == 0)
-            {
-                Debug.WriteLine("Não foi possível reduzir o Working Set do processo.");
-            }
+            App.OptimizeBackgroundMemory();
         }
 
         public void FocusUpdatesPage()

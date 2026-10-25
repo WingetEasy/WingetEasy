@@ -113,7 +113,7 @@
                                 <Image x:Name="HeroLogoImage"
                                        Source="ms-appx:///Assets/WingetEasy-Logo.png"
                                        Width="270"
-                                       Height="210"
+                                       Height="250"
                                        Stretch="Uniform"
                                        Opacity="0.95"
                                        ImageOpened="HeroLogoImage_ImageOpened"

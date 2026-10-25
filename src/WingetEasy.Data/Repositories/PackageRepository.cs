@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using WingetEasy.Core.Interfaces;
 using WingetEasy.Data.Entities;
 
@@ -11,16 +12,19 @@ namespace WingetEasy.Data.Repositories;
 
 public class PackageRepository : IPackageRepository
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    [ActivatorUtilitiesConstructor]
+    public PackageRepository(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public PackageRepository(AppDbContext dbContext)
     {
-        _dbContext = dbContext;
+        _contextFactory = new AppDbContext.DelegatingFactory(dbContext.Database.GetConnectionString());
     }
 
     public async Task<IEnumerable<string>> GetSkippedIdsAsync(CancellationToken ct = default)
     {
-        return await _dbContext.Packages
+        using var _dbContext = _contextFactory.CreateDbContext();
+        return await _dbContext.Packages.AsNoTracking()
             .Where(p => p.IsSkipped)
             .Select(p => p.WingetId)
             .ToListAsync(ct).ConfigureAwait(false);
@@ -28,6 +32,7 @@ public class PackageRepository : IPackageRepository
 
     public async Task SkipPackageAsync(string packageId, string? reason = null, CancellationToken ct = default)
     {
+        using var _dbContext = _contextFactory.CreateDbContext();
         var package = await _dbContext.Packages.FirstOrDefaultAsync(p => p.WingetId == packageId, ct).ConfigureAwait(false);
 
         if (package == null)
@@ -55,6 +60,7 @@ public class PackageRepository : IPackageRepository
 
     public async Task UnskipPackageAsync(string packageId, CancellationToken ct = default)
     {
+        using var _dbContext = _contextFactory.CreateDbContext();
         var package = await _dbContext.Packages.FirstOrDefaultAsync(p => p.WingetId == packageId, ct).ConfigureAwait(false);
         if (package != null && package.IsSkipped)
         {

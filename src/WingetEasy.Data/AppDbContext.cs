@@ -34,6 +34,12 @@ public class AppDbContext : DbContext
     /// <param name="options">Opções de configuração do contexto.</param>
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    internal sealed class DelegatingFactory(string? connectionString) : IDbContextFactory<AppDbContext>
+    {
+        public AppDbContext CreateDbContext() =>
+            new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options);
+    }
+
     /// <summary>
     /// Configura a conexão com o banco de dados físico de forma dinâmica,
     /// apontando para a pasta %APPDATA%/WingetEasy/data.db.
