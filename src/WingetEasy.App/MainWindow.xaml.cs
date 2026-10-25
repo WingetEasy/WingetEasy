@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -85,6 +86,13 @@ namespace WingetEasy.App
 
             ConfigureBackdrop();
             UpdateThemeToggleGlyph();
+            _currentLang = LocalizationService.Instance.CurrentLanguage;
+            ApplyLanguageVisuals(_currentLang);
+            LocalizationService.Instance.LanguageChanged += () =>
+            {
+                ApplyLanguageVisuals(LocalizationService.Instance.CurrentLanguage);
+                LocalizeActivePage();
+            };
         }
 
         private async Task ShowOnboardingIfNeededAsync()
@@ -231,6 +239,11 @@ namespace WingetEasy.App
             {
                 ContentFrame.Navigate(pageType);
                 ContentFrame.BackStack.Clear();
+                if (ContentFrame.Content is FrameworkElement fe)
+                {
+                    fe.Loaded += (_, _) => LocalizationService.Instance.LocalizeElement(fe);
+                    LocalizationService.Instance.LocalizeElement(fe);
+                }
                 _ = Task.Run(async () => { await Task.Delay(400).ConfigureAwait(false); TrimWorkingSet(); });
             }
         }
@@ -257,6 +270,12 @@ namespace WingetEasy.App
         }
 
         private void ApplyLanguage(string lang)
+        {
+            _currentLang = lang;
+            LocalizationService.Instance.SetLanguage(lang, persist: true);
+        }
+
+        private void ApplyLanguageVisuals(string lang)
         {
             _currentLang = lang;
             bool isPt = lang == "pt";
@@ -287,6 +306,15 @@ namespace WingetEasy.App
             LblBackup.Text = "Backup";
             LblProfiles.Text = isPt ? "Perfis" : "Profiles";
             LblSettings.Text = isPt ? "Configurações" : "Settings";
+            ToolTipService.SetToolTip(ThemeToggleButton, isPt ? "Alternar tema Claro / Escuro" : "Toggle Light / Dark theme");
+        }
+
+        private void LocalizeActivePage()
+        {
+            if (ContentFrame.Content is DependencyObject page)
+            {
+                LocalizationService.Instance.LocalizeElement(page);
+            }
         }
 
         private async Task CheckForAppUpdateInBackgroundAsync()

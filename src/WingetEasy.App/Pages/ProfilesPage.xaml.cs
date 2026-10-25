@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,7 +16,12 @@ public sealed partial class ProfilesPage : Page
         InitializeComponent();
         NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
         DataContext = ViewModel;
-        Loaded += async (_, _) => { if (ViewModel.Profiles.Count == 0) await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true); };
+        LocalizationService.Instance.LanguageChanged += () => LocalizationService.Instance.LocalizeElement(this);
+        Loaded += async (_, _) =>
+        {
+            LocalizationService.Instance.LocalizeElement(this);
+            if (ViewModel.Profiles.Count == 0) await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+        };
 
     }
 

@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -20,9 +21,9 @@ public sealed class BackupSnapshotItemViewModel
     public BackupSnapshot Snapshot { get; }
     public string Label => Snapshot.Label;
     public string CreatedAt => Snapshot.CreatedAt.ToLocalTime().ToString("g");
-    public string PackageCount => $"{Snapshot.PackageCount} pacote(s)";
+    public string PackageCount => LocalizationService.Instance.IsPortuguese ? $"{Snapshot.PackageCount} pacote(s)" : $"{Snapshot.PackageCount} package(s)";
     public string WingetVersion => string.IsNullOrWhiteSpace(Snapshot.WingetVersion)
-        ? "Versão desconhecida"
+        ? LocalizationService.Instance.Get("Versão desconhecida")
         : $"Winget {Snapshot.WingetVersion}";
 
     public BackupSnapshotItemViewModel(BackupSnapshot snapshot)

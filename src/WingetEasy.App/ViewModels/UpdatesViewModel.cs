@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -173,34 +174,48 @@ public partial class UpdatesViewModel : ObservableObject
     public Visibility IsProgressBarVisible => (IsChecking || IsUpdating) ? Visibility.Visible : Visibility.Collapsed;
 
     public string HeroTitle => IsChecking
-        ? "Verificando atualizações…"
+        ? LocalizationService.Instance.Get("Verificando atualizações…")
         : IsUpdating
-            ? "Atualizando pacotes…"
+            ? LocalizationService.Instance.Get("Atualizando pacotes…")
             : HasUpdates
-                ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
-                : "Sistema atualizado";
+                ? (LocalizationService.Instance.IsPortuguese
+                    ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+                    : $"{AvailableCount} {(AvailableCount == 1 ? "update available" : "updates available")}")
+                : LocalizationService.Instance.Get("Sistema atualizado");
 
     public string HeroSubtitle => IsChecking
-        ? "Consultando as fontes do Winget."
+        ? LocalizationService.Instance.Get("Consultando as fontes do Winget.")
         : IsUpdating
-            ? $"{BatchCompleted} de {BatchTotal} concluídos"
+            ? (LocalizationService.Instance.IsPortuguese
+                ? $"{BatchCompleted} de {BatchTotal} concluídos"
+                : $"{BatchCompleted} of {BatchTotal} completed")
             : HasUpdates
-                ? "Recomendamos atualizar para manter tudo seguro e rápido."
-                : "Seu sistema está em dia. Última verificação agora há pouco.";
+                ? LocalizationService.Instance.Get("Recomendamos atualizar para manter tudo seguro e rápido.")
+                : LocalizationService.Instance.Get("Seu sistema está em dia. Última verificação agora há pouco.");
 
     public string HeaderSubtitle => IsChecking
-        ? "Verificando atualizações…"
+        ? LocalizationService.Instance.Get("Verificando atualizações…")
         : IsUpdating
-            ? $"Atualizando ({BatchCompleted}/{BatchTotal})…"
+            ? (LocalizationService.Instance.IsPortuguese
+                ? $"Atualizando ({BatchCompleted}/{BatchTotal})…"
+                : $"Updating ({BatchCompleted}/{BatchTotal})…")
             : HasUpdates
-                ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
-                : "Tudo atualizado";
+                ? (LocalizationService.Instance.IsPortuguese
+                    ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+                    : $"{AvailableCount} {(AvailableCount == 1 ? "update available" : "updates available")}")
+                : LocalizationService.Instance.Get("Tudo atualizado");
 
-    public string UpdateAllButtonText => HasUpdates ? "Atualizar tudo" : "Tudo atualizado";
+    public string UpdateAllButtonText => HasUpdates
+        ? LocalizationService.Instance.Get("Atualizar tudo")
+        : LocalizationService.Instance.Get("Tudo atualizado");
 
     public int SelectedCount => _allPackages.Count(p => p.IsSelected);
-    public string SelectedCountText => $"Total selecionado: {SelectedCount} {(SelectedCount == 1 ? "pacote" : "pacotes")}";
-    public string UpdateSelectedButtonText => $"Atualizar selecionados ({SelectedCount})";
+    public string SelectedCountText => LocalizationService.Instance.IsPortuguese
+        ? $"Total selecionado: {SelectedCount} {(SelectedCount == 1 ? "pacote" : "pacotes")}"
+        : $"Total selected: {SelectedCount} {(SelectedCount == 1 ? "package" : "packages")}";
+    public string UpdateSelectedButtonText => LocalizationService.Instance.IsPortuguese
+        ? $"Atualizar selecionados ({SelectedCount})"
+        : $"Update selected ({SelectedCount})";
 
     public bool IsAllSelected
     {
@@ -223,36 +238,44 @@ public partial class UpdatesViewModel : ObservableObject
             if (IsUpdating)
             {
                 return BatchTotal > 0
-                    ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal})..."
-                    : "Atualizando...";
+                    ? (LocalizationService.Instance.IsPortuguese
+                        ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal})..."
+                        : $"Updating ({Math.Min(BatchCompleted + 1, BatchTotal)} of {BatchTotal})...")
+                    : LocalizationService.Instance.Get("Atualizando...");
             }
             return HasUpdates
-                ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
-                : "Tudo atualizado";
+                ? (LocalizationService.Instance.IsPortuguese
+                    ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+                    : $"{AvailableCount} {(AvailableCount == 1 ? "update available" : "updates available")}")
+                : LocalizationService.Instance.Get("Tudo atualizado");
         }
     }
 
     public Visibility FlyoutNotUpdatingVisibility => IsUpdating ? Visibility.Collapsed : Visibility.Visible;
     public string FlyoutUpdatingButtonText => BatchTotal > 0
-        ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)}/{BatchTotal})..."
-        : "Atualizando...";
+        ? (LocalizationService.Instance.IsPortuguese
+            ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)}/{BatchTotal})..."
+            : $"Updating ({Math.Min(BatchCompleted + 1, BatchTotal)}/{BatchTotal})...")
+        : LocalizationService.Instance.Get("Atualizando...");
     public string CurrentUpdatingPackageDisplay => !string.IsNullOrWhiteSpace(CurrentUpdatingPackage)
-        ? $"Atualizando {CurrentUpdatingPackage}..."
-        : "Preparando atualização...";
+        ? (LocalizationService.Instance.IsPortuguese ? $"Atualizando {CurrentUpdatingPackage}..." : $"Updating {CurrentUpdatingPackage}...")
+        : (LocalizationService.Instance.IsPortuguese ? "Preparando atualização..." : "Preparing update...");
     public string BatchStatusDisplay => BatchTotal > 0
-        ? $"{Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal}"
+        ? (LocalizationService.Instance.IsPortuguese
+            ? $"{Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal}"
+            : $"{Math.Min(BatchCompleted + 1, BatchTotal)} of {BatchTotal}")
         : string.Empty;
     public string UpdateProgressPercentText => UpdateProgress > 0 ? $"{UpdateProgress}%" : string.Empty;
 
     public Visibility FlyoutHasUpdatesVisibility => HasUpdates ? Visibility.Visible : Visibility.Collapsed;
     public Visibility FlyoutCleanVisibility => HasUpdates ? Visibility.Collapsed : Visibility.Visible;
     public string FlyoutUpdateButtonText => !HasUpdates
-        ? "Tudo atualizado"
+        ? LocalizationService.Instance.Get("Tudo atualizado")
         : IsAllSelected
-            ? "Atualizar tudo"
+            ? LocalizationService.Instance.Get("Atualizar tudo")
             : SelectedCount == 0
-                ? "Nenhum selecionado"
-                : $"Atualizar selecionados ({SelectedCount})";
+                ? (LocalizationService.Instance.IsPortuguese ? "Nenhum selecionado" : "None selected")
+                : (LocalizationService.Instance.IsPortuguese ? $"Atualizar selecionados ({SelectedCount})" : $"Update selected ({SelectedCount})");
     public Visibility FlyoutMoreVisibility => AvailableCount > 4 ? Visibility.Visible : Visibility.Collapsed;
     public string FlyoutMoreText => AvailableCount > 4
         ? $"+ {AvailableCount - 4} {(AvailableCount - 4 == 1 ? "outro pacote" : "outros pacotes")}"
@@ -301,6 +324,24 @@ public partial class UpdatesViewModel : ObservableObject
         _logger = logger;
         _dispatcherQueue = dispatcherQueue;
         _ = InitializeSettingsAsync();
+        LocalizationService.Instance.LanguageChanged += () =>
+        {
+            OnPropertyChanged(nameof(HeroTitle));
+            OnPropertyChanged(nameof(HeroSubtitle));
+            OnPropertyChanged(nameof(HeaderSubtitle));
+            OnPropertyChanged(nameof(UpdateAllButtonText));
+            OnPropertyChanged(nameof(SelectedCountText));
+            OnPropertyChanged(nameof(UpdateSelectedButtonText));
+            OnPropertyChanged(nameof(FlyoutStatusText));
+            OnPropertyChanged(nameof(FlyoutUpdatingButtonText));
+            OnPropertyChanged(nameof(CurrentUpdatingPackageDisplay));
+            OnPropertyChanged(nameof(BatchStatusDisplay));
+            OnPropertyChanged(nameof(FlyoutUpdateButtonText));
+            if (!HasUpdates && !IsChecking && !IsUpdating)
+            {
+                StatusMessage = LocalizationService.Instance.Get("Todos os pacotes estão atualizados.");
+            }
+        };
     }
 
     partial void OnAutoUpdateEnabledChanged(bool value)

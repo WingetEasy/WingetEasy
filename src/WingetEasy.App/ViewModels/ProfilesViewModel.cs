@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -17,7 +18,7 @@ public sealed class ProfileItemViewModel
     public Profile Profile { get; }
     public string Name => Profile.Name;
     public string Description => Profile.Description;
-    public string PackageSummary => $"{Profile.Packages.Count} pacote(s)";
+    public string PackageSummary => LocalizationService.Instance.IsPortuguese ? $"{Profile.Packages.Count} pacote(s)" : $"{Profile.Packages.Count} package(s)";
     public string Packages => string.Join(", ", Profile.Packages.Select(package => package.Name));
 
     public ProfileItemViewModel(Profile profile) => Profile = profile;

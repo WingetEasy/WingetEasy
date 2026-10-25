@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -136,11 +137,13 @@ public partial class SettingsViewModel : ObservableObject
 
     public string AppVersion { get; } = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
 
-    public string AppVersionDisplay => $"Versão {AppVersion} · canal estável";
+    public string AppVersionDisplay => LocalizationService.Instance.IsPortuguese
+        ? $"Versão {AppVersion} · canal estável"
+        : $"Version {AppVersion} · stable channel";
 
     public string WingetStatusMessage => IsWingetAvailable
-        ? $"Winget instalado ({WingetVersion})"
-        : "Winget não foi encontrado. Instale o Windows Package Manager para habilitar as verificações.";
+        ? (LocalizationService.Instance.IsPortuguese ? $"Winget instalado ({WingetVersion})" : $"Winget installed ({WingetVersion})")
+        : (LocalizationService.Instance.IsPortuguese ? "Winget não foi encontrado. Instale o Windows Package Manager para habilitar as verificações." : "Winget not found. Install Windows Package Manager to enable checks.");
 
     public InfoBarSeverity WingetInfoBarSeverity => IsWingetAvailable ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
 
@@ -162,6 +165,12 @@ public partial class SettingsViewModel : ObservableObject
         _logger = logger;
 
         SelectedFrequencyOption = FrequencyOptions[2]; // Diariamente
+        LocalizationService.Instance.LanguageChanged += () =>
+        {
+            OnPropertyChanged(nameof(AppVersionDisplay));
+            OnPropertyChanged(nameof(WingetStatusMessage));
+            AppUpdateStatusMessage = LocalizationService.Instance.Get("Distribuído sob licença MIT · Não afiliado à Microsoft");
+        };
     }
 
     /// <summary>

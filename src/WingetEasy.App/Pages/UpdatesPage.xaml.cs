@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -23,9 +24,11 @@ namespace WingetEasy.App.Pages
             NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
             ViewModel.ElevationConfirmation = ConfirmElevationAsync;
             ViewModel.AppRunningPrompt = ConfirmAppRunningResolutionAsync;
+            LocalizationService.Instance.LanguageChanged += () => LocalizationService.Instance.LocalizeElement(this);
 
             Loaded += (_, _) =>
             {
+                LocalizationService.Instance.LocalizeElement(this);
                 ViewModel.ElevationConfirmation = ConfirmElevationAsync;
                 ViewModel.AppRunningPrompt = ConfirmAppRunningResolutionAsync;
                 ApplyHeroLogoShadow();
@@ -147,10 +150,10 @@ namespace WingetEasy.App.Pages
             var dialog = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "Permissão de administrador necessária",
-                Content = "Alguns pacotes exigem privilégios de Administrador para serem atualizados.",
-                PrimaryButtonText = "Continuar com Administrador",
-                CloseButtonText = "Cancelar",
+                Title = LocalizationService.Instance.Get("Permissão de administrador necessária"),
+                Content = LocalizationService.Instance.Get("Alguns pacotes exigem privilégios de Administrador para serem atualizados."),
+                PrimaryButtonText = LocalizationService.Instance.Get("Continuar com Administrador"),
+                CloseButtonText = LocalizationService.Instance.Get("Cancelar"),
                 DefaultButton = ContentDialogButton.Primary
             };
 
@@ -181,13 +184,16 @@ namespace WingetEasy.App.Pages
 
         private async Task<AppRunningResolution> ShowAppRunningDialogCoreAsync(string appName)
         {
+            var isPt = LocalizationService.Instance.IsPortuguese;
             var dialog = new ContentDialog
             {
                 XamlRoot = Content?.XamlRoot ?? this.XamlRoot,
-                Title = "Aplicativo em execução",
-                Content = $"O aplicativo '{appName}' está aberto no momento.\n\nDeseja pular esta atualização por enquanto ou fechar o aplicativo e atualizar?",
-                PrimaryButtonText = "Fechar e atualizar",
-                CloseButtonText = "Pular por enquanto",
+                Title = LocalizationService.Instance.Get("Aplicativo em execução"),
+                Content = isPt
+                    ? $"O aplicativo '{appName}' está aberto no momento.\n\nDeseja pular esta atualização por enquanto ou fechar o aplicativo e atualizar?"
+                    : $"The application '{appName}' is currently running.\n\nDo you want to skip this update for now or close the app and update?",
+                PrimaryButtonText = LocalizationService.Instance.Get("Fechar e atualizar"),
+                CloseButtonText = LocalizationService.Instance.Get("Pular por enquanto"),
                 DefaultButton = ContentDialogButton.Primary
             };
 
