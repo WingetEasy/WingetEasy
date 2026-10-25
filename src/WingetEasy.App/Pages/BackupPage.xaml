@@ -71,6 +71,8 @@
                                             Click="ExportScriptButton_Click"/>
                                     <Button Content="Exportar .json"
                                             Click="ExportJsonButton_Click"/>
+                                    <Button Content="Exportar como Perfil"
+                                            Click="CreateProfileButton_Click"/>
                                     <Button Content="Excluir"
                                             Click="DeleteButton_Click"/>
                                 </StackPanel>

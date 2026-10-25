@@ -16,7 +16,8 @@ public interface IBackupService
         Guid snapshotId,
         IProgress<(string packageId, int current, int total)>? progress = null,
         int maxRetries = 1,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        IReadOnlyCollection<string>? selectedPackageIds = null);
     Task ExportScriptAsync(Guid snapshotId, string path, CancellationToken ct = default);
     Task ExportJsonAsync(Guid snapshotId, string path, CancellationToken ct = default);
     Task DeleteAsync(string id, CancellationToken ct = default);
