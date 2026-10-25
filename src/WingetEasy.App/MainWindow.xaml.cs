@@ -342,6 +342,12 @@ namespace WingetEasy.App
 
             sender.Hide();
             await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
+            if (bool.TryParse(await _settingsRepo.GetAsync("KeepInSystemTray").ConfigureAwait(true), out var keepInTray) && !keepInTray)
+            {
+                Serilog.Log.CloseAndFlush();
+                Environment.Exit(0);
+                return;
+            }
             await Task.Delay(150).ConfigureAwait(true);
             TrimWorkingSet();
         }

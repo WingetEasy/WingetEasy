@@ -305,22 +305,13 @@
                         </Grid>
 
                         <!-- Lista de pacotes disponíveis -->
-                        <ListView ItemsSource="{x:Bind ViewModel.Packages}"
-                                  SelectionMode="None"
-                                  ShowsScrollingPlaceholders="False">
-                            <ListView.ItemContainerStyle>
-                                <Style TargetType="ListViewItem">
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="Margin" Value="0" />
-                                </Style>
-                            </ListView.ItemContainerStyle>
-                            <ListView.ItemTemplate>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Packages}">
+                            <ItemsRepeater.ItemTemplate>
                                 <DataTemplate>
                                     <controls:PackageItemControl />
                                 </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
 
                         <!-- Estado vazio quando tudo atualizado -->
                         <StackPanel Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}"

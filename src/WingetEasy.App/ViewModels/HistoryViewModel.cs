@@ -109,7 +109,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedPeriod, value))
             {
-                ApplyFilters();
+                _ = LoadAsync();
             }
         }
     }
@@ -121,7 +121,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             if (SetProperty(ref _searchText, value))
             {
-                ApplyFilters();
+                _ = LoadAsync();
             }
         }
     }
@@ -152,7 +152,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             IsLoading = true;
             var entries = await _repository.GetByDataRangeAsync(
-                DateTime.MinValue,
+                _selectedPeriod switch { HistoryPeriod.Today => DateTime.UtcNow.Date, HistoryPeriod.SevenDays => DateTime.UtcNow.AddDays(-7), HistoryPeriod.Month => DateTime.UtcNow.AddDays(-30), _ => DateTime.MinValue },
                 DateTime.UtcNow,
                 CancellationToken.None).ConfigureAwait(true);
 
