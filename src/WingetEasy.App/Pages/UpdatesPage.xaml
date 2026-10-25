@@ -292,7 +292,7 @@
                                 <ToggleButton Content="App" Tag="App" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
                                 <ToggleButton Content="Runtime" Tag="Runtime" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
                                 <ToggleButton Content="Segurança" Tag="Segurança" Click="CategoryFilter_Click" Padding="10,4" CornerRadius="6" FontSize="12" />
-                                <ComboBox Width="130"
+                                <!-- <ComboBox Width="130"
                                           SelectedIndex="0"
                                           FontSize="12"
                                           AutomationProperties.Name="Ordenar pacotes"
@@ -300,7 +300,7 @@
                                     <ComboBoxItem Content="Nome (A-Z)" />
                                     <ComboBoxItem Content="Categoria" />
                                     <ComboBoxItem Content="Fonte" />
-                                </ComboBox>
+                                </ComboBox> -->
                             </StackPanel>
                         </Grid>
 
