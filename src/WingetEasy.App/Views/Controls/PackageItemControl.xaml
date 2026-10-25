@@ -136,7 +136,7 @@
                             Visibility="{x:Bind ViewModel.IsProgressVisibility, Mode=OneWay}"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <TextBlock Text="Atualizando…"
+                    <TextBlock Text="{x:Bind ViewModel.CurrentPhase, Mode=OneWay}"
                                FontSize="12.5"
                                FontWeight="SemiBold"
                                Foreground="#3B82F6" />

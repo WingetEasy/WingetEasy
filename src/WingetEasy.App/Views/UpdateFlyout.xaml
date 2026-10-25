@@ -309,43 +309,63 @@
                                     FontSize="12.5" />
                         </Grid>
 
-                        <!-- Estado em atualização: Animação viva de ProgressRing + texto de progresso -->
-                        <Border Visibility="{x:Bind ViewModel.IsUpdatingVisibility, Mode=OneWay}"
-                                Background="#3B82F6"
-                                CornerRadius="7"
-                                Height="34"
-                                Padding="12,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                        <!-- Estado em atualização: Animação viva de ProgressRing + texto de progresso + Botão Cancelar -->
+                        <Grid Visibility="{x:Bind ViewModel.IsUpdatingVisibility, Mode=OneWay}" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                                <ProgressRing Grid.Column="0"
-                                              IsActive="True"
-                                              Width="16"
-                                              Height="16"
-                                              Foreground="White"
-                                              VerticalAlignment="Center"
-                                              Margin="0,0,8,0" />
+                            <Border Grid.Column="0"
+                                    Background="#3B82F6"
+                                    CornerRadius="7"
+                                    Height="34"
+                                    Padding="12,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="1"
-                                           Text="{x:Bind ViewModel.FlyoutUpdatingButtonText, Mode=OneWay}"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="White"
-                                           TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center" />
+                                    <ProgressRing Grid.Column="0"
+                                                  IsActive="True"
+                                                  Width="16"
+                                                  Height="16"
+                                                  Foreground="White"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,8,0" />
 
-                                <TextBlock Grid.Column="2"
-                                           Text="{x:Bind ViewModel.UpdateProgressPercentText, Mode=OneWay}"
-                                           FontSize="11.5"
-                                           FontWeight="Bold"
-                                           Foreground="White"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{x:Bind ViewModel.FlyoutUpdatingButtonText, Mode=OneWay}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="White"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center" />
+
+                                    <TextBlock Grid.Column="2"
+                                               Text="{x:Bind ViewModel.UpdateProgressPercentText, Mode=OneWay}"
+                                               FontSize="11.5"
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <Button Grid.Column="1"
+                                    Command="{x:Bind ViewModel.CancelUpdatesCommand}"
+                                    Style="{StaticResource DangerButtonStyle}"
+                                    Height="34"
+                                    Padding="12,0"
+                                    CornerRadius="7"
+                                    AutomationProperties.Name="Cancelar atualizações">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE711;" FontSize="11" Foreground="White" />
+                                    <TextBlock Text="Cancelar" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
                     </Grid>
 
                     <!-- Botão quando está tudo atualizado: "Verificar agora" ocupando toda a largura -->

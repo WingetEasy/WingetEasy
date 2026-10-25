@@ -42,7 +42,8 @@ public class UpdateService : IUpdateService
         Func<Task<bool>>? confirmElevation,
         Func<string, Task<AppRunningResolution>>? handleRunningApp,
         bool isAutoUpdate = false,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IProgress<(string packageId, string phase)>? phaseProgress = null)
     {
         var ids = packageIds.ToList();
         var results = new List<UpdateResult>(ids.Count);
@@ -110,7 +111,12 @@ public class UpdateService : IUpdateService
                 }
 
                 // 2. Tentar instalar
-                var result = await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct).ConfigureAwait(false);
+IProgress<string>? pkgPhaseProgress = phaseProgress is not null
+                    ? new SimpleProgress<string>(phase => phaseProgress.Report((currentId, phase)))
+                    : null;
+                var result = pkgPhaseProgress is not null
+                    ? await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct, pkgPhaseProgress).ConfigureAwait(false)
+                    : await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct).ConfigureAwait(false);
 
                 // 3. Tratamento do código 0x8A150056 caso retorne do WinGet
                 if (!result.Success && (result.ExitCode == WingetExitCodes.AppRunning || result.IsApplicationRunning))
@@ -214,6 +220,11 @@ public class UpdateService : IUpdateService
         }
 
         return results;
+    }
+
+    private sealed class SimpleProgress<T>(Action<T> action) : IProgress<T>
+    {
+        public void Report(T value) => action(value);
     }
 
     private static bool RequiresElevation(UpdateResult result)

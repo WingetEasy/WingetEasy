@@ -54,6 +54,9 @@ public partial class PackageItemViewModel : ObservableObject
     public partial int Progress { get; set; }
 
     [ObservableProperty]
+    public partial string CurrentPhase { get; set; } = "Atualizando…";
+
+    [ObservableProperty]
     public partial string ErrorMessage { get; set; } = string.Empty;
 
     public bool IsPending => UpdateState == PackageUpdateState.Pending;

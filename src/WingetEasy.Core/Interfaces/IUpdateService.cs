@@ -24,5 +24,6 @@ public interface IUpdateService
         Func<Task<bool>>? confirmElevation,
         Func<string, Task<AppRunningResolution>>? handleRunningApp,
         bool isAutoUpdate = false,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        IProgress<(string packageId, string phase)>? phaseProgress = null);
 }
