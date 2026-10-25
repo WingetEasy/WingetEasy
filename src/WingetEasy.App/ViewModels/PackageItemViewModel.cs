@@ -41,6 +41,8 @@ public partial class PackageItemViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSelectionVisible))]
+    [NotifyPropertyChangedFor(nameof(IsPending))]
+    [NotifyPropertyChangedFor(nameof(IsPendingVisible))]
     [NotifyPropertyChangedFor(nameof(IsProgressVisible))]
     [NotifyPropertyChangedFor(nameof(IsProgressVisibility))]
     [NotifyPropertyChangedFor(nameof(IsCompletedVisible))]
@@ -54,7 +56,9 @@ public partial class PackageItemViewModel : ObservableObject
     [ObservableProperty]
     public partial string ErrorMessage { get; set; } = string.Empty;
 
+    public bool IsPending => UpdateState == PackageUpdateState.Pending;
     public Visibility IsSelectionVisible => UpdateState == PackageUpdateState.Pending ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsPendingVisible => UpdateState == PackageUpdateState.Pending ? Visibility.Visible : Visibility.Collapsed;
     public bool IsProgressVisible => UpdateState is PackageUpdateState.Queued or PackageUpdateState.Updating;
     public Visibility IsProgressVisibility => IsProgressVisible ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsCompletedVisible => UpdateState == PackageUpdateState.Completed ? Visibility.Visible : Visibility.Collapsed;

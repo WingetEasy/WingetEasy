@@ -47,6 +47,10 @@ public partial class UpdatesViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsUpdatingVisibility))]
+    [NotifyPropertyChangedFor(nameof(FlyoutNotUpdatingVisibility))]
+    [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
+    [NotifyPropertyChangedFor(nameof(FlyoutUpdatingButtonText))]
+    [NotifyPropertyChangedFor(nameof(CurrentUpdatingPackageDisplay))]
     [NotifyPropertyChangedFor(nameof(IsBusy))]
     [NotifyPropertyChangedFor(nameof(IsNotBusy))]
     [NotifyPropertyChangedFor(nameof(IsProgressBarVisible))]
@@ -65,6 +69,7 @@ public partial class UpdatesViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
     [NotifyPropertyChangedFor(nameof(FlyoutHasUpdatesVisibility))]
     [NotifyPropertyChangedFor(nameof(FlyoutCleanVisibility))]
+    [NotifyPropertyChangedFor(nameof(FlyoutUpdateButtonText))]
     [NotifyPropertyChangedFor(nameof(EmptyStateVisibility))]
     [NotifyPropertyChangedFor(nameof(AvailableCountBadgeVisibility))]
     [NotifyCanExecuteChangedFor(nameof(UpdateAllCommand))]
@@ -74,16 +79,23 @@ public partial class UpdatesViewModel : ObservableObject
     public partial string StatusMessage { get; set; } = "Clique em Verificar agora para buscar atualizações.";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UpdateProgressPercentText))]
     public partial int UpdateProgress { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BatchStatus))]
     [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
+    [NotifyPropertyChangedFor(nameof(BatchStatusDisplay))]
+    [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
+    [NotifyPropertyChangedFor(nameof(FlyoutUpdatingButtonText))]
     public partial int BatchCompleted { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BatchStatus))]
     [NotifyPropertyChangedFor(nameof(HeroSubtitle))]
+    [NotifyPropertyChangedFor(nameof(BatchStatusDisplay))]
+    [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
+    [NotifyPropertyChangedFor(nameof(FlyoutUpdatingButtonText))]
     public partial int BatchTotal { get; set; }
 
     [ObservableProperty]
@@ -98,6 +110,9 @@ public partial class UpdatesViewModel : ObservableObject
     public partial bool IsUpdateSummaryVisible { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentUpdatingPackageDisplay))]
+    [NotifyPropertyChangedFor(nameof(FlyoutStatusText))]
+    [NotifyPropertyChangedFor(nameof(FlyoutUpdatingButtonText))]
     public partial string CurrentUpdatingPackage { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -201,12 +216,43 @@ public partial class UpdatesViewModel : ObservableObject
     }
 
     // Propriedades para o Flyout da Bandeja
-    public string FlyoutStatusText => HasUpdates
-        ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
-        : "Tudo atualizado";
+    public string FlyoutStatusText
+    {
+        get
+        {
+            if (IsUpdating)
+            {
+                return BatchTotal > 0
+                    ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal})..."
+                    : "Atualizando...";
+            }
+            return HasUpdates
+                ? $"{AvailableCount} {(AvailableCount == 1 ? "atualização disponível" : "atualizações disponíveis")}"
+                : "Tudo atualizado";
+        }
+    }
+
+    public Visibility FlyoutNotUpdatingVisibility => IsUpdating ? Visibility.Collapsed : Visibility.Visible;
+    public string FlyoutUpdatingButtonText => BatchTotal > 0
+        ? $"Atualizando ({Math.Min(BatchCompleted + 1, BatchTotal)}/{BatchTotal})..."
+        : "Atualizando...";
+    public string CurrentUpdatingPackageDisplay => !string.IsNullOrWhiteSpace(CurrentUpdatingPackage)
+        ? $"Atualizando {CurrentUpdatingPackage}..."
+        : "Preparando atualização...";
+    public string BatchStatusDisplay => BatchTotal > 0
+        ? $"{Math.Min(BatchCompleted + 1, BatchTotal)} de {BatchTotal}"
+        : string.Empty;
+    public string UpdateProgressPercentText => UpdateProgress > 0 ? $"{UpdateProgress}%" : string.Empty;
 
     public Visibility FlyoutHasUpdatesVisibility => HasUpdates ? Visibility.Visible : Visibility.Collapsed;
     public Visibility FlyoutCleanVisibility => HasUpdates ? Visibility.Collapsed : Visibility.Visible;
+    public string FlyoutUpdateButtonText => !HasUpdates
+        ? "Tudo atualizado"
+        : IsAllSelected
+            ? "Atualizar tudo"
+            : SelectedCount == 0
+                ? "Nenhum selecionado"
+                : $"Atualizar selecionados ({SelectedCount})";
     public Visibility FlyoutMoreVisibility => AvailableCount > 4 ? Visibility.Visible : Visibility.Collapsed;
     public string FlyoutMoreText => AvailableCount > 4
         ? $"+ {AvailableCount - 4} {(AvailableCount - 4 == 1 ? "outro pacote" : "outros pacotes")}"
@@ -281,6 +327,7 @@ public partial class UpdatesViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedCount));
         OnPropertyChanged(nameof(SelectedCountText));
         OnPropertyChanged(nameof(UpdateSelectedButtonText));
+        OnPropertyChanged(nameof(FlyoutUpdateButtonText));
         OnPropertyChanged(nameof(IsAllSelected));
         UpdateSelectedCommand.NotifyCanExecuteChanged();
         UpdateAllCommand.NotifyCanExecuteChanged();
@@ -301,6 +348,7 @@ public partial class UpdatesViewModel : ObservableObject
         OnPropertyChanged(nameof(FlyoutStatusText));
         OnPropertyChanged(nameof(FlyoutHasUpdatesVisibility));
         OnPropertyChanged(nameof(FlyoutCleanVisibility));
+        OnPropertyChanged(nameof(FlyoutUpdateButtonText));
         OnPropertyChanged(nameof(FlyoutMoreVisibility));
         OnPropertyChanged(nameof(FlyoutMoreText));
         OnPropertyChanged(nameof(LastCheckText));
@@ -434,6 +482,7 @@ public partial class UpdatesViewModel : ObservableObject
                 FailedUpdates = 0;
                 IsUpdateSummaryVisible = false;
                 UpdateProgress = 0;
+                CurrentUpdatingPackage = pacotesParaAtualizar.Count > 0 ? pacotesParaAtualizar[0].Name : string.Empty;
 
                 foreach (var package in pacotesParaAtualizar)
                 {
@@ -775,7 +824,7 @@ public partial class UpdatesViewModel : ObservableObject
     private void RefreshFlyoutPackages()
     {
         FlyoutPackages.Clear();
-        foreach (var pkg in _allPackages.Take(4))
+        foreach (var pkg in _allPackages)
         {
             FlyoutPackages.Add(pkg);
         }
