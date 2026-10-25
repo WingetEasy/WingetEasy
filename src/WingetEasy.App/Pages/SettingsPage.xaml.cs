@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -23,9 +24,16 @@ namespace WingetEasy.App.Pages
             };
 
             ViewModel.SettingsLoaded += onSettingsLoaded;
+            LocalizationService.Instance.LanguageChanged += () =>
+            {
+                LocalizationService.Instance.LocalizeElement(this);
+                UpdateFrequencyButtonsVisual(ViewModel.FrequencyIndex);
+                UpdateThemeButtonsVisual(ViewModel.ThemeIndex);
+            };
 
             this.Loaded += async (s, e) =>
             {
+                LocalizationService.Instance.LocalizeElement(this);
                 await ViewModel.InitializeAsync().ConfigureAwait(true);
                 UpdateFrequencyButtonsVisual(ViewModel.FrequencyIndex);
                 UpdateThemeButtonsVisual(ViewModel.ThemeIndex);

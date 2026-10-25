@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -40,6 +41,7 @@ public sealed partial class UpdateFlyout : Window
             }
         };
         (Application.Current as App)?.RegisterUpdateFlyout(this);
+        LocalizationService.Instance.LanguageChanged += () => LocalizationService.Instance.LocalizeElement(RootGrid);
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd);
@@ -69,10 +71,10 @@ public sealed partial class UpdateFlyout : Window
         var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
         {
             XamlRoot = Content.XamlRoot,
-            Title = "Permissão de administrador necessária",
-            Content = "Alguns pacotes exigem privilégios de Administrador para serem atualizados.",
-            PrimaryButtonText = "Continuar com Administrador",
-            CloseButtonText = "Cancelar",
+            Title = LocalizationService.Instance.Get("Permissão de administrador necessária"),
+            Content = LocalizationService.Instance.Get("Alguns pacotes exigem privilégios de Administrador para serem atualizados."),
+            PrimaryButtonText = LocalizationService.Instance.Get("Continuar com Administrador"),
+            CloseButtonText = LocalizationService.Instance.Get("Cancelar"),
             DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
         };
 
@@ -84,10 +86,12 @@ public sealed partial class UpdateFlyout : Window
         var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
         {
             XamlRoot = Content.XamlRoot,
-            Title = "Aplicativo em execução",
-            Content = $"O aplicativo '{appName}' está aberto no momento.\n\nDeseja pular esta atualização por enquanto ou fechar o aplicativo e atualizar?",
-            PrimaryButtonText = "Fechar e atualizar",
-            CloseButtonText = "Pular por enquanto",
+            Title = LocalizationService.Instance.Get("Aplicativo em execução"),
+            Content = LocalizationService.Instance.IsPortuguese
+                ? $"O aplicativo '{appName}' está aberto no momento.\n\nDeseja pular esta atualização por enquanto ou fechar o aplicativo e atualizar?"
+                : $"The application '{appName}' is currently running.\n\nDo you want to skip this update for now or close the app and update?",
+            PrimaryButtonText = LocalizationService.Instance.Get("Fechar e atualizar"),
+            CloseButtonText = LocalizationService.Instance.Get("Pular por enquanto"),
             DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
         };
 
@@ -125,6 +129,7 @@ public sealed partial class UpdateFlyout : Window
 
     private void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
+        LocalizationService.Instance.LocalizeElement(RootGrid);
         ElementCompositionPreview.SetIsTranslationEnabled(RootGrid, true);
 
         var visual = ElementCompositionPreview.GetElementVisual(RootGrid);

@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Extensions.DependencyInjection;
+using WingetEasy.App.Services;
 using WingetEasy.App.ViewModels;
 
 namespace WingetEasy.App.Pages
@@ -14,7 +15,21 @@ namespace WingetEasy.App.Pages
             InitializeComponent();
             NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
             ViewModel.InitializeFilePicker(App.MainWindowHandle);
-            Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+            PeriodComboBox.DropDownOpened += (s, e) => LocalizationService.Instance.LocalizeComboBox(PeriodComboBox);
+
+            LocalizationService.Instance.LanguageChanged += () =>
+            {
+                LocalizationService.Instance.LocalizeElement(this);
+                LocalizationService.Instance.LocalizeComboBox(PeriodComboBox);
+            };
+
+            Loaded += async (_, _) =>
+            {
+                LocalizationService.Instance.LocalizeElement(this);
+                LocalizationService.Instance.LocalizeComboBox(PeriodComboBox);
+                await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+            };
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)

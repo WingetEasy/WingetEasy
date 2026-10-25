@@ -172,7 +172,7 @@
                     Padding="0"
                     CornerRadius="6">
                 <Button.Flyout>
-                    <MenuFlyout>
+                    <MenuFlyout x:Name="PackageMenuFlyout">
                         <MenuFlyoutItem Text="Adiar (Ignorar esta vez)" Command="{x:Bind ViewModel.SkipOnceCommand}" Icon="Clock" />
                         <MenuFlyoutItem Text="Ignorar sempre" Command="{x:Bind ViewModel.SkipAlwaysCommand}" Icon="Stop" />
                         <MenuFlyoutSeparator />

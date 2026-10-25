@@ -1,3 +1,4 @@
+using WingetEasy.App.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -53,7 +54,7 @@ public sealed class HistoryEntryViewModel
         VersionVisibility = string.IsNullOrWhiteSpace(VersionTransition) ? Visibility.Collapsed : Visibility.Visible;
         Time = (result.UpdatedAt ?? DateTime.Now.ToUniversalTime()).ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture);
         Success = result.Success;
-        StatusText = result.Success ? "Sucesso" : "Falha";
+        StatusText = result.Success ? LocalizationService.Instance.Get("Sucesso") : LocalizationService.Instance.Get("Falha");
         StatusGlyph = result.Success ? "\uE73E" : "\uE711";
         IsSuccessVisible = result.Success ? Visibility.Visible : Visibility.Collapsed;
         IsFailureVisible = result.Success ? Visibility.Collapsed : Visibility.Visible;
@@ -79,8 +80,8 @@ public sealed class HistoryDayGroup
     private static string GetHeader(DateTime date)
     {
         var today = DateTime.Today;
-        if (date.Date == today) return "Hoje";
-        if (date.Date == today.AddDays(-1)) return "Ontem";
+        if (date.Date == today) return LocalizationService.Instance.Get("Hoje");
+        if (date.Date == today.AddDays(-1)) return LocalizationService.Instance.Get("Ontem");
         return date.ToString("D", CultureInfo.CurrentCulture);
     }
 }
@@ -129,8 +130,8 @@ public partial class HistoryViewModel : ObservableObject
     public bool HasEntries => Groups.Any(group => group.Entries.Count > 0);
     public Visibility EmptyStateVisibility => HasEntries ? Visibility.Collapsed : Visibility.Visible;
     public string EmptyStateMessage => string.IsNullOrWhiteSpace(SearchText)
-        ? "Nenhuma atualização encontrada para o período selecionado."
-        : "Nenhuma atualização corresponde à busca.";
+        ? LocalizationService.Instance.Get("Nenhuma atualização encontrada para o período selecionado.")
+        : LocalizationService.Instance.Get("Nenhuma atualização corresponde à busca.");
 
     public HistoryViewModel(
         IUpdateHistoryRepository repository,
@@ -138,6 +139,11 @@ public partial class HistoryViewModel : ObservableObject
     {
         _repository = repository;
         _logger = logger;
+        LocalizationService.Instance.LanguageChanged += () =>
+        {
+            ApplyFilters();
+            OnPropertyChanged(nameof(EmptyStateMessage));
+        };
     }
 
     public void InitializeFilePicker(IntPtr windowHandle)

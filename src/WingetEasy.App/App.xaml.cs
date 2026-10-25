@@ -61,6 +61,7 @@ namespace WingetEasy.App
         /// Chave utilizada para persistir a preferência de tema no ISettingsRepository.
         /// </summary>
         public const string AppThemeSettingsKey = "AppTheme";
+        public const string AppLanguageSettingsKey = "AppLanguage";
 
         /// <summary>
         /// Initializes the singleton application object.
@@ -233,6 +234,7 @@ namespace WingetEasy.App
             services.AddSingleton<IAdminElevationHelper, WingetEasy.Core.Services.AdminElevationHelper>();
             services.AddSingleton<IAppUpdateManager, VelopackAppUpdateManager>();
             services.AddSingleton<IAppUpdateService, VelopackAppUpdateService>();
+            services.AddSingleton<ILocalizationService>(LocalizationService.Instance);
 
             // Mantém a lista de atualizações compartilhada entre as superfícies da aplicação
             services.AddSingleton<UpdatesViewModel>();
@@ -261,6 +263,7 @@ namespace WingetEasy.App
                 if (command.IsHeadless)
                 {
                     await MigrateDatabaseAsync(Services).ConfigureAwait(true);
+                await ApplySavedLanguageAsync().ConfigureAwait(true);
                     using var scope = Services.CreateScope();
                     var runner = scope.ServiceProvider.GetRequiredService<HeadlessRunner>();
                     var exitCode = await runner.RunAsync(command).ConfigureAwait(true);
@@ -587,6 +590,25 @@ namespace WingetEasy.App
             nameof(AppTheme.Dark) or nameof(ElementTheme.Dark) => ElementTheme.Dark,
             _ => ElementTheme.Default
         };
+
+        private async Task ApplySavedLanguageAsync()
+        {
+            try
+            {
+                using var scope = Services.CreateScope();
+                var settingsRepo = scope.ServiceProvider.GetRequiredService<ISettingsRepository>();
+                var lang = await settingsRepo.GetAsync(AppLanguageSettingsKey).ConfigureAwait(true);
+                if (string.IsNullOrWhiteSpace(lang))
+                {
+                    lang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("pt", StringComparison.OrdinalIgnoreCase) ? "pt" : "en";
+                }
+                LocalizationService.Instance.SetLanguage(lang, persist: false);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Erro ao aplicar o idioma salvo na inicialização.");
+            }
+        }
 
         private async Task ApplySavedThemeAsync()
         {
