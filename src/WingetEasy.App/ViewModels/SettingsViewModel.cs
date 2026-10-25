@@ -23,8 +23,6 @@ namespace WingetEasy.App.ViewModels;
 public partial class SettingsViewModel : ObservableObject
 {
     private const string ScheduleConfigKey = "ScheduleConfig";
-    private const string StartWithWindowsRunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-    private const string StartWithWindowsValueName = "WingetEasy";
     private const string GitHubRepoUrl = "https://github.com/WingetEasy/WingetEasy";
 
     private readonly ISettingsRepository _settingsRepository;
@@ -422,29 +420,9 @@ public partial class SettingsViewModel : ObservableObject
         _ => 2
     };
 
-    private static bool ReadStartWithWindowsFromRegistry()
-    {
-        using var key = Registry.CurrentUser.OpenSubKey(StartWithWindowsRunKey, writable: false);
-        return key?.GetValue(StartWithWindowsValueName) != null;
-    }
+    private static bool ReadStartWithWindowsFromRegistry() => StartupRegistration.IsEnabled();
 
-    private static void SetStartWithWindowsInRegistry(bool enable)
-    {
-        using var key = Registry.CurrentUser.OpenSubKey(StartWithWindowsRunKey, writable: true);
-        if (key == null) return;
-
-        if (enable)
-        {
-            var exePath = Environment.ProcessPath ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-            if (string.IsNullOrEmpty(exePath)) return;
-
-            key.SetValue(StartWithWindowsValueName, $"\"{exePath}\" --minimized");
-        }
-        else
-        {
-            key.DeleteValue(StartWithWindowsValueName, throwOnMissingValue: false);
-        }
-    }
+    private static void SetStartWithWindowsInRegistry(bool enable) => StartupRegistration.SetEnabled(enable);
 
     public sealed record FrequencyOption(ScheduleFrequency Value, string Label)
     {

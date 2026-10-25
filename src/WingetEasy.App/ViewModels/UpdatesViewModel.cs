@@ -117,7 +117,7 @@ public partial class UpdatesViewModel : ObservableObject
     public partial string CurrentUpdatingPackage { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial bool AutoUpdateEnabled { get; set; } = true;
+    public partial bool AutoUpdateEnabled { get; set; } = false;
 
     [ObservableProperty]
     public partial string NextCheckScheduleText { get; set; } = "Hoje, 18:00";
