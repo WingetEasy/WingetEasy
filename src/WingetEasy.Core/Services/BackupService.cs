@@ -54,7 +54,8 @@ public sealed class BackupService : IBackupService
         Guid snapshotId,
         IProgress<(string packageId, int current, int total)>? progress = null,
         int maxRetries = 1,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyCollection<string>? selectedPackageIds = null)
     {
         if (maxRetries < 0)
         {
@@ -63,7 +64,12 @@ public sealed class BackupService : IBackupService
 
         var snapshot = await _repository.GetAsync(snapshotId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Snapshot '{snapshotId}' não foi encontrado.");
-        var packages = snapshot.Packages ?? [];
+        IReadOnlyList<BackupPackage> packages = snapshot.Packages ?? [];
+        if (selectedPackageIds is not null)
+        {
+            var selected = new HashSet<string>(selectedPackageIds, StringComparer.OrdinalIgnoreCase);
+            packages = packages.Where(package => selected.Contains(package.Id)).ToList();
+        }
         var results = new List<UpdateResult>(packages.Count);
 
         for (var index = 0; index < packages.Count; index++)

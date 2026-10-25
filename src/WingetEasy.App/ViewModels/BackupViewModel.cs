@@ -1,5 +1,6 @@
 using WingetEasy.App.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
@@ -36,6 +37,7 @@ public partial class BackupViewModel : ObservableObject
 {
     private readonly IBackupService _backupService;
     private readonly IBackupSnapshotRepository _snapshotRepository;
+    private readonly IProfilesService _profilesService;
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly ILogger<BackupViewModel> _logger;
     private IntPtr _windowHandle;
@@ -72,11 +74,13 @@ public partial class BackupViewModel : ObservableObject
     public BackupViewModel(
         IBackupService backupService,
         IBackupSnapshotRepository snapshotRepository,
+        IProfilesService profilesService,
         DispatcherQueue dispatcherQueue,
         ILogger<BackupViewModel> logger)
     {
         _backupService = backupService;
         _snapshotRepository = snapshotRepository;
+        _profilesService = profilesService;
         _dispatcherQueue = dispatcherQueue;
         _logger = logger;
     }
@@ -132,11 +136,31 @@ public partial class BackupViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private async Task RestoreSnapshotAsync(BackupSnapshotItemViewModel? item)
+    /// <summary>
+    /// Retorna os pacotes do snapshot (carrega do repositório caso a lista não esteja em memória).
+    /// </summary>
+    public async Task<IReadOnlyList<BackupPackage>> GetSnapshotPackagesAsync(BackupSnapshotItemViewModel item)
     {
-        if (item is null)
+        try
         {
+            var snapshot = item.Snapshot.Packages is null
+                ? await _snapshotRepository.GetAsync(item.Snapshot.Id).ConfigureAwait(true)
+                : item.Snapshot;
+            return snapshot?.Packages ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao carregar os pacotes do snapshot {SnapshotId}.", item.Snapshot.Id);
+            StatusMessage = "Não foi possível carregar os pacotes do snapshot.";
+            return [];
+        }
+    }
+
+    public async Task RestoreSelectedAsync(BackupSnapshotItemViewModel item, IReadOnlyCollection<string> packageIds)
+    {
+        if (packageIds.Count == 0)
+        {
+            StatusMessage = "Nenhum pacote selecionado para restauração.";
             return;
         }
 
@@ -149,7 +173,8 @@ public partial class BackupViewModel : ObservableObject
                     ProgressValue = value.total == 0 ? 0 : value.current * 100d / value.total;
                     ProgressMessage = $"Restaurando {value.packageId} ({value.current} de {value.total})...";
                 }));
-            var results = await _backupService.RestoreSnapshotAsync(item.Snapshot.Id, progress).ConfigureAwait(true);
+            var results = await _backupService.RestoreSnapshotAsync(
+                item.Snapshot.Id, progress, 1, CancellationToken.None, packageIds).ConfigureAwait(true);
             var succeeded = results.Count(result => result.Success);
             var failed = results.Count - succeeded;
             StatusMessage = $"Restauração concluída: {succeeded} sucesso(s) e {failed} falha(s).";
@@ -165,6 +190,38 @@ public partial class BackupViewModel : ObservableObject
         }
     }
 
+    public async Task<bool> SaveAsProfileAsync(
+        string name,
+        string description,
+        IReadOnlyCollection<BackupPackage> packages)
+    {
+        try
+        {
+            var profilePackages = packages
+                .Select(package => new ProfilePackage(package.Id, string.IsNullOrWhiteSpace(package.Name) ? package.Id : package.Name))
+                .DistinctBy(package => package.Id, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var profile = new Profile(Guid.Empty, name.Trim(), description.Trim(), DateTime.UtcNow, profilePackages);
+            await _profilesService.SaveAsync(profile).ConfigureAwait(true);
+
+            // Atualiza a aba Perfis imediatamente caso ela já esteja carregada.
+            var profilesViewModel = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                .GetService<ProfilesViewModel>(App.Services);
+            if (profilesViewModel is not null)
+            {
+                await profilesViewModel.LoadAsync().ConfigureAwait(true);
+            }
+
+            StatusMessage = $"Perfil \"{profile.Name}\" criado com {profilePackages.Count} pacote(s). Disponível na aba Perfis.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao criar perfil a partir do snapshot.");
+            StatusMessage = "Não foi possível criar o perfil.";
+            return false;
+        }
+    }
     [RelayCommand]
     private Task ExportScriptAsync(BackupSnapshotItemViewModel? item) =>
         ExportAsync(item, "Script PowerShell", ".ps1", "snapshot-restauracao", _backupService.ExportScriptAsync);
@@ -207,35 +264,36 @@ public partial class BackupViewModel : ObservableObject
         string filePrefix,
         Func<Guid, string, CancellationToken, Task> export)
     {
-        if (item is null || _windowHandle == IntPtr.Zero)
+        if (item is null)
         {
-            StatusMessage = "Não foi possível abrir o seletor de arquivos.";
+            return;
+        }
+
+        var windowHandle = _windowHandle != IntPtr.Zero ? _windowHandle : App.MainWindowHandle;
+        if (windowHandle == IntPtr.Zero)
+        {
+            StatusMessage = "Não foi possível abrir o seletor de arquivos: janela principal indisponível.";
             return;
         }
 
         try
         {
             IsBusy = true;
-            var picker = new FileSavePicker
+            var suggestedName = $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss}";
+            var path = await PickSavePathAsync(windowHandle, fileType, extension, suggestedName).ConfigureAwait(true);
+            if (string.IsNullOrWhiteSpace(path))
             {
-                SuggestedFileName = $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss}",
-                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
-            };
-            picker.FileTypeChoices.Add(fileType, [extension]);
-            InitializeWithWindow.Initialize(picker, _windowHandle);
-            var file = await picker.PickSaveFileAsync();
-            if (file is null)
-            {
+                StatusMessage = "Exportação cancelada.";
                 return;
             }
 
-            await export(item.Snapshot.Id, file.Path, CancellationToken.None).ConfigureAwait(true);
-            StatusMessage = $"Arquivo exportado com sucesso: {file.Name}.";
+            await export(item.Snapshot.Id, path, CancellationToken.None).ConfigureAwait(true);
+            StatusMessage = $"Arquivo exportado com sucesso em: {path}";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao exportar o snapshot {SnapshotId}.", item.Snapshot.Id);
-            StatusMessage = "Não foi possível exportar o snapshot.";
+            StatusMessage = $"Não foi possível exportar o snapshot: {ex.Message}";
         }
         finally
         {
@@ -243,6 +301,26 @@ public partial class BackupViewModel : ObservableObject
         }
     }
 
+    private async Task<string?> PickSavePathAsync(IntPtr windowHandle, string fileType, string extension, string suggestedName)
+    {
+        try
+        {
+            var picker = new FileSavePicker
+            {
+                SuggestedFileName = suggestedName,
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+            };
+            picker.FileTypeChoices.Add(fileType, [extension]);
+            InitializeWithWindow.Initialize(picker, windowHandle);
+            var file = await picker.PickSaveFileAsync();
+            return file?.Path;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "FileSavePicker indisponível; usando o diálogo Win32 como alternativa.");
+            return Win32SaveFileDialog.Show(windowHandle, fileType, extension, suggestedName);
+        }
+    }
     private void BeginOperation(string message, double value)
     {
         IsBusy = true;
