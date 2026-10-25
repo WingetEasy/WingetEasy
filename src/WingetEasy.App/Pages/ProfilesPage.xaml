@@ -9,22 +9,11 @@
         </Grid.RowDefinitions>
         <StackPanel Spacing="10">
             <TextBlock Text="Perfis de instalação" FontSize="28" FontWeight="SemiBold"/>
-            <Grid ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Text="{Binding NameInput, Mode=TwoWay}" PlaceholderText="Nome"/>
-                <TextBox Grid.Column="1" Text="{Binding DescriptionInput, Mode=TwoWay}" PlaceholderText="Descrição"/>
-                <TextBox Grid.Column="2" Text="{Binding PackageIdsInput, Mode=TwoWay}" PlaceholderText="ID|Nome (um por linha)"/>
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
-                    <Button Content="Salvar perfil" AutomationProperties.Name="Salvar perfil" Command="{Binding SaveProfileCommand}" Style="{ThemeResource AccentButtonStyle}"/>
-                    <Button Content="Cancelar" AutomationProperties.Name="Cancelar edição" Command="{Binding CancelEditCommand}"/>
-                </StackPanel>
-            </Grid>
-            <Button Content="Carregar pacotes instalados" Command="{Binding LoadInstalledPackagesCommand}" HorizontalAlignment="Left"/>
+            <TextBlock Text="Monte conjuntos de pacotes para instalar de uma vez, em qualquer máquina." Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Novo perfil" AutomationProperties.Name="Novo perfil" Click="NewProfileButton_Click" Style="{ThemeResource AccentButtonStyle}"/>
+                <Button Content="Importar perfil" AutomationProperties.Name="Importar perfil" Click="ImportProfileButton_Click"/>
+            </StackPanel>
             <InfoBar IsOpen="{Binding IsStatusVisible}" Message="{Binding StatusMessage}" Severity="Informational"/>
         </StackPanel>
         <Grid Grid.Row="1">
@@ -48,6 +37,8 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                     <Button Content="Instalar" Click="InstallButton_Click"/>
+                                    <Button Content="Exportar .ps1" Click="ExportScriptButton_Click"/>
+                                    <Button Content="Exportar .json" Click="ExportJsonButton_Click"/>
                                     <Button Content="Editar" Click="EditButton_Click"/>
                                     <Button Content="Excluir" Click="DeleteButton_Click"/>
                                 </StackPanel>

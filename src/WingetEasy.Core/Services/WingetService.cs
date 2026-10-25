@@ -505,7 +505,16 @@ public partial class WingetService : IWingetService
         }
     }
 
-    public async Task<UpdateResult> InstallUpdateAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default)
+    public Task<UpdateResult> InstallUpdateAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default) =>
+        RunInstallCommandAsync("upgrade", packageId, progress, ct);
+
+    /// <summary>
+    /// Instala um pacote que pode ainda não existir na máquina (winget install), ao contrário de InstallUpdateAsync (winget upgrade).
+    /// </summary>
+    public Task<UpdateResult> InstallPackageAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default) =>
+        RunInstallCommandAsync("install", packageId, progress, ct);
+
+    private async Task<UpdateResult> RunInstallCommandAsync(string verb, string packageId, IProgress<int>? progress, CancellationToken ct)
     {
         // 1. Validação estrita do ID para evitar injeção de comandos no terminal
         ValidatePackageId(packageId);
@@ -520,7 +529,7 @@ public partial class WingetService : IWingetService
         var processStartInfo = new ProcessStartInfo
         {
             FileName = "winget",
-            Arguments = $"upgrade --id {packageId} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
+            Arguments = $"{verb} --id {packageId} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -605,7 +614,8 @@ public partial class WingetService : IWingetService
 
         int exitCode = process.ExitCode;
         // 0 = Sucesso | -1978335189 = Não há atualizações aplicáveis (já atualizado)
-        bool success = exitCode == 0 || exitCode == -1978335189;
+        // -1978335135 = Pacote já instalado (winget install)
+        bool success = exitCode == 0 || exitCode == -1978335189 || (verb == "install" && exitCode == -1978335135);
         progress?.Report(success ? 100 : -1);
 
         if (success)

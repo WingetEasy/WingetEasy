@@ -69,7 +69,7 @@ public sealed class ProfilesServiceTests
         repository.Setup(item => item.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([profile]);
         var winget = new Mock<IWingetService>();
-        winget.Setup(item => item.InstallUpdateAsync(
+        winget.Setup(item => item.InstallPackageAsync(
                 It.IsAny<string>(),
                 It.IsAny<IProgress<int>?>(),
                 It.IsAny<CancellationToken>()))
@@ -88,6 +88,59 @@ public sealed class ProfilesServiceTests
         history.Verify(item => item.AddAsync(It.IsAny<UpdateResult>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task ExportAndImportJsonAsync_RoundTripsProfileWithUniqueName()
+    {
+        var profile = new Profile(
+            Guid.NewGuid(), "Trabalho", "Desc", DateTime.UtcNow,
+            [new ProfilePackage("Contoso.One", "One"), new ProfilePackage("Contoso.Two", "Two")]);
+        var repository = new Mock<IProfileRepository>();
+        repository.Setup(item => item.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([profile]);
+        var service = CreateService(repository);
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}.json");
+
+        try
+        {
+            await service.ExportJsonAsync(profile.Id, path);
+            var imported = await service.ImportJsonAsync(path);
+
+            imported.Id.Should().NotBe(profile.Id);
+            imported.Name.Should().Be("Trabalho (2)");
+            imported.Description.Should().Be("Desc");
+            imported.Packages.Select(package => package.Id).Should().Equal("Contoso.One", "Contoso.Two");
+            repository.Verify(item => item.SaveAsync(It.Is<Profile>(value => value.Name == "Trabalho (2)"), It.IsAny<CancellationToken>()), Times.Once);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("não é json")]
+    [InlineData("{\"name\":\"x\"}")]
+    [InlineData("{\"name\":\"x\",\"packages\":[]}")]
+    [InlineData("{\"name\":\"x\",\"packages\":[{\"id\":\"a; calc\"}]}")]
+    public async Task ImportJsonAsync_RejectsIncompatibleFiles(string content)
+    {
+        var repository = new Mock<IProfileRepository>();
+        repository.Setup(item => item.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Array.Empty<Profile>());
+        var service = CreateService(repository);
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}.json");
+        await System.IO.File.WriteAllTextAsync(path, content);
+
+        try
+        {
+            var act = () => service.ImportJsonAsync(path);
+
+            await act.Should().ThrowAsync<System.IO.InvalidDataException>();
+            repository.Verify(item => item.SaveAsync(It.IsAny<Profile>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+        }
+    }
     private static ProfilesService CreateService(Mock<IProfileRepository> repository) =>
         new(
             repository.Object,

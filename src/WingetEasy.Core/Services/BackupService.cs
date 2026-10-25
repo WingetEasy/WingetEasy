@@ -81,7 +81,7 @@ public sealed class BackupService : IBackupService
             for (var attempt = 0; attempt <= maxRetries; attempt++)
             {
                 ct.ThrowIfCancellationRequested();
-                result = await _wingetService.InstallUpdateAsync(package.Id, null, ct).ConfigureAwait(false);
+                result = await _wingetService.InstallPackageAsync(package.Id, null, ct).ConfigureAwait(false);
                 if (result.Success)
                 {
                     break;

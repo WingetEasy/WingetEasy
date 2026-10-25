@@ -50,7 +50,7 @@ public sealed class BackupServiceTests
         snapshots.Setup(repository => repository.GetAsync(snapshot.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(snapshot);
         var winget = new Mock<IWingetService>();
-        winget.SetupSequence(service => service.InstallUpdateAsync(
+        winget.SetupSequence(service => service.InstallPackageAsync(
                 "Contoso.App",
                 It.IsAny<IProgress<int>?>(),
                 It.IsAny<CancellationToken>()))
@@ -62,7 +62,7 @@ public sealed class BackupServiceTests
         var result = await service.RestoreSnapshotAsync(snapshot.Id, maxRetries: 1);
 
         result.Should().ContainSingle().Which.Success.Should().BeTrue();
-        winget.Verify(call => call.InstallUpdateAsync(
+        winget.Verify(call => call.InstallPackageAsync(
             "Contoso.App",
             It.IsAny<IProgress<int>?>(),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -71,6 +71,25 @@ public sealed class BackupServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task RestoreSnapshotAsync_InstallsOnlySelectedPackages()
+    {
+        var snapshot = new BackupSnapshot(
+            Guid.NewGuid(), "Teste", DateTime.UtcNow, 2, "1.8",
+            [new BackupPackage("Contoso.One", "One", "1.0"), new BackupPackage("Contoso.Two", "Two", "1.0")]);
+        var snapshots = new Mock<IBackupSnapshotRepository>();
+        snapshots.Setup(repository => repository.GetAsync(snapshot.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshot);
+        var winget = new Mock<IWingetService>();
+        winget.Setup(service => service.InstallPackageAsync(It.IsAny<string>(), It.IsAny<IProgress<int>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string id, IProgress<int>? _, CancellationToken _) => new UpdateResult(id, id, true));
+        var service = new BackupService(winget.Object, snapshots.Object, Mock.Of<IUpdateHistoryRepository>());
+
+        var result = await service.RestoreSnapshotAsync(snapshot.Id, selectedPackageIds: ["contoso.two"]);
+
+        result.Should().ContainSingle().Which.PackageId.Should().Be("Contoso.Two");
+        winget.Verify(call => call.InstallPackageAsync("Contoso.One", It.IsAny<IProgress<int>?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
     [Fact]
     public async Task ExportScriptAsync_WritesInstallCommands()
     {

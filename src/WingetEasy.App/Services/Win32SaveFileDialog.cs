@@ -43,6 +43,38 @@ internal static class Win32SaveFileDialog
     [DllImport("comdlg32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool GetSaveFileNameW(ref OpenFileName ofn);
 
+    [DllImport("comdlg32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool GetOpenFileNameW(ref OpenFileName ofn);
+
+    /// <summary>
+    /// Abre o diálogo "Abrir" e retorna o caminho escolhido, ou null se o usuário cancelar.
+    /// </summary>
+    public static string? ShowOpen(IntPtr owner, string fileTypeDescription, string extension)
+    {
+        const int bufferChars = 1024;
+        var buffer = Marshal.AllocHGlobal(bufferChars * sizeof(char));
+        try
+        {
+            Marshal.Copy(new char[bufferChars], 0, buffer, bufferChars);
+            var ofn = new OpenFileName
+            {
+                lStructSize = Marshal.SizeOf<OpenFileName>(),
+                hwndOwner = owner,
+                lpstrFilter = $"{fileTypeDescription} (*{extension})\0*{extension}\0\0",
+                nFilterIndex = 1,
+                lpstrFile = buffer,
+                nMaxFile = bufferChars,
+                lpstrInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Flags = OfnNoChangeDir | OfnPathMustExist | 0x00001000 // OFN_FILEMUSTEXIST
+            };
+
+            return GetOpenFileNameW(ref ofn) ? Marshal.PtrToStringUni(buffer) : null;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
     /// <summary>
     /// Abre o diálogo e retorna o caminho escolhido, ou null se o usuário cancelar.
     /// </summary>
