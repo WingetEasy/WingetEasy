@@ -46,32 +46,82 @@
                                 <ItemsControl ItemsSource="{x:Bind Entries}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:HistoryEntryViewModel">
-                                            <Border Padding="12"
+                                            <Border Padding="14,12"
                                                     Margin="0,0,0,6"
                                                     CornerRadius="8"
                                                     Background="{ThemeResource SurfaceCardBackgroundBrush}"
                                                     BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
                                                     BorderThickness="1">
-                                                <Grid ColumnSpacing="12">
+                                                <Grid ColumnSpacing="14">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <FontIcon Glyph="{x:Bind StatusGlyph}"
-                                                              Foreground="{ThemeResource BrandPrimaryBrush}"
-                                                              VerticalAlignment="Top"/>
-                                                    <StackPanel Grid.Column="1" Spacing="3">
-                                                        <TextBlock Text="{x:Bind PackageName}" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{x:Bind PackageId}" Foreground="{ThemeResource BrandTextSecondaryBrush}"/>
-                                                        <TextBlock Text="{x:Bind VersionTransition}"/>
+                                                    <Grid Grid.Column="0" VerticalAlignment="Center">
+                                                        <FontIcon Glyph="{x:Bind StatusGlyph}"
+                                                                  Visibility="{x:Bind IsSuccessVisible}"
+                                                                  Foreground="{ThemeResource BadgeSuccessFgBrush}"
+                                                                  FontSize="16"/>
+                                                        <FontIcon Glyph="{x:Bind StatusGlyph}"
+                                                                  Visibility="{x:Bind IsFailureVisible}"
+                                                                  Foreground="{ThemeResource BadgeErrorFgBrush}"
+                                                                  FontSize="16"/>
+                                                    </Grid>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                        <TextBlock Text="{x:Bind PackageName}"
+                                                                   FontWeight="Bold"
+                                                                   FontSize="14"
+                                                                   Foreground="{ThemeResource BrandTextPrimaryBrush}"/>
+                                                        <TextBlock Text="{x:Bind PackageId}"
+                                                                   FontSize="12"
+                                                                   Foreground="{ThemeResource BrandTextSecondaryBrush}"/>
                                                         <TextBlock Text="{x:Bind ErrorMessage}"
+                                                                   Visibility="{x:Bind ErrorVisibility}"
+                                                                   FontSize="12"
                                                                    Foreground="{ThemeResource BadgeErrorFgBrush}"
                                                                    TextWrapping="Wrap"/>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                                                        <TextBlock Text="{x:Bind StatusText}" HorizontalAlignment="Right"/>
-                                                        <TextBlock Text="{x:Bind Time}" Foreground="{ThemeResource BrandTextSecondaryBrush}"/>
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{x:Bind VersionTransition}"
+                                                               Visibility="{x:Bind VersionVisibility}"
+                                                               FontSize="12.5"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{ThemeResource BrandPrimaryBrush}"
+                                                               VerticalAlignment="Center"
+                                                               Margin="8,0"/>
+                                                    <StackPanel Grid.Column="3"
+                                                                Orientation="Horizontal"
+                                                                Spacing="10"
+                                                                VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right">
+                                                        <Border Visibility="{x:Bind IsSuccessVisible}"
+                                                                Background="{ThemeResource BadgeSuccessBgBrush}"
+                                                                BorderBrush="{ThemeResource BadgeSuccessBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="10"
+                                                                Padding="8,2">
+                                                            <TextBlock Text="{x:Bind StatusText}"
+                                                                       FontSize="12"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{ThemeResource BadgeSuccessFgBrush}"/>
+                                                        </Border>
+                                                        <Border Visibility="{x:Bind IsFailureVisible}"
+                                                                Background="{ThemeResource BadgeErrorBgBrush}"
+                                                                BorderBrush="{ThemeResource BadgeErrorBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="10"
+                                                                Padding="8,2">
+                                                            <TextBlock Text="{x:Bind StatusText}"
+                                                                       FontSize="12"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{ThemeResource BadgeErrorFgBrush}"/>
+                                                        </Border>
+                                                        <TextBlock Text="{x:Bind Time}"
+                                                                   FontSize="12.5"
+                                                                   Foreground="{ThemeResource BrandTextSecondaryBrush}"
+                                                                   VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>
@@ -83,12 +133,12 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-            <StackPanel Visibility="{x:Bind ViewModel.EmptyStateVisibility}"
+            <StackPanel Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="8">
                 <FontIcon Glyph="&#xE81C;" FontSize="32" HorizontalAlignment="Center"/>
-                <TextBlock Text="{x:Bind ViewModel.EmptyStateMessage}"
+                <TextBlock Text="{x:Bind ViewModel.EmptyStateMessage, Mode=OneWay}"
                            TextAlignment="Center"/>
             </StackPanel>
         </Grid>

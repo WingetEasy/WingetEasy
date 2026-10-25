@@ -14,12 +14,15 @@ namespace WingetEasy.App.Pages
         {
             ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
             this.InitializeComponent();
+            NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
 
-            ViewModel.SettingsLoaded += (_, _) =>
+            System.EventHandler onSettingsLoaded = (_, _) =>
             {
                 UpdateFrequencyButtonsVisual(ViewModel.FrequencyIndex);
                 UpdateThemeButtonsVisual(ViewModel.ThemeIndex);
             };
+
+            ViewModel.SettingsLoaded += onSettingsLoaded;
 
             this.Loaded += async (s, e) =>
             {

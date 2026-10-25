@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using WingetEasy.Core.Models;
 using WingetEasy.Data.Repositories;
 using Xunit;
 
@@ -38,6 +40,20 @@ public class SettingsRepositoryTests : RepositoryTestBase
         result.Should().NotBeNull();
         result!.Name.Should().Be("WingetEasy");
         result.Version.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetSetScheduleConfig_UsesSourceGeneratorAndWorksCorrectly()
+    {
+        var config = new ScheduleConfig(ScheduleFrequency.OnceDaily, TimeSpan.FromHours(18), [1, 3, 5]);
+        await _repository.SetAsync("ScheduleConfig", config);
+
+        var result = await _repository.GetAsync<ScheduleConfig>("ScheduleConfig");
+
+        result.Should().NotBeNull();
+        result!.Frequency.Should().Be(ScheduleFrequency.OnceDaily);
+        result.CheckTime.Should().Be(TimeSpan.FromHours(18));
+        result.WeekDays.Should().Equal(1, 3, 5);
     }
 
     [Fact]

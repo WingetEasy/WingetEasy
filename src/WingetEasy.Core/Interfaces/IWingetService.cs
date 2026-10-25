@@ -19,5 +19,6 @@ public interface IWingetService
     Task<bool> IsWingetAvailableAsync();
     Task<string> GetWingetVersionAsync();
     Task<bool> RepairSourcesAsync(CancellationToken ct = default);
+    Task<bool> PinPackageAsync(string packageId, CancellationToken ct = default);
+    Task<bool> UnpinPackageAsync(string packageId, CancellationToken ct = default);
 }
-

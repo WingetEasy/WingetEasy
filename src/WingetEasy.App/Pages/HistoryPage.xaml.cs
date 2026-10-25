@@ -12,6 +12,7 @@ namespace WingetEasy.App.Pages
         {
             ViewModel = App.Services.GetRequiredService<HistoryViewModel>();
             InitializeComponent();
+            NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
             ViewModel.InitializeFilePicker(App.MainWindowHandle);
             Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
         }

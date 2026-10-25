@@ -13,9 +13,11 @@ public sealed partial class BackupPage : Page
     {
         ViewModel = App.Services.GetRequiredService<BackupViewModel>();
         InitializeComponent();
+        NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
         DataContext = ViewModel;
         ViewModel.InitializeFilePicker(App.MainWindowHandle);
-        Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Loaded += async (_, _) => { if (ViewModel.Snapshots.Count == 0) await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true); };
+
     }
 
     private async void RestoreButton_Click(object sender, RoutedEventArgs e)

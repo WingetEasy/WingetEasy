@@ -10,5 +10,8 @@ public record UpdateResult(
     TimeSpan? Duration = null,
     string FromVersion = "",
     string ToVersion = "",
-    DateTime? UpdatedAt = null
+    DateTime? UpdatedAt = null,
+    int? ExitCode = null,
+    bool IsApplicationRunning = false,
+    bool Skipped = false
 );

@@ -33,6 +33,7 @@ public partial class PackageItemViewModel : ObservableObject
         "#111827"  // Preto
     ];
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SolidColorBrush> BrushCache = new();
     private readonly UpdatesViewModel _parent;
 
     [ObservableProperty]
@@ -103,7 +104,7 @@ public partial class PackageItemViewModel : ObservableObject
 
         Initials = ComputeInitials(Name, Id);
         IconColorHex = ComputeColorHex(Name, Id);
-        IconBrush = new SolidColorBrush(ParseHexColor(IconColorHex));
+        IconBrush = BrushCache.GetOrAdd(IconColorHex, static hex => new SolidColorBrush(ParseHexColor(hex)));
     }
 
     private static string ExtractPublisher(string id)
@@ -199,17 +200,6 @@ public partial class PackageItemViewModel : ObservableObject
         return Color.FromArgb(255, r, g, b);
     }
 
-    public Brush GetBadgeBackground(string category)
-    {
-        var resourceKey = category switch
-        {
-            "Segurança" => "BadgeSecurityBgBrush",
-            "Runtime" => "BadgeRuntimeBgBrush",
-            _ => "BadgeAppBgBrush"
-        };
-
-        return (Brush)App.Current.Resources[resourceKey];
-    }
 
     public Brush GetBadgeForeground(string category)
     {

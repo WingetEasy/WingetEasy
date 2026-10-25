@@ -22,6 +22,7 @@ public partial class UpdatesViewModel : ObservableObject
     private readonly IUpdateService _updateService;
     private readonly INotificationService _notificationService;
     private readonly IPackageRepository _packageRepository;
+    private readonly ISettingsRepository _settingsRepository;
     private readonly ILogger<UpdatesViewModel> _logger;
     private readonly DispatcherQueue _dispatcherQueue;
     private CancellationTokenSource? _cancellationTokenSource;
@@ -227,6 +228,12 @@ public partial class UpdatesViewModel : ObservableObject
     /// Callback usado pela view ativa para confirmar a abertura do prompt UAC.
     /// </summary>
     public Func<Task<bool>>? ElevationConfirmation { get; set; }
+
+    /// <summary>
+    /// Callback usado pela view ativa para exibir diálogo amigável quando um aplicativo está aberto.
+    /// </summary>
+    public Func<string, Task<AppRunningResolution>>? AppRunningPrompt { get; set; }
+
     public Visibility IsUpdatingVisibility => IsUpdating ? Visibility.Visible : Visibility.Collapsed;
     public string BatchStatus => $"Atualizando {BatchCompleted} de {BatchTotal}...";
     public string UpdateSummary => $"{SuccessfulUpdates} atualizadas com sucesso; {FailedUpdates} falharam.";
@@ -236,6 +243,7 @@ public partial class UpdatesViewModel : ObservableObject
         IUpdateService updateService,
         INotificationService notificationService,
         IPackageRepository packageRepository,
+        ISettingsRepository settingsRepository,
         ILogger<UpdatesViewModel> logger,
         DispatcherQueue dispatcherQueue)
     {
@@ -243,8 +251,29 @@ public partial class UpdatesViewModel : ObservableObject
         _updateService = updateService;
         _notificationService = notificationService;
         _packageRepository = packageRepository;
+        _settingsRepository = settingsRepository;
         _logger = logger;
         _dispatcherQueue = dispatcherQueue;
+        _ = InitializeSettingsAsync();
+    }
+
+    partial void OnAutoUpdateEnabledChanged(bool value)
+    {
+        _ = _settingsRepository.SetAsync("AutoUpdate", value.ToString());
+    }
+
+    private async Task InitializeSettingsAsync()
+    {
+        try
+        {
+            var raw = await _settingsRepository.GetAsync("AutoUpdate").ConfigureAwait(false);
+            var saved = bool.TryParse(raw, out var parsed) && parsed;
+            await RunOnUIAsync(() => AutoUpdateEnabled = saved).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Não foi possível carregar configuração de AutoUpdate.");
+        }
     }
 
     public void UpdateSelectionState()
@@ -423,14 +452,29 @@ public partial class UpdatesViewModel : ObservableObject
                     var package = pacotesParaAtualizar.FirstOrDefault(p => p.Id == update.name);
                     if (package is not null)
                     {
-                        package.UpdateState = PackageUpdateState.Updating;
-                        package.Progress = update.pct;
+                        if (update.pct >= 100)
+                        {
+                            package.UpdateState = PackageUpdateState.Completed;
+                            package.Progress = 100;
+                            _allPackages.Remove(package);
+                            Packages.Remove(package);
+                        }
+                        else if (update.pct < 0)
+                        {
+                            package.UpdateState = PackageUpdateState.Failed;
+                        }
+                        else
+                        {
+                            package.UpdateState = PackageUpdateState.Updating;
+                            package.Progress = update.pct;
+                        }
                     }
 
-                    BatchCompleted = Math.Max(0, update.cur - 1);
+                    BatchCompleted = update.pct >= 100 ? update.cur : Math.Max(0, update.cur - 1);
                     CurrentUpdatingPackage = package?.Name ?? update.name;
                     StatusMessage = $"Atualizando {update.cur} de {update.total}...";
-                    UpdateProgress = (int)(((update.cur - 1) * 100d + update.pct) / update.total);
+                    UpdateProgress = (int)(((update.cur - 1) * 100d + Math.Max(0, update.pct)) / update.total);
+                    NotifyCountsChanged();
                 });
             });
 
@@ -439,10 +483,13 @@ public partial class UpdatesViewModel : ObservableObject
                     pacotesParaAtualizar.Select(package => package.Id),
                     progress,
                     ElevationConfirmation,
+                    AppRunningPrompt,
+                    isAutoUpdate: false,
                     cancellationTokenSource.Token)
                 .ConfigureAwait(false);
 
-            var failedCount = results.Count(result => !result.Success);
+            var failedCount = results.Count(result => !result.Success && !result.Skipped);
+            var skippedCount = results.Count(result => result.Skipped);
             await RunOnUIAsync(() =>
             {
                 foreach (var result in results)
@@ -453,11 +500,26 @@ public partial class UpdatesViewModel : ObservableObject
                         continue;
                     }
 
-                    package.UpdateState = result.Success
-                        ? PackageUpdateState.Completed
-                        : PackageUpdateState.Failed;
-                    package.Progress = result.Success ? 100 : package.Progress;
-                    package.ErrorMessage = result.ErrorMessage ?? string.Empty;
+                    if (result.Skipped)
+                    {
+                        package.UpdateState = PackageUpdateState.Pending;
+                        package.IsSelected = false;
+                        package.ErrorMessage = result.ErrorMessage ?? "Atualização adiada (aplicativo em uso).";
+                    }
+                    else
+                    {
+                        package.UpdateState = result.Success
+                            ? PackageUpdateState.Completed
+                            : PackageUpdateState.Failed;
+                        package.Progress = result.Success ? 100 : package.Progress;
+                        package.ErrorMessage = result.ErrorMessage ?? string.Empty;
+
+                        if (result.Success)
+                        {
+                            _allPackages.Remove(package);
+                            Packages.Remove(package);
+                        }
+                    }
                 }
 
                 BatchCompleted = results.Count;
@@ -465,9 +527,19 @@ public partial class UpdatesViewModel : ObservableObject
                 FailedUpdates = failedCount;
                 UpdateProgress = 100;
                 IsUpdateSummaryVisible = true;
-                StatusMessage = failedCount == 0
-                    ? $"{SuccessfulUpdates} atualizações concluídas com sucesso."
-                    : $"{SuccessfulUpdates} atualizações concluídas; {FailedUpdates} falharam.";
+
+                if (skippedCount > 0)
+                {
+                    StatusMessage = failedCount == 0
+                        ? $"{SuccessfulUpdates} atualizações concluídas; {skippedCount} adiadas (em uso)."
+                        : $"{SuccessfulUpdates} atualizações concluídas; {skippedCount} adiadas (em uso); {FailedUpdates} falharam.";
+                }
+                else
+                {
+                    StatusMessage = failedCount == 0
+                        ? $"{SuccessfulUpdates} atualizações concluídas com sucesso."
+                        : $"{SuccessfulUpdates} atualizações concluídas; {FailedUpdates} falharam.";
+                }
             }).ConfigureAwait(false);
 
             _logger.LogInformation("Processo de atualização finalizado.");
@@ -475,6 +547,7 @@ public partial class UpdatesViewModel : ObservableObject
 
             await RunOnUIAsync(() =>
             {
+                RefreshFlyoutPackages();
                 var remainingCount = _allPackages.Count(p => p.UpdateState != PackageUpdateState.Completed);
                 HasUpdates = remainingCount > 0;
                 NotifyCountsChanged();
@@ -496,6 +569,11 @@ public partial class UpdatesViewModel : ObservableObject
             _cancellationTokenSource = null;
             await RunOnUIAsync(() =>
             {
+                foreach (var package in pacotesParaAtualizar.Where(p => p.UpdateState is PackageUpdateState.Queued or PackageUpdateState.Updating))
+                {
+                    package.UpdateState = PackageUpdateState.Failed;
+                }
+
                 IsUpdating = false;
                 CurrentUpdatingPackage = string.Empty;
                 UpdateProgress = 0;
@@ -601,6 +679,97 @@ public partial class UpdatesViewModel : ObservableObject
         _logger.LogInformation("Pacote {PackageId} adicionado à lista de ignorados permanentes.", package.Id);
 
         RemovePackageFromList(package);
+    }
+
+    /// <summary>
+    /// Executa a atualização automática em segundo plano para pacotes disponíveis,
+    /// pulando automaticamente qualquer aplicativo que esteja em execução com janela visível.
+    /// </summary>
+    public async Task ExecuteAutoUpdateAsync(CancellationToken ct = default)
+    {
+        var pacotesParaAtualizar = _allPackages.ToList();
+        if (pacotesParaAtualizar.Count == 0 || IsUpdating)
+            return;
+
+        try
+        {
+            await RunOnUIAsync(() => IsUpdating = true).ConfigureAwait(false);
+            using var cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource = cancellationTokenSource;
+
+            _logger.LogInformation("Iniciando AutoUpdate em segundo plano para {Count} pacotes...", pacotesParaAtualizar.Count);
+
+            var results = await _updateService
+                .ExecuteUpdatesAsync(
+                    pacotesParaAtualizar.Select(package => package.Id),
+                    progress: null,
+                    confirmElevation: null,
+                    handleRunningApp: null,
+                    isAutoUpdate: true,
+                    cancellationTokenSource.Token)
+                .ConfigureAwait(false);
+
+            var failedCount = results.Count(result => !result.Success && !result.Skipped);
+            var skippedCount = results.Count(result => result.Skipped);
+            var successCount = results.Count(result => result.Success);
+
+            await RunOnUIAsync(() =>
+            {
+                foreach (var result in results)
+                {
+                    var package = pacotesParaAtualizar.FirstOrDefault(p => p.Id == result.PackageId);
+                    if (package is null) continue;
+
+                    if (result.Success)
+                    {
+                        package.UpdateState = PackageUpdateState.Completed;
+                        package.Progress = 100;
+                        _allPackages.Remove(package);
+                        Packages.Remove(package);
+                    }
+                    else if (result.Skipped)
+                    {
+                        package.UpdateState = PackageUpdateState.Pending;
+                        package.IsSelected = false;
+                        package.ErrorMessage = result.ErrorMessage ?? "Adiado para a próxima verificação (em execução).";
+                    }
+                    else
+                    {
+                        package.UpdateState = PackageUpdateState.Failed;
+                        package.ErrorMessage = result.ErrorMessage ?? string.Empty;
+                    }
+                }
+
+                SuccessfulUpdates = successCount;
+                FailedUpdates = failedCount;
+                RefreshFlyoutPackages();
+                var remainingCount = _allPackages.Count(p => p.UpdateState != PackageUpdateState.Completed);
+                HasUpdates = remainingCount > 0;
+                NotifyCountsChanged();
+                (Application.Current as App)?.UpdateTrayState(remainingCount);
+            }).ConfigureAwait(false);
+
+            if (successCount > 0)
+            {
+                _notificationService.ShowUpdateComplete(successCount, failedCount);
+            }
+
+            _logger.LogInformation("AutoUpdate concluído: {Success} com sucesso, {Skipped} adiados (janela visível), {Failed} com falha.",
+                successCount, skippedCount, failedCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro durante a execução do AutoUpdate.");
+        }
+        finally
+        {
+            _cancellationTokenSource = null;
+            await RunOnUIAsync(() =>
+            {
+                IsUpdating = false;
+                NotifyCountsChanged();
+            }).ConfigureAwait(false);
+        }
     }
 
     private void RefreshFlyoutPackages()

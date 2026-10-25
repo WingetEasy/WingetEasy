@@ -18,16 +18,24 @@ namespace WingetEasy.Core.Services;
 /// Responsável por executar comandos via CLI, gerir processos do sistema, evitar deadlocks de I/O
 /// e fazer o parsing robusto do output devolvido pelo terminal.
 /// </summary>
-public class WingetService : IWingetService
+public partial class WingetService : IWingetService
 {
-    private static readonly Regex PkgIdRegex = new(@"^[A-Za-z0-9._\-+]+$", RegexOptions.Compiled);
-    private static readonly Regex NonWhitespaceRegex = new(@"\S+", RegexOptions.Compiled);
-    private static readonly Regex FooterLineRegex = new(
-        @"^\d+\s+(atualiza\S*|upgrades?\b|pacotes?\b|packages?\b)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"^[A-Za-z0-9._\-+]+$")]
+    private static partial Regex GetPkgIdRegex();
+    private static Regex PkgIdRegex => GetPkgIdRegex();
+
+    [GeneratedRegex(@"\S+")]
+    private static partial Regex GetNonWhitespaceRegex();
+    private static Regex NonWhitespaceRegex => GetNonWhitespaceRegex();
+
+    [GeneratedRegex(@"^\d+\s+(atualiza\S*|upgrades?\b|pacotes?\b|packages?\b)", RegexOptions.IgnoreCase)]
+    private static partial Regex GetFooterLineRegex();
+    private static Regex FooterLineRegex => GetFooterLineRegex();
 
     // Regex para extrair a versão no formato v1.x.x
-    private static readonly Regex VersionRegex = new(@"v\d+\.\d+\.\d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"v\d+\.\d+\.\d+", RegexOptions.IgnoreCase)]
+    private static partial Regex GetVersionRegex();
+    private static Regex VersionRegex => GetVersionRegex();
 
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(30);
@@ -512,7 +520,7 @@ public class WingetService : IWingetService
         var processStartInfo = new ProcessStartInfo
         {
             FileName = "winget",
-            Arguments = $"upgrade --id {packageId} --silent --accept-source-agreements --accept-package-agreements",
+            Arguments = $"upgrade --id {packageId} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -594,11 +602,11 @@ public class WingetService : IWingetService
         }
 
         sw.Stop();
-        progress?.Report(100); // Fim a 100%
 
         int exitCode = process.ExitCode;
         // 0 = Sucesso | -1978335189 = Não há atualizações aplicáveis (já atualizado)
         bool success = exitCode == 0 || exitCode == -1978335189;
+        progress?.Report(success ? 100 : -1);
 
         if (success)
         {
@@ -606,18 +614,40 @@ public class WingetService : IWingetService
             _cacheExpiryTime = DateTime.MinValue;
         }
 
+        bool isAppRunning = exitCode == WingetExitCodes.AppRunning
+            || errorLines.Any(l => l.Contains("0x8a150056", StringComparison.OrdinalIgnoreCase))
+            || lastOutputLines.Any(l => l.Contains("0x8a150056", StringComparison.OrdinalIgnoreCase));
+
         string? errorMessage = null;
         if (!success)
         {
-            errorMessage = $"Código: {exitCode}. " + string.Join(" | ", errorLines);
-            if (string.IsNullOrWhiteSpace(errorMessage) || errorMessage.EndsWith(". "))
+            if (isAppRunning)
             {
-                // Se não houver erro no stderr, usamos as últimas linhas do stdout como dica
-                errorMessage += string.Join(" | ", lastOutputLines);
+                errorMessage = "O aplicativo está aberto no momento (código 0x8A150056).";
+            }
+            else
+            {
+                errorMessage = $"Código: {exitCode}. " + string.Join(" | ", errorLines);
+                if (string.IsNullOrWhiteSpace(errorMessage) || errorMessage.EndsWith(". "))
+                {
+                    // Se não houver erro no stderr, usamos as últimas linhas do stdout como dica
+                    errorMessage += string.Join(" | ", lastOutputLines);
+                }
             }
         }
 
-        return new UpdateResult(packageId, packageId, success, errorMessage, sw.Elapsed);
+        var cachedPkg = _cachedPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
+        return new UpdateResult(
+            packageId,
+            cachedPkg?.Name ?? packageId,
+            success,
+            errorMessage,
+            sw.Elapsed,
+            cachedPkg?.CurrentVersion ?? string.Empty,
+            cachedPkg?.AvailableVersion ?? string.Empty,
+            DateTime.UtcNow,
+            ExitCode: exitCode,
+            IsApplicationRunning: isAppRunning);
     }
 
     public async Task<IEnumerable<WingetPackage>> GetInstalledPackagesAsync(CancellationToken ct = default)
@@ -747,9 +777,9 @@ public class WingetService : IWingetService
                 return false;
             }
 
-            InvalidateCaches();
-            _logger.LogInformation("Fontes do Winget reparadas e atualizadas com sucesso.");
-            return true;
+        InvalidateCaches();
+        _logger.LogInformation("Fontes do Winget reparadas e atualizadas com sucesso.");
+        return true;
         }
         catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
@@ -764,6 +794,79 @@ public class WingetService : IWingetService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro inesperado ao reparar as fontes do Winget.");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Fixa permanentemente um pacote no Winget utilizando 'winget pin add --id &lt;id&gt; --exact'.
+    /// </summary>
+    public async Task<bool> PinPackageAsync(string packageId, CancellationToken ct = default)
+    {
+        ValidatePackageId(packageId);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
+
+        try
+        {
+            var result = await ExecuteWingetWithResultAsync(
+                $"pin add --id {packageId} --exact --accept-source-agreements --disable-interactivity",
+                timeoutCts.Token).ConfigureAwait(false);
+
+            if (result.ExitCode == 0)
+            {
+                InvalidateCaches();
+                _logger.LogInformation("Pacote {PackageId} fixado no Winget com sucesso (winget pin add).", packageId);
+                return true;
+            }
+
+            _logger.LogWarning(
+                "Falha ao fixar pacote {PackageId} via 'winget pin add' (ExitCode: {ExitCode}). StdErr: {StdErr}",
+                packageId,
+                result.ExitCode,
+                string.IsNullOrWhiteSpace(result.StdErr) ? result.StdOut : result.StdErr);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Erro ao tentar fixar o pacote {PackageId} via Winget CLI.", packageId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Remove o pin permanente de um pacote no Winget utilizando 'winget pin remove --id &lt;id&gt; --exact'.
+    /// </summary>
+    public async Task<bool> UnpinPackageAsync(string packageId, CancellationToken ct = default)
+    {
+        ValidatePackageId(packageId);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
+
+        try
+        {
+            var result = await ExecuteWingetWithResultAsync(
+                $"pin remove --id {packageId} --exact --accept-source-agreements --disable-interactivity",
+                timeoutCts.Token).ConfigureAwait(false);
+
+            if (result.ExitCode == 0)
+            {
+                InvalidateCaches();
+                _logger.LogInformation("Pin removido do pacote {PackageId} no Winget com sucesso (winget pin remove).", packageId);
+                return true;
+            }
+
+            _logger.LogDebug(
+                "Comando 'winget pin remove' para {PackageId} retornou código {ExitCode}.",
+                packageId,
+                result.ExitCode);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Erro ao tentar remover o pin do pacote {PackageId} via Winget CLI.", packageId);
             return false;
         }
     }

@@ -13,8 +13,11 @@ using WingetEasy.Core.Models;
 
 namespace WingetEasy.Core.Services;
 
-public class AdminElevationHelper : IAdminElevationHelper
+public partial class AdminElevationHelper : IAdminElevationHelper
 {
+    [GeneratedRegex(@"^[A-Za-z0-9._\-+]+$")]
+    private static partial Regex GetPkgIdRegex();
+
     public bool IsRunningAsAdmin()
     {
 #pragma warning disable CA1416 // Ignora o aviso de plataforma (sabemos que vai rodar no Windows)
@@ -27,7 +30,7 @@ public class AdminElevationHelper : IAdminElevationHelper
     public async Task<IEnumerable<UpdateResult>> ExecuteElevatedAsync(IEnumerable<string> packageIds, CancellationToken ct = default)
     {
         // Validação de segurança com Regex
-        var validIds = packageIds.Where(id => Regex.IsMatch(id, @"^[a-zA-Z0-9\.\-_]+$")).ToList();
+        var validIds = packageIds.Where(id => GetPkgIdRegex().IsMatch(id)).ToList();
         if (validIds.Count == 0) return [];
 
         var jobId = Guid.NewGuid().ToString();

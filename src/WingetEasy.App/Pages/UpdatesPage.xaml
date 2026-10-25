@@ -23,6 +23,7 @@
 
                     <!-- Hero Banner Card -->
                     <Border Grid.Column="0"
+                            MinHeight="220"
                             CornerRadius="14"
                             Padding="26,22">
                         <Border.Background>
@@ -101,16 +102,23 @@
                                              Margin="0,6,0,0" />
                             </StackPanel>
 
-                            <!-- Logo W estilizado à direita -->
-                            <Image Grid.Column="1"
-                                   Source="ms-appx:///Assets/WingetEasy-Logo.png"
-                                   Width="190"
-                                   Height="150"
-                                   Stretch="Uniform"
-                                   Opacity="0.92"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Right"
-                                   Margin="18,-8,-4,-8" />
+                            <!-- Logo W estilizado à direita com sombra suave contornando o PNG -->
+                            <Grid Grid.Column="1"
+                                  Width="270"
+                                  Height="230"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Right"
+                                  Margin="18,-8,-4,-8">
+                                <Border x:Name="HeroLogoShadowHost" />
+                                <Image x:Name="HeroLogoImage"
+                                       Source="ms-appx:///Assets/WingetEasy-Logo.png"
+                                       Width="270"
+                                       Height="250"
+                                       Stretch="Uniform"
+                                       Opacity="0.95"
+                                       ImageOpened="HeroLogoImage_ImageOpened"
+                                       SizeChanged="HeroLogoImage_SizeChanged" />
+                            </Grid>
                         </Grid>
                     </Border>
 
@@ -297,22 +305,13 @@
                         </Grid>
 
                         <!-- Lista de pacotes disponíveis -->
-                        <ListView ItemsSource="{x:Bind ViewModel.Packages}"
-                                  SelectionMode="None"
-                                  ShowsScrollingPlaceholders="False">
-                            <ListView.ItemContainerStyle>
-                                <Style TargetType="ListViewItem">
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="Margin" Value="0" />
-                                </Style>
-                            </ListView.ItemContainerStyle>
-                            <ListView.ItemTemplate>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.Packages}">
+                            <ItemsRepeater.ItemTemplate>
                                 <DataTemplate>
                                     <controls:PackageItemControl />
                                 </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
 
                         <!-- Estado vazio quando tudo atualizado -->
                         <StackPanel Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}"

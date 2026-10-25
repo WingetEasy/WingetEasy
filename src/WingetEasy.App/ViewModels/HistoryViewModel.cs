@@ -31,22 +31,34 @@ public sealed class HistoryEntryViewModel
     public string PackageName { get; }
     public string PackageId { get; }
     public string VersionTransition { get; }
+    public Visibility VersionVisibility { get; }
     public string Time { get; }
     public string StatusText { get; }
     public string StatusGlyph { get; }
+    public Visibility IsSuccessVisible { get; }
+    public Visibility IsFailureVisible { get; }
     public string ErrorMessage { get; }
+    public Visibility ErrorVisibility { get; }
     public bool Success { get; }
 
     public HistoryEntryViewModel(UpdateResult result)
     {
-        PackageName = result.PackageName;
         PackageId = result.PackageId;
-        VersionTransition = $"{result.FromVersion} -> {result.ToVersion}";
+        PackageName = string.IsNullOrWhiteSpace(result.PackageName) || string.Equals(result.PackageName, result.PackageId, StringComparison.OrdinalIgnoreCase)
+            ? result.PackageId.Split('.')[^1]
+            : result.PackageName;
+        VersionTransition = !string.IsNullOrWhiteSpace(result.FromVersion) && !string.IsNullOrWhiteSpace(result.ToVersion)
+            ? $"{result.FromVersion} → {result.ToVersion}"
+            : !string.IsNullOrWhiteSpace(result.ToVersion) ? result.ToVersion : result.FromVersion ?? string.Empty;
+        VersionVisibility = string.IsNullOrWhiteSpace(VersionTransition) ? Visibility.Collapsed : Visibility.Visible;
         Time = (result.UpdatedAt ?? DateTime.Now.ToUniversalTime()).ToLocalTime().ToString("HH:mm", CultureInfo.CurrentCulture);
         Success = result.Success;
         StatusText = result.Success ? "Sucesso" : "Falha";
         StatusGlyph = result.Success ? "\uE73E" : "\uE711";
+        IsSuccessVisible = result.Success ? Visibility.Visible : Visibility.Collapsed;
+        IsFailureVisible = result.Success ? Visibility.Collapsed : Visibility.Visible;
         ErrorMessage = result.ErrorMessage ?? string.Empty;
+        ErrorVisibility = string.IsNullOrWhiteSpace(ErrorMessage) ? Visibility.Collapsed : Visibility.Visible;
     }
 }
 
@@ -97,7 +109,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedPeriod, value))
             {
-                ApplyFilters();
+                _ = LoadAsync();
             }
         }
     }
@@ -109,7 +121,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             if (SetProperty(ref _searchText, value))
             {
-                ApplyFilters();
+                _ = LoadAsync();
             }
         }
     }
@@ -140,7 +152,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             IsLoading = true;
             var entries = await _repository.GetByDataRangeAsync(
-                DateTime.MinValue,
+                _selectedPeriod switch { HistoryPeriod.Today => DateTime.UtcNow.Date, HistoryPeriod.SevenDays => DateTime.UtcNow.AddDays(-7), HistoryPeriod.Month => DateTime.UtcNow.AddDays(-30), _ => DateTime.MinValue },
                 DateTime.UtcNow,
                 CancellationToken.None).ConfigureAwait(true);
 

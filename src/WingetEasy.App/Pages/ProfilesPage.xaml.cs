@@ -13,8 +13,10 @@ public sealed partial class ProfilesPage : Page
     {
         ViewModel = App.Services.GetRequiredService<ProfilesViewModel>();
         InitializeComponent();
+        NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
         DataContext = ViewModel;
-        Loaded += async (_, _) => await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Loaded += async (_, _) => { if (ViewModel.Profiles.Count == 0) await ViewModel.LoadCommand.ExecuteAsync(null).ConfigureAwait(true); };
+
     }
 
     private async void InstallButton_Click(object sender, RoutedEventArgs e)

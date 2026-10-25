@@ -48,6 +48,7 @@ namespace WingetEasy.App
         private Views.UpdateFlyout? _updateFlyout;
         private H.NotifyIcon.TaskbarIcon? _trayIcon;
         private readonly Windows.UI.ViewManagement.UISettings _uiSettings = new();
+        private bool? _lastTrayHasUpdates = false;
         private ElementTheme _currentTheme = ElementTheme.Default;
         public static IntPtr MainWindowHandle { get; private set; }
 
@@ -99,6 +100,26 @@ namespace WingetEasy.App
                 RunElevatedModeAndExit(args);
             }
 
+            if (!args.Contains("--no-elevate") && !args.Contains("--minimized") && !args.Contains("--check") && !args.Contains("--update-all") && !args.Contains("--help") && !args.Contains("--version") && !new AdminElevationHelper().IsRunningAsAdmin())
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = Environment.ProcessPath ?? throw new InvalidOperationException(),
+                        Arguments = string.Join(" ", args.Skip(1).Select(a => $"\"{a}\"")),
+                        UseShellExecute = true,
+                        Verb = "runas"
+                    });
+                    Log.CloseAndFlush();
+                    Environment.Exit(0);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Elevação inicial recusada; continuando em modo padrão.");
+                }
+            }
+
             InitializeComponent();
             this.UnhandledException += (_, e) =>
             {
@@ -135,11 +156,9 @@ namespace WingetEasy.App
                                     StartInfo = new ProcessStartInfo
                                     {
                                         FileName = "winget.exe",
-                                        Arguments = $"update --exact --id {id} --accept-package-agreements --accept-source-agreements --silent",
+                                        Arguments = $"upgrade --id {id} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
                                         UseShellExecute = false,
-                                        CreateNoWindow = true,
-                                        RedirectStandardOutput = true,
-                                        RedirectStandardError = true
+                                        CreateNoWindow = true
                                     }
                                 };
                                 process.Start();
@@ -159,7 +178,7 @@ namespace WingetEasy.App
                                 results.Add(new Core.Models.UpdateResult(id, id, success, success ? null : $"Erro {process.ExitCode}", sw.Elapsed));
                             }
 
-                            var resultFile = jobFile.Replace("job", "result");
+                            var resultFile = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(jobFile) ?? string.Empty, System.IO.Path.GetFileName(jobFile).Replace("job", "result", StringComparison.Ordinal));
                             File.WriteAllText(resultFile, JsonSerializer.Serialize(results, Core.Models.CoreJsonContext.Default.ListUpdateResult));
                         }
                     }
@@ -187,18 +206,19 @@ namespace WingetEasy.App
                 loggingBuilder.AddSerilog(dispose: true);
             });
 
-            services.AddDbContext<AppDbContext>();
+            services.AddDbContextFactory<AppDbContext>();
 
             // Repositórios injetados com escopo AddScoped
-            services.AddScoped<ISettingsRepository, WingetEasy.Data.Repositories.SettingsRepository>();
-            services.AddScoped<IUpdateHistoryRepository, WingetEasy.Data.Repositories.UpdateHistoryRepository>();
-            services.AddScoped<IBackupSnapshotRepository, WingetEasy.Data.Repositories.BackupSnapshotRepository>();
-            services.AddScoped<IProfileRepository, WingetEasy.Data.Repositories.ProfileRepository>();
-            services.AddScoped<IPackageRepository, WingetEasy.Data.Repositories.PackageRepository>();
-            services.AddScoped<ICheckLogRepository, WingetEasy.Data.Repositories.CheckLogRepository>();
+            services.AddSingleton<ISettingsRepository>(sp => new WingetEasy.Data.Repositories.SettingsRepository(sp.GetRequiredService<IDbContextFactory<AppDbContext>>()));
+            services.AddSingleton<IUpdateHistoryRepository>(sp => new WingetEasy.Data.Repositories.UpdateHistoryRepository(sp.GetRequiredService<IDbContextFactory<AppDbContext>>()));
+            services.AddSingleton<IBackupSnapshotRepository>(sp => new WingetEasy.Data.Repositories.BackupSnapshotRepository(sp.GetRequiredService<IDbContextFactory<AppDbContext>>()));
+            services.AddSingleton<IProfileRepository, WingetEasy.Data.Repositories.ProfileRepository>();
+            services.AddSingleton<IPackageRepository>(sp => new WingetEasy.Data.Repositories.PackageRepository(sp.GetRequiredService<IDbContextFactory<AppDbContext>>()));
+            services.AddSingleton<ICheckLogRepository>(sp => new WingetEasy.Data.Repositories.CheckLogRepository(sp.GetRequiredService<IDbContextFactory<AppDbContext>>()));
 
             // Alinhamento das regras de arquitetura: Serviços principais como Singletons
             services.AddSingleton<IWingetService, WingetEasy.Core.Services.WingetService>();
+            services.AddSingleton<IRunningProcessService, WingetEasy.Core.Services.RunningProcessService>();
             services.AddSingleton<IUpdateService, WingetEasy.Core.Services.UpdateService>();
             services.AddSingleton<ITaskSchedulerProcessRunner, WindowsTaskSchedulerProcessRunner>();
             services.AddSingleton<ITaskSchedulerService, WindowsTaskSchedulerService>();
@@ -251,26 +271,34 @@ namespace WingetEasy.App
                 }
 
                 await MigrateDatabaseAsync(Services).ConfigureAwait(true);
+                _uiSettings.ColorValuesChanged += OnColorValuesChanged;
                 var isMinimized = command.Type == CliCommandType.Minimized;
                 if (!isMinimized)
                 {
                     await ApplySavedThemeAsync().ConfigureAwait(true);
-                    _uiSettings.ColorValuesChanged += OnColorValuesChanged;
                 }
 
                 var scheduler = Services.GetRequiredService<ISchedulerService>();
                 await scheduler.StartAsync().ConfigureAwait(true);
                 Services.GetRequiredService<IToastNotificationService>().Register();
-                scheduler.CheckRequested += (_, _) =>
+                scheduler.CheckRequested += async (_, _) =>
                 {
                     var updatesViewModel = Services.GetRequiredService<UpdatesViewModel>();
-                    updatesViewModel.CheckUpdatesCommand.Execute(null);
+                    await updatesViewModel.CheckUpdatesCommand.ExecuteAsync(null).ConfigureAwait(false);
+                    if (updatesViewModel.AutoUpdateEnabled && updatesViewModel.Packages.Count > 0)
+                    {
+                        await updatesViewModel.ExecuteAutoUpdateAsync().ConfigureAwait(false);
+                    }
                 };
 
                 InitializeTrayIcon();
 
                 var initialUpdatesVm = Services.GetRequiredService<UpdatesViewModel>();
                 await initialUpdatesVm.CheckUpdatesCommand.ExecuteAsync(null).ConfigureAwait(true);
+                if (isMinimized && initialUpdatesVm.AutoUpdateEnabled && initialUpdatesVm.Packages.Count > 0)
+                {
+                    _ = Task.Run(() => initialUpdatesVm.ExecuteAutoUpdateAsync());
+                }
 
                 if (isMinimized)
                 {
@@ -281,19 +309,24 @@ namespace WingetEasy.App
                 {
                     Log.Information("Inicialização padrão detectada. Abrindo janela principal.");
                     ShowMainWindow();
+                    _ = Task.Run(async () => { await Task.Delay(1200).ConfigureAwait(false); OptimizeBackgroundMemory(); });
                 }
             }
             catch (Exception ex)
             {
                 Log.Fatal(ex, "Ocorreu um erro fatal durante o provisionamento de infraestrutura da UI.");
+                Log.CloseAndFlush();
+                Environment.Exit(1);
                 throw;
             }
         }
 
-        private static void OptimizeBackgroundMemory()
+        public static void OptimizeBackgroundMemory()
         {
-            GC.Collect(2, GCCollectionMode.Forced, blocking: false, compacting: false);
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(2, GCCollectionMode.Aggressive, blocking: true, compacting: true);
             GC.WaitForPendingFinalizers();
+            GC.Collect(2, GCCollectionMode.Aggressive, blocking: true, compacting: true);
 
             using var process = Process.GetCurrentProcess();
             if (EmptyWorkingSet(process.Handle) == 0)
@@ -386,10 +419,14 @@ namespace WingetEasy.App
                 ? $"WingetEasy — {updateCount} atualizações disponíveis"
                 : "WingetEasy — Sistema atualizado";
 
-            var fileName = hasUpdates ? "WingetEasy-Logo-update.ico" : "WingetEasy-Logo.ico";
+            if (_lastTrayHasUpdates != hasUpdates)
+            {
+                _lastTrayHasUpdates = hasUpdates;
+                var fileName = hasUpdates ? "WingetEasy-Logo-update.ico" : "WingetEasy-Logo.ico";
             var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
 
-            _trayIcon.IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath));
+                _trayIcon.IconSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(iconPath));
+            }
 
             if (_trayIcon.ContextFlyout is Microsoft.UI.Xaml.Controls.MenuFlyout menuFlyout)
             {
@@ -433,6 +470,10 @@ namespace WingetEasy.App
                     _window.Closed += (s, e) => _window = null;
 
                     _ = ApplySavedThemeAsync();
+                }
+                else if (_window is MainWindow existingMain)
+                {
+                    existingMain.RestoreFromTray();
                 }
                 _window.Activate();
             }
@@ -567,7 +608,7 @@ namespace WingetEasy.App
         private static async Task MigrateDatabaseAsync(IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            using var db = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
             await db.Database.MigrateAsync().ConfigureAwait(false);
         }
     }

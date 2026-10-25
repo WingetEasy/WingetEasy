@@ -13,21 +13,35 @@ public class UpdateService : IUpdateService
     private readonly IWingetService _wingetService;
     private readonly IUpdateHistoryRepository _historyRepository;
     private readonly IAdminElevationHelper _adminElevationHelper;
+    private readonly IRunningProcessService _runningProcessService;
 
     public UpdateService(
         IWingetService wingetService,
         IUpdateHistoryRepository historyRepository,
-        IAdminElevationHelper adminElevationHelper)
+        IAdminElevationHelper adminElevationHelper,
+        IRunningProcessService? runningProcessService = null)
     {
         _wingetService = wingetService;
         _historyRepository = historyRepository;
         _adminElevationHelper = adminElevationHelper;
+        _runningProcessService = runningProcessService ?? new RunningProcessService();
+    }
+
+    public Task<IReadOnlyList<UpdateResult>> ExecuteUpdatesAsync(
+        IEnumerable<string> packageIds,
+        IProgress<(string name, int pct, int cur, int total)>? progress = null,
+        Func<Task<bool>>? confirmElevation = null,
+        CancellationToken ct = default)
+    {
+        return ExecuteUpdatesAsync(packageIds, progress, confirmElevation, null, isAutoUpdate: true, ct);
     }
 
     public async Task<IReadOnlyList<UpdateResult>> ExecuteUpdatesAsync(
         IEnumerable<string> packageIds,
-        IProgress<(string name, int pct, int cur, int total)>? progress = null,
-        Func<Task<bool>>? confirmElevation = null,
+        IProgress<(string name, int pct, int cur, int total)>? progress,
+        Func<Task<bool>>? confirmElevation,
+        Func<string, Task<AppRunningResolution>>? handleRunningApp,
+        bool isAutoUpdate = false,
         CancellationToken ct = default)
     {
         var ids = packageIds.ToList();
@@ -48,21 +62,103 @@ public class UpdateService : IUpdateService
             var pkgProgress = new Progress<int>(p =>
                 progress?.Report((currentId, p, i + 1, ids.Count)));
 
-
             try
             {
-                // Instala e aguarda (sequencialmente, para evitar travamentos nativos do Winget)
+                // 1. Verificação prévia de aplicativo em execução
+                if (isAutoUpdate)
+                {
+                    // Nas atualizações automáticas em segundo plano (AutoUpdate), pular automaticamente
+                    // qualquer aplicativo que esteja em execução com janela visível, adiando-o para a próxima verificação.
+                    if (_runningProcessService.IsAppRunningWithVisibleWindow(currentId))
+                    {
+                        var skipResult = new UpdateResult(
+                            currentId,
+                            currentId,
+                            false,
+                            "Atualização adiada para a próxima verificação (aplicativo em execução com janela visível).",
+                            TimeSpan.Zero,
+                            ExitCode: WingetExitCodes.AppRunning,
+                            IsApplicationRunning: true,
+                            Skipped: true);
+
+                        results.Add(skipResult);
+                        continue;
+                    }
+                }
+                else if (handleRunningApp != null && _runningProcessService.IsAppRunning(currentId))
+                {
+                    // Interativo: exibir aviso amigável
+                    var resolution = await handleRunningApp(currentId).ConfigureAwait(false);
+                    if (resolution == AppRunningResolution.Skip)
+                    {
+                        var skipResult = new UpdateResult(
+                            currentId,
+                            currentId,
+                            false,
+                            "Atualização pulada pelo usuário (aplicativo em uso).",
+                            TimeSpan.Zero,
+                            ExitCode: WingetExitCodes.AppRunning,
+                            IsApplicationRunning: true,
+                            Skipped: true);
+
+                        results.Add(skipResult);
+                        continue;
+                    }
+
+                    // Fechar aplicativo e continuar
+                    await _runningProcessService.CloseAppProcessesAsync(currentId).ConfigureAwait(false);
+                }
+
+                // 2. Tentar instalar
                 var result = await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct).ConfigureAwait(false);
+
+                // 3. Tratamento do código 0x8A150056 caso retorne do WinGet
+                if (!result.Success && (result.ExitCode == WingetExitCodes.AppRunning || result.IsApplicationRunning))
+                {
+                    if (isAutoUpdate)
+                    {
+                        // AutoUpdate pula automaticamente
+                        result = result with
+                        {
+                            Skipped = true,
+                            IsApplicationRunning = true,
+                            ErrorMessage = "Atualização adiada para a próxima verificação (aplicativo em execução)."
+                        };
+                    }
+                    else if (handleRunningApp != null)
+                    {
+                        // Interativo: exibir aviso amigável se WinGet retornou 0x8A150056
+                        var resolution = await handleRunningApp(result.PackageName).ConfigureAwait(false);
+                        if (resolution == AppRunningResolution.CloseAndUpdate)
+                        {
+                            await _runningProcessService.CloseAppProcessesAsync(currentId).ConfigureAwait(false);
+                            result = await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            result = result with
+                            {
+                                Skipped = true,
+                                IsApplicationRunning = true,
+                                ErrorMessage = "Atualização pulada pelo usuário (aplicativo em uso)."
+                            };
+                        }
+                    }
+                }
+
                 results.Add(result);
 
-                // Grava o resultado na base de dados SQLite
-                if (RequiresElevation(result) && !_adminElevationHelper.IsRunningAsAdmin())
+                // Grava o resultado na base de dados SQLite apenas se não foi pulado por estar em execução
+                if (!result.Skipped)
                 {
-                    elevationCandidates.Add(currentId);
-                }
-                else
-                {
-                    await _historyRepository.AddAsync(result, ct).ConfigureAwait(false);
+                    if (RequiresElevation(result) && !_adminElevationHelper.IsRunningAsAdmin())
+                    {
+                        elevationCandidates.Add(currentId);
+                    }
+                    else
+                    {
+                        await _historyRepository.AddAsync(result, ct).ConfigureAwait(false);
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -95,17 +191,25 @@ public class UpdateService : IUpdateService
 
             foreach (var elevatedResult in elevatedResults)
             {
-                var index = results.FindIndex(result => result.PackageId == elevatedResult.PackageId);
+                var index = results.FindIndex(result => string.Equals(result.PackageId, elevatedResult.PackageId, StringComparison.OrdinalIgnoreCase));
+                var mergedResult = elevatedResult;
                 if (index >= 0)
                 {
-                    results[index] = elevatedResult;
+                    var original = results[index];
+                    mergedResult = elevatedResult with
+                    {
+                        PackageName = string.IsNullOrWhiteSpace(original.PackageName) ? elevatedResult.PackageName : original.PackageName,
+                        FromVersion = string.IsNullOrWhiteSpace(elevatedResult.FromVersion) ? original.FromVersion : elevatedResult.FromVersion,
+                        ToVersion = string.IsNullOrWhiteSpace(elevatedResult.ToVersion) ? original.ToVersion : elevatedResult.ToVersion
+                    };
+                    results[index] = mergedResult;
                 }
                 else
                 {
-                    results.Add(elevatedResult);
+                    results.Add(mergedResult);
                 }
 
-                await _historyRepository.AddAsync(elevatedResult, ct).ConfigureAwait(false);
+                await _historyRepository.AddAsync(mergedResult, ct).ConfigureAwait(false);
             }
         }
 

@@ -41,6 +41,7 @@ namespace WingetEasy.App
         {
             UpdatesVM = App.Services.GetRequiredService<UpdatesViewModel>();
             this.InitializeComponent();
+            ContentFrame.CacheSize = 5;
 
             _settingsRepo = App.Services.GetRequiredService<ISettingsRepository>();
             _appUpdateService = App.Services.GetRequiredService<IAppUpdateService>();
@@ -205,9 +206,11 @@ namespace WingetEasy.App
                 _ => null
             };
 
-            if (pageType != null && ContentFrame.CurrentSourcePageType != pageType)
+            if (pageType != null && (ContentFrame.CurrentSourcePageType != pageType || ContentFrame.Content == null))
             {
                 ContentFrame.Navigate(pageType);
+                ContentFrame.BackStack.Clear();
+                _ = Task.Run(async () => { await Task.Delay(400).ConfigureAwait(false); TrimWorkingSet(); });
             }
         }
 
@@ -298,18 +301,10 @@ namespace WingetEasy.App
 
         private async Task RestoreOrCenterWindowAsync()
         {
-            var savedX = await GetWindowCoordinateAsync(WindowXKey).ConfigureAwait(true);
-            var savedY = await GetWindowCoordinateAsync(WindowYKey).ConfigureAwait(true);
-            var savedWidth = await GetWindowCoordinateAsync(WindowWidthKey).ConfigureAwait(true);
-            var savedHeight = await GetWindowCoordinateAsync(WindowHeightKey).ConfigureAwait(true);
-
-            if (savedX.HasValue && savedY.HasValue && savedWidth > 0 && savedHeight > 0)
+            var bounds = (await _settingsRepo.GetAsync("WindowBounds").ConfigureAwait(true))?.Split(',');
+            if (bounds is { Length: 4 } && int.TryParse(bounds[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) && int.TryParse(bounds[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) && int.TryParse(bounds[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var w) && int.TryParse(bounds[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var h) && w > 0 && h > 0)
             {
-                _appWindow.MoveAndResize(new RectInt32(
-                    savedX.Value,
-                    savedY!.Value,
-                    savedWidth.Value,
-                    savedHeight.Value));
+                _appWindow.MoveAndResize(new RectInt32(x, y, w, h));
             }
             else
             {
@@ -337,10 +332,23 @@ namespace WingetEasy.App
             var pos = _appWindow.Position;
             var size = _appWindow.Size;
 
-            await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
-            TrimWorkingSet();
-
             sender.Hide();
+            await SaveWindowStateAsync(pos, size).ConfigureAwait(true);
+            if (bool.TryParse(await _settingsRepo.GetAsync("KeepInSystemTray").ConfigureAwait(true), out var keepInTray) && !keepInTray)
+            {
+                Serilog.Log.CloseAndFlush();
+                Environment.Exit(0);
+                return;
+            }
+            await Task.Delay(150).ConfigureAwait(true);
+            TrimWorkingSet();
+        }
+
+        public void RestoreFromTray()
+        {
+            if (this.SystemBackdrop == null) ConfigureBackdrop();
+            if (ContentFrame.Content == null) NavigateToTag(_activeTag);
+            _ = Task.Run(async () => { await Task.Delay(1000).ConfigureAwait(false); TrimWorkingSet(); });
         }
 
         private async Task<int?> GetWindowCoordinateAsync(string key)
@@ -353,23 +361,12 @@ namespace WingetEasy.App
 
         private async Task SaveWindowStateAsync(PointInt32 position, SizeInt32 size)
         {
-            await _settingsRepo.SetAsync(WindowXKey, position.X.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
-            await _settingsRepo.SetAsync(WindowYKey, position.Y.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
-            await _settingsRepo.SetAsync(WindowWidthKey, size.Width.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
-            await _settingsRepo.SetAsync(WindowHeightKey, size.Height.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(true);
+            await _settingsRepo.SetAsync("WindowBounds", string.Create(CultureInfo.InvariantCulture, $"{position.X},{position.Y},{size.Width},{size.Height}")).ConfigureAwait(true);
         }
 
         private static void TrimWorkingSet()
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            using var process = Process.GetCurrentProcess();
-            if (EmptyWorkingSet(process.Handle) == 0)
-            {
-                Debug.WriteLine("Não foi possível reduzir o Working Set do processo.");
-            }
+            App.OptimizeBackgroundMemory();
         }
 
         public void FocusUpdatesPage()

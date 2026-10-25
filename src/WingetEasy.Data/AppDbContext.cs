@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using WingetEasy.Data.Entities;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using WingetEasy.Core.Models;
+using WingetEasy.Data.Entities;
 
 namespace WingetEasy.Data;
 
@@ -12,38 +14,39 @@ namespace WingetEasy.Data;
 /// Contexto de dados principal da aplicação utilizando SQLite.
 /// Gerencia a conexão com a base de dados local física.
 /// </summary>
-
 public class AppDbContext : DbContext
 {
-
     public DbSet<PackageEntity> Packages => Set<PackageEntity>();
     public DbSet<UpdateHistoryEntity> UpdateHistories => Set<UpdateHistoryEntity>();
     public DbSet<SettingEntity> Settings => Set<SettingEntity>();
     public DbSet<CheckLogEntity> CheckLogs => Set<CheckLogEntity>();
     public DbSet<ProfileEntity> Profiles => Set<ProfileEntity>();
     public DbSet<BackupSnapshotEntity> BackupSnapshots => Set<BackupSnapshotEntity>();
+
     /// <summary>
     /// Construtor vazio padrão, exigido pelas ferramentas de Design do EF Core (Migrations).
     /// </summary>
-
     public AppDbContext() { }
 
     /// <summary>
     /// Construtor utilizado pelo contêiner de Injeção de Dependência (DI).
     /// </summary>
     /// <param name="options">Opções de configuração do contexto.</param>
-
-
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    internal sealed class DelegatingFactory(string? connectionString) : IDbContextFactory<AppDbContext>
+    {
+        public AppDbContext CreateDbContext() =>
+            new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options);
+    }
 
     /// <summary>
     /// Configura a conexão com o banco de dados físico de forma dinâmica,
     /// apontando para a pasta %APPDATA%/WingetEasy/data.db.
     /// </summary>
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if(!optionsBuilder.IsConfigured)
+        if (!optionsBuilder.IsConfigured)
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var folder = Path.Combine(appData, "WingetEasy");
@@ -81,17 +84,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ProfileEntity>()
             .Property(p => p.PackageIds)
             .HasConversion(
-                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default), // Convert List<string> para JSON ao salvar
-                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
-
+                v => JsonSerializer.Serialize(v, CoreJsonContext.Default.ListString), // Convert List<string> para JSON ao salvar
+                v => JsonSerializer.Deserialize(v, CoreJsonContext.Default.ListString) ?? new List<string>()
             )
             .Metadata.SetValueComparer(
-                 new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<string>>(
+                new ValueComparer<List<string>>(
                     (c1, c2) => c1!.SequenceEqual(c2!),
                     c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
                     c => c.ToList()
                 )
             );
     }
-
 }

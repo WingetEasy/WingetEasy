@@ -85,9 +85,11 @@ public sealed class HeadlessRunner
         }
 
         var results = await _updateService.ExecuteUpdatesAsync(updates.Select(item => item.Id), null, null, ct).ConfigureAwait(false);
-        var failedCount = results.Count(result => !result.Success);
-        _logger.LogInformation("Atualização em lote concluída com {Success} sucesso(s) e {Failed} falha(s).",
-            results.Count - failedCount,
+        var failedCount = results.Count(result => !result.Success && !result.Skipped);
+        var skippedCount = results.Count(result => result.Skipped);
+        _logger.LogInformation("Atualização em lote concluída com {Success} sucesso(s), {Skipped} adiado(s) e {Failed} falha(s).",
+            results.Count - failedCount - skippedCount,
+            skippedCount,
             failedCount);
 
         return failedCount > 0 ? 2 : 0;
