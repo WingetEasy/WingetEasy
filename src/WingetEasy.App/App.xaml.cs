@@ -441,6 +441,25 @@ namespace WingetEasy.App
             }
         }
 
+        /// <summary>
+        /// Exibe um balão pela bandeja do sistema. Usado quando o app roda elevado (administrador),
+        /// pois o Windows App SDK não suporta AppNotification nesse cenário.
+        /// </summary>
+        public void ShowTrayNotification(string title, string message)
+        {
+            var dispatcherQueue = Services.GetRequiredService<DispatcherQueue>();
+            dispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    _trayIcon?.ShowNotification(title, message);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Não foi possível exibir a notificação pela bandeja.");
+                }
+            });
+        }
         public void ToggleUpdateFlyout()
         {
             try

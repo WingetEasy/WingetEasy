@@ -4,7 +4,8 @@
       "commandName": "MsixPackage"
     },
     "WingetEasy.App (Unpackaged)": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--minimized"
     }
   }
 }

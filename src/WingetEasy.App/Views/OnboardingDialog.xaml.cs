@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Win32;
+using WingetEasy.App.Services;
 using WingetEasy.Core.Interfaces;
 using WingetEasy.Core.Models;
 
@@ -15,8 +16,6 @@ public sealed partial class OnboardingDialog : ContentDialog
 {
     private const string OnboardingCompletedKey = "OnboardingCompleted";
     private const string ScheduleConfigKey = "ScheduleConfig";
-    private const string StartWithWindowsRunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-    private const string StartWithWindowsValueName = "WingetEasy";
 
     private readonly ISettingsRepository _settingsRepository;
     private readonly ISchedulerService _schedulerService;
@@ -129,26 +128,7 @@ public sealed partial class OnboardingDialog : ContentDialog
         return config;
     }
 
-    private static void SetStartWithWindows(bool enabled)
-    {
-        using var key = Registry.CurrentUser.OpenSubKey(StartWithWindowsRunKey, writable: true)
-            ?? Registry.CurrentUser.CreateSubKey(StartWithWindowsRunKey);
-        if (key is null)
-        {
-            throw new InvalidOperationException("Não foi possível acessar as configurações de inicialização do Windows.");
-        }
-
-        if (enabled)
-        {
-            var executablePath = Environment.ProcessPath
-                ?? throw new InvalidOperationException("Não foi possível determinar o executável do aplicativo.");
-            key.SetValue(StartWithWindowsValueName, $"\"{executablePath}\" --minimized");
-        }
-        else
-        {
-            key.DeleteValue(StartWithWindowsValueName, throwOnMissingValue: false);
-        }
-    }
+    private static void SetStartWithWindows(bool enabled) => StartupRegistration.SetEnabled(enabled);
 
     private void Dialog_Closing(ContentDialog sender, ContentDialogClosingEventArgs args)
     {
