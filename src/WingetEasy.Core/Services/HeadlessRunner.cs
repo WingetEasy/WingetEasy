@@ -22,6 +22,7 @@ public sealed class HeadlessRunner
     private readonly IBackupSnapshotRepository _backupSnapshotRepository;
     private readonly IToastNotificationService _toastService;
     private readonly ILogger<HeadlessRunner> _logger;
+    private readonly ISettingsRepository? _settingsRepository;
 
     public HeadlessRunner(
         IWingetService wingetService,
@@ -29,7 +30,8 @@ public sealed class HeadlessRunner
         IBackupService backupService,
         IBackupSnapshotRepository backupSnapshotRepository,
         IToastNotificationService toastService,
-        ILogger<HeadlessRunner> logger)
+        ILogger<HeadlessRunner> logger,
+        ISettingsRepository? settingsRepository = null)
     {
         _wingetService = wingetService;
         _updateService = updateService;
@@ -37,6 +39,7 @@ public sealed class HeadlessRunner
         _backupSnapshotRepository = backupSnapshotRepository;
         _toastService = toastService;
         _logger = logger;
+        _settingsRepository = settingsRepository;
     }
 
     public async Task<int> RunAsync(CliCommand command, CancellationToken ct = default)
@@ -65,7 +68,52 @@ public sealed class HeadlessRunner
         var updates = (await _wingetService.CheckUpdatesAsync(ct).ConfigureAwait(false)).ToList();
         _logger.LogInformation("Verificação concluída com {Count} atualização(ões).", updates.Count);
 
-        if (updates.Count > 0)
+        if (updates.Count == 0)
+        {
+            return 0;
+        }
+
+        bool autoUpdate = false;
+        bool notifyBefore = true;
+
+        if (_settingsRepository != null)
+        {
+            var autoRaw = await _settingsRepository.GetAsync("AutoUpdate", ct).ConfigureAwait(false);
+            autoUpdate = bool.TryParse(autoRaw, out var aParsed) && aParsed;
+
+            var notifyRaw = await _settingsRepository.GetAsync("NotifyBeforeUpdate", ct).ConfigureAwait(false);
+            notifyBefore = !bool.TryParse(notifyRaw, out var nParsed) || nParsed; // default true
+        }
+
+        if (autoUpdate)
+        {
+            _logger.LogInformation("AutoUpdate ativado; disparando atualização automática de {Count} pacotes...", updates.Count);
+            if (notifyBefore)
+            {
+                _toastService.Register();
+                _toastService.ShowUpdatesAvailable(updates.Count);
+            }
+
+            var metadata = updates.ToDictionary(
+                p => p.Id,
+                p => new PackageUpdateMetadata(p.Name, p.CurrentVersion, p.AvailableVersion),
+                StringComparer.OrdinalIgnoreCase);
+
+            var results = await _updateService
+                .ExecuteUpdatesAsync(updates.Select(i => i.Id), null, null, null, isAutoUpdate: true, ct, null, metadata)
+                .ConfigureAwait(false);
+
+            var successCount = results.Count(r => r.Success);
+            var failedCount = results.Count(r => !r.Success && !r.Skipped);
+
+            _logger.LogInformation("AutoUpdate headless finalizado: {Success} com sucesso, {Failed} com falha.", successCount, failedCount);
+            if (successCount > 0 || failedCount > 0)
+            {
+                _toastService.Register();
+                _toastService.ShowUpdateComplete(successCount, failedCount);
+            }
+        }
+        else
         {
             _toastService.Register();
             _toastService.ShowUpdatesAvailable(updates.Count);
@@ -84,7 +132,15 @@ public sealed class HeadlessRunner
             return 0;
         }
 
-        var results = await _updateService.ExecuteUpdatesAsync(updates.Select(item => item.Id), null, null, ct).ConfigureAwait(false);
+        var metadata = updates.ToDictionary(
+            p => p.Id,
+            p => new PackageUpdateMetadata(p.Name, p.CurrentVersion, p.AvailableVersion),
+            StringComparer.OrdinalIgnoreCase);
+
+        var results = await _updateService
+            .ExecuteUpdatesAsync(updates.Select(item => item.Id), null, null, null, isAutoUpdate: false, ct, null, metadata)
+            .ConfigureAwait(false);
+
         var failedCount = results.Count(result => !result.Success && !result.Skipped);
         var skippedCount = results.Count(result => result.Skipped);
         _logger.LogInformation("Atualização em lote concluída com {Success} sucesso(s), {Skipped} adiado(s) e {Failed} falha(s).",

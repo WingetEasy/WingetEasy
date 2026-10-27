@@ -79,7 +79,7 @@ public partial class PackageItemViewModel : ObservableObject
     public string Publisher { get; }
     public string PublisherDisplay { get; }
 
-    public Visibility IsSecurityCategory => Category == "Segurança" ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsSecurityCategory => _parent.SecurityAlertsEnabled && Category == "Segurança" ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsRuntimeCategory => Category == "Runtime" ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsAppCategory => Category != "Segurança" && Category != "Runtime" ? Visibility.Visible : Visibility.Collapsed;
 
@@ -282,4 +282,5 @@ public partial class PackageItemViewModel : ObservableObject
     {
         await _parent.SkipPackagePermanentlyAsync(this).ConfigureAwait(true);
     }
+    public void RefreshSecurityAlerts() => OnPropertyChanged(nameof(IsSecurityCategory));
 }

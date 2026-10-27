@@ -163,12 +163,30 @@ public partial class SettingsViewModel : ObservableObject
         _logger = logger;
 
         SelectedFrequencyOption = FrequencyOptions[2]; // Diariamente
+        _settingsRepository.SettingChanged += OnSettingChangedFromRepo;
         LocalizationService.Instance.LanguageChanged += () =>
         {
             OnPropertyChanged(nameof(AppVersionDisplay));
             OnPropertyChanged(nameof(WingetStatusMessage));
             AppUpdateStatusMessage = LocalizationService.Instance.Get("Distribuído sob licença MIT · Não afiliado à Microsoft");
         };
+    }
+
+    private void OnSettingChangedFromRepo(object? sender, string key)
+    {
+        if (key == "AutoUpdate")
+        {
+            _ = Task.Run(async () =>
+            {
+                var val = await ReadBoolSettingAsync("AutoUpdate", false).ConfigureAwait(false);
+                if (AutoUpdate != val)
+                {
+                    _isLoading = true;
+                    AutoUpdate = val;
+                    _isLoading = false;
+                }
+            });
+        }
     }
 
     /// <summary>

@@ -14,6 +14,9 @@ namespace WingetEasy.Data.Repositories;
 public class SettingsRepository : ISettingsRepository
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+
+    public event EventHandler<string>? SettingChanged;
+
     [ActivatorUtilitiesConstructor]
     public SettingsRepository(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
@@ -44,6 +47,15 @@ public class SettingsRepository : ISettingsRepository
             _dbContext.Settings.Update(setting);
         }
         await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        try
+        {
+            SettingChanged?.Invoke(this, key);
+        }
+        catch
+        {
+            // Observadores não devem quebrar a gravação do banco
+        }
     }
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class

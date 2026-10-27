@@ -33,6 +33,11 @@ public partial class UpdatesViewModel : ObservableObject
     private string _sortBy = "Nome";
     private DateTime? _lastCheckTime;
 
+    private bool _isLoadingSettings = true;
+    private bool _securityAlerts = true;
+    private bool _notifyBeforeUpdate = true;
+    public bool SecurityAlertsEnabled => _securityAlerts;
+
     public bool HasCheckedOnce { get; private set; }
 
     [ObservableProperty]
@@ -337,6 +342,7 @@ public partial class UpdatesViewModel : ObservableObject
         _settingsRepository = settingsRepository;
         _logger = logger;
         _dispatcherQueue = dispatcherQueue;
+        _settingsRepository.SettingChanged += OnSettingChangedFromRepo;
         _ = InitializeSettingsAsync();
         LocalizationService.Instance.LanguageChanged += () =>
         {
@@ -360,6 +366,7 @@ public partial class UpdatesViewModel : ObservableObject
 
     partial void OnAutoUpdateEnabledChanged(bool value)
     {
+        if (_isLoadingSettings) return;
         _ = _settingsRepository.SetAsync("AutoUpdate", value.ToString());
     }
 
@@ -367,13 +374,56 @@ public partial class UpdatesViewModel : ObservableObject
     {
         try
         {
+            _isLoadingSettings = true;
             var raw = await _settingsRepository.GetAsync("AutoUpdate").ConfigureAwait(false);
             var saved = bool.TryParse(raw, out var parsed) && parsed;
-            await RunOnUIAsync(() => AutoUpdateEnabled = saved).ConfigureAwait(false);
+
+            var secRaw = await _settingsRepository.GetAsync("SecurityAlerts").ConfigureAwait(false);
+            _securityAlerts = !bool.TryParse(secRaw, out var secParsed) || secParsed;
+
+            var notifRaw = await _settingsRepository.GetAsync("NotifyBeforeUpdate").ConfigureAwait(false);
+            _notifyBeforeUpdate = !bool.TryParse(notifRaw, out var notifParsed) || notifParsed;
+
+            await RunOnUIAsync(() =>
+            {
+                AutoUpdateEnabled = saved;
+                _isLoadingSettings = false;
+                foreach (var p in _allPackages)
+                {
+                    p.RefreshSecurityAlerts();
+                }
+                ApplyFilters();
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Não foi possível carregar configuração de AutoUpdate.");
+            _isLoadingSettings = false;
+            _logger.LogWarning(ex, "Não foi possível carregar configurações no UpdatesViewModel.");
+        }
+    }
+
+    private void OnSettingChangedFromRepo(object? sender, string key)
+    {
+        if (key == "AutoUpdate")
+        {
+            _ = Task.Run(async () =>
+            {
+                var raw = await _settingsRepository.GetAsync("AutoUpdate").ConfigureAwait(false);
+                var saved = bool.TryParse(raw, out var parsed) && parsed;
+                await RunOnUIAsync(() =>
+                {
+                    if (AutoUpdateEnabled != saved)
+                    {
+                        _isLoadingSettings = true;
+                        AutoUpdateEnabled = saved;
+                        _isLoadingSettings = false;
+                    }
+                }).ConfigureAwait(false);
+            });
+        }
+        else if (key is "SecurityAlerts" or "NotifyBeforeUpdate")
+        {
+            _ = InitializeSettingsAsync();
         }
     }
 
@@ -468,7 +518,19 @@ public partial class UpdatesViewModel : ObservableObject
 
                 if (HasUpdates)
                 {
-                    _notificationService.ShowUpdatesAvailable(Packages.Count);
+                    var shouldNotify = !AutoUpdateEnabled || _notifyBeforeUpdate;
+                    if (shouldNotify)
+                    {
+                        var securityCount = _allPackages.Count(p => p.Category == "Segurança");
+                        if (securityCount > 0 && _securityAlerts && _notificationService is IToastNotificationService toastSvc)
+                        {
+                            toastSvc.ShowSecurityUpdatesAvailable(securityCount);
+                        }
+                        else
+                        {
+                            _notificationService.ShowUpdatesAvailable(Packages.Count);
+                        }
+                    }
                 }
             }).ConfigureAwait(false);
         }
@@ -598,6 +660,11 @@ public partial class UpdatesViewModel : ObservableObject
                 });
             });
 
+            var metadata = pacotesParaAtualizar.ToDictionary(
+                package => package.Id,
+                package => new PackageUpdateMetadata(package.Name, package.Version, package.AvailableVersion),
+                StringComparer.OrdinalIgnoreCase);
+
             var results = await _updateService
                 .ExecuteUpdatesAsync(
                     pacotesParaAtualizar.Select(package => package.Id),
@@ -606,7 +673,8 @@ public partial class UpdatesViewModel : ObservableObject
                     AppRunningPrompt,
                     isAutoUpdate: false,
                     cancellationTokenSource.Token,
-                    phaseProgress)
+                    phaseProgress,
+                    packageMetadata: metadata)
                 .ConfigureAwait(false);
 
             var failedCount = results.Count(result => !result.Success && !result.Skipped);
@@ -824,6 +892,11 @@ public partial class UpdatesViewModel : ObservableObject
 
             _logger.LogInformation("Iniciando AutoUpdate em segundo plano para {Count} pacotes...", pacotesParaAtualizar.Count);
 
+            var metadata = pacotesParaAtualizar.ToDictionary(
+                package => package.Id,
+                package => new PackageUpdateMetadata(package.Name, package.Version, package.AvailableVersion),
+                StringComparer.OrdinalIgnoreCase);
+
             var results = await _updateService
                 .ExecuteUpdatesAsync(
                     pacotesParaAtualizar.Select(package => package.Id),
@@ -831,7 +904,9 @@ public partial class UpdatesViewModel : ObservableObject
                     confirmElevation: null,
                     handleRunningApp: null,
                     isAutoUpdate: true,
-                    cancellationTokenSource.Token)
+                    cancellationTokenSource.Token,
+                    phaseProgress: null,
+                    packageMetadata: metadata)
                 .ConfigureAwait(false);
 
             var failedCount = results.Count(result => !result.Success && !result.Skipped);
@@ -921,7 +996,10 @@ public partial class UpdatesViewModel : ObservableObject
                 .ThenBy(package => package.Name, StringComparer.OrdinalIgnoreCase),
             "Fonte" => filtered.OrderBy(package => package.Source, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(package => package.Name, StringComparer.OrdinalIgnoreCase),
-            _ => filtered.OrderBy(package => package.Name, StringComparer.OrdinalIgnoreCase)
+            _ => _securityAlerts
+                ? filtered.OrderByDescending(package => package.Category == "Segurança")
+                    .ThenBy(package => package.Name, StringComparer.OrdinalIgnoreCase)
+                : filtered.OrderBy(package => package.Name, StringComparer.OrdinalIgnoreCase)
         };
 
         Packages.Clear();

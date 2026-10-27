@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
@@ -10,12 +11,65 @@ namespace WingetEasy.App.Services;
 
 /// <summary>
 /// Implementação das notificações utilizando as APIs de Toast nativas do ecossistema Windows.
+/// Respeita as preferências do usuário: Horário Silencioso (QuietHours), Som de Notificação
+/// (NotificationSound) e Alertas de Segurança (SecurityAlerts).
 /// Quando o app roda elevado (administrador), o AppNotification não é suportado; nesse caso
 /// usa um balão pela bandeja do sistema como alternativa.
 /// </summary>
 public class ToastNotificationService : IToastNotificationService
 {
     private static readonly bool IsElevated = SafeIsElevated();
+    private readonly ISettingsRepository? _settingsRepository;
+
+    private bool _quietHours = true;
+    private bool _notificationSound = false;
+    private bool _securityAlerts = true;
+
+    // Provedor de horário atual para facilitar testes unitários de Horário Silencioso
+    internal Func<DateTime> CurrentTimeProvider { get; set; } = () => DateTime.Now;
+
+    public bool QuietHoursEnabled => _quietHours;
+    public bool NotificationSoundEnabled => _notificationSound;
+    public bool SecurityAlertsEnabled => _securityAlerts;
+
+    public ToastNotificationService(ISettingsRepository? settingsRepository = null)
+    {
+        _settingsRepository = settingsRepository;
+        if (_settingsRepository != null)
+        {
+            _settingsRepository.SettingChanged += OnSettingChanged;
+            _ = InitializeSettingsAsync();
+        }
+    }
+
+    public async Task InitializeSettingsAsync()
+    {
+        if (_settingsRepository == null) return;
+
+        try
+        {
+            var q = await _settingsRepository.GetAsync("QuietHours").ConfigureAwait(false);
+            _quietHours = !bool.TryParse(q, out var qVal) || qVal; // default true
+
+            var s = await _settingsRepository.GetAsync("NotificationSound").ConfigureAwait(false);
+            _notificationSound = bool.TryParse(s, out var sVal) && sVal; // default false
+
+            var sec = await _settingsRepository.GetAsync("SecurityAlerts").ConfigureAwait(false);
+            _securityAlerts = !bool.TryParse(sec, out var secVal) || secVal; // default true
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Erro ao carregar configurações no ToastNotificationService.");
+        }
+    }
+
+    private void OnSettingChanged(object? sender, string key)
+    {
+        if (key is "QuietHours" or "NotificationSound" or "SecurityAlerts")
+        {
+            _ = InitializeSettingsAsync();
+        }
+    }
 
     public void Register()
     {
@@ -35,6 +89,13 @@ public class ToastNotificationService : IToastNotificationService
         }
     }
 
+    public bool IsQuietHoursActive()
+    {
+        if (!_quietHours) return false;
+        var hour = CurrentTimeProvider().Hour;
+        return hour >= 22 || hour < 8;
+    }
+
     public void ShowUpdatesAvailable(int count)
     {
         Show(
@@ -44,6 +105,23 @@ public class ToastNotificationService : IToastNotificationService
                 .AddButton(new AppNotificationButton("Ver agora").AddArgument("action", "viewUpdates"))
                 .AddButton(new AppNotificationButton("Atualizar tudo").AddArgument("action", "updateAll")),
             "Não foi possível exibir a notificação de atualizações.");
+    }
+
+    public void ShowSecurityUpdatesAvailable(int count)
+    {
+        if (!_securityAlerts)
+        {
+            ShowUpdatesAvailable(count);
+            return;
+        }
+
+        Show(
+            "Alerta de Segurança",
+            $"{count} atualização(ões) de segurança crítica(s) disponível(is). Recomendamos atualizar agora.",
+            builder => builder
+                .AddButton(new AppNotificationButton("Ver agora").AddArgument("action", "viewUpdates"))
+                .AddButton(new AppNotificationButton("Atualizar tudo").AddArgument("action", "updateAll")),
+            "Não foi possível exibir o alerta de segurança.");
     }
 
     public void ShowUpdateComplete(int successCount, int failCount)
@@ -60,10 +138,16 @@ public class ToastNotificationService : IToastNotificationService
         Show(title, message, null, "Não foi possível exibir a notificação de erro.");
     }
 
-    private static void Show(string title, string message, Func<AppNotificationBuilder, AppNotificationBuilder>? customize, string errorMessage)
+    private void Show(string title, string message, Func<AppNotificationBuilder, AppNotificationBuilder>? customize, string errorMessage)
     {
         try
         {
+            if (IsQuietHoursActive())
+            {
+                Log.Information("Notificação suprimida pelo Horário Silencioso (22h–8h): {Title}", title);
+                return;
+            }
+
             if (IsElevated)
             {
                 (Application.Current as App)?.ShowTrayNotification(title, message);
@@ -71,6 +155,11 @@ public class ToastNotificationService : IToastNotificationService
             }
 
             var builder = new AppNotificationBuilder().AddText(title).AddText(message);
+            if (!_notificationSound)
+            {
+                builder.MuteAudio();
+            }
+
             if (customize is not null)
             {
                 builder = customize(builder);
