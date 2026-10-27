@@ -20,11 +20,11 @@
             <!-- 1. SEÇÃO: ⚙ Geral -->
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
-                    <FontIcon Glyph="&#xE713;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE713;" FontSize="15" Foreground="{ThemeResource BrandPrimaryBrush}" />
                     <TextBlock Text="Geral"
                                FontSize="13.5"
                                FontWeight="SemiBold"
-                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
                 </StackPanel>
 
                 <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
@@ -90,11 +90,11 @@
             <!-- 2. SEÇÃO: ↻ Atualizações -->
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
-                    <FontIcon Glyph="&#xE895;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE895;" FontSize="15" Foreground="{ThemeResource BrandPrimaryBrush}" />
                     <TextBlock Text="Atualizações"
                                FontSize="13.5"
                                FontWeight="SemiBold"
-                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
                 </StackPanel>
 
                 <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
@@ -258,11 +258,11 @@
             <!-- 3. SEÇÃO: 🔔 Notificações -->
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
-                    <FontIcon Glyph="&#xEA8F;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <FontIcon Glyph="&#xEA8F;" FontSize="15" Foreground="{ThemeResource BrandPrimaryBrush}" />
                     <TextBlock Text="Notificações"
                                FontSize="13.5"
                                FontWeight="SemiBold"
-                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
                 </StackPanel>
 
                 <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
@@ -355,11 +355,11 @@
             <!-- 4. SEÇÃO: ☀ Aparência -->
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
-                    <FontIcon Glyph="&#xE790;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE790;" FontSize="15" Foreground="{ThemeResource BrandPrimaryBrush}" />
                     <TextBlock Text="Aparência"
                                FontSize="13.5"
                                FontWeight="SemiBold"
-                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
                 </StackPanel>
 
                 <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
@@ -428,11 +428,11 @@
             <!-- 5. SEÇÃO: 🛠 Manutenção -->
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
-                    <FontIcon Glyph="&#xE90F;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE90F;" FontSize="15" Foreground="{ThemeResource BrandPrimaryBrush}" />
                     <TextBlock Text="Manutenção"
                                FontSize="13.5"
                                FontWeight="SemiBold"
-                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
                 </StackPanel>
 
                 <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"
@@ -542,11 +542,11 @@
             <!-- 6. SEÇÃO: 🛡 Sobre -->
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8" Padding="2,0">
-                    <FontIcon Glyph="&#xEA18;" FontSize="15" Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                    <FontIcon Glyph="&#xEA18;" FontSize="15" Foreground="{ThemeResource BrandPrimaryBrush}" />
                     <TextBlock Text="Sobre"
                                FontSize="13.5"
                                FontWeight="SemiBold"
-                               Foreground="{ThemeResource BrandTextSecondaryBrush}" />
+                               Foreground="{ThemeResource BrandTextPrimaryBrush}" />
                 </StackPanel>
 
                 <Border Background="{ThemeResource SurfaceCardBackgroundBrush}"

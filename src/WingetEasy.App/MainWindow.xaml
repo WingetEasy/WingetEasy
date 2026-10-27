@@ -96,7 +96,7 @@
                            FontSize="11"
                            FontWeight="SemiBold"
                            CharacterSpacing="60"
-                           Foreground="{ThemeResource BrandTextTertiaryBrush}"
+                           Foreground="{ThemeResource BrandTextSecondaryBrush}"
                            Margin="12,4,12,8" />
 
                 <!-- Itens de Navegação -->
@@ -370,7 +370,7 @@
             </Grid>
 
             <!-- Área de Conteúdo -->
-            <Grid Grid.Column="1">
+            <Grid Grid.Column="1" Background="{ThemeResource MainAreaBackgroundBrush}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -391,7 +391,7 @@
 
                 <Frame x:Name="ContentFrame"
                        Grid.Row="1"
-                       Background="{ThemeResource MainAreaBackgroundBrush}" />
+                       Background="Transparent" />
             </Grid>
         </Grid>
     </Grid>
