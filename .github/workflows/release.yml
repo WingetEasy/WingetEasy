@@ -1,0 +1,103 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Disparado automaticamente ao criar tags como v1.0.0, v1.0.1
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versão manual (ex: 1.0.0)"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: write # Permissão para criar a Release no GitHub e fazer upload dos binários
+
+jobs:
+  build-and-release:
+    name: Build & Package Release
+    runs-on: windows-latest
+
+    steps:
+      # 1. Clona o repositório
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Configura o SDK do .NET 10
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # 3. Instala a ferramenta CLI oficial do Velopack (vpk)
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      # 4. Extrai a versão da tag Git (ex: "v1.0.0" -> "1.0.0")
+      - name: Extract Version
+        id: get_version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $ver = "${{ github.event.inputs.version }}".TrimStart('v')
+          } else {
+            $ver = "${{ github.ref_name }}".TrimStart('v')
+          }
+          Write-Output "APP_VERSION=$ver" >> $env:GITHUB_ENV
+          Write-Host "Compilando versão: $ver"
+
+      # 5. Restaura os pacotes NuGet
+      - name: Restore Dependencies
+        run: dotnet restore WingetEasy.slnx
+
+      # 6. Executa a suíte de testes unitários em Release
+      - name: Run Unit Tests
+        run: >
+          dotnet test tests/WingetEasy.Core.Tests/WingetEasy.Core.Tests.csproj
+          -c Release
+          --no-restore
+          --logger "trx;LogFileName=test-results.trx"
+
+      # 7. Publica os binários do aplicativo desempacotado (Self-Contained)
+      - name: Publish WingetEasy.App
+        run: >
+          dotnet publish src/WingetEasy.App/WingetEasy.App.csproj
+          -c Release
+          -r win-x64
+          --self-contained
+          -o ./publish
+          /p:PublishReadyToRun=false
+          /p:PublishTrimmed=false
+          /p:Version=${{ env.APP_VERSION }}
+          /p:AssemblyVersion=${{ env.APP_VERSION }}
+          /p:FileVersion=${{ env.APP_VERSION }}
+
+      # 8. Empacota o instalador via Velopack
+      - name: Build Velopack Release
+        run: >
+          vpk pack
+          -u WingetEasy
+          -v ${{ env.APP_VERSION }}
+          -p ./publish
+          -e WingetEasy.App.exe
+          --icon src/WingetEasy.App/Assets/Logo.ico
+          -o ./releases
+
+      # 9. Publica a Release oficial no GitHub com os arquivos gerados
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: WingetEasy v${{ env.APP_VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            ./releases/WingetEasy-Setup.exe
+            ./releases/WingetEasy-*-full.nupkg
+            ./releases/RELEASES
+            ./releases/releases.win.json
+            ./releases/assets.win.json
