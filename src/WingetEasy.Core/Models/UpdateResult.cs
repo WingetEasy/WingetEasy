@@ -13,5 +13,8 @@ public record UpdateResult(
     DateTime? UpdatedAt = null,
     int? ExitCode = null,
     bool IsApplicationRunning = false,
-    bool Skipped = false
+    bool Skipped = false,
+    bool RequiresReboot = false,
+    bool RequiresElevation = false,
+    bool CanRetryInteractive = false
 );
