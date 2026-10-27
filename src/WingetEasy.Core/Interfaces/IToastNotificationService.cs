@@ -9,4 +9,9 @@ public interface IToastNotificationService : INotificationService
     /// Registra o aplicativo para receber ativações de notificações.
     /// </summary>
     void Register();
+
+    /// <summary>
+    /// Exibe notificação de alerta com destaque para correções de segurança.
+    /// </summary>
+    void ShowSecurityUpdatesAvailable(int count) => ShowUpdatesAvailable(count);
 }

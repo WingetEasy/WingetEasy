@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,9 +7,10 @@ namespace WingetEasy.Core.Interfaces;
 /// <summary>
 /// Contrato para guardar e recuperar configurações do utilizador (ex: tema, idioma, preferências).
 /// </summary>
-
 public interface ISettingsRepository
 {
+    event EventHandler<string>? SettingChanged;
+
     Task<string?> GetAsync(string key, CancellationToken ct = default);
     Task SetAsync(string key, string value, CancellationToken ct = default);
     Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class;

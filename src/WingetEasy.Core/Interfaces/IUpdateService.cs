@@ -25,5 +25,6 @@ public interface IUpdateService
         Func<string, Task<AppRunningResolution>>? handleRunningApp,
         bool isAutoUpdate = false,
         CancellationToken ct = default,
-        IProgress<(string packageId, string phase)>? phaseProgress = null);
+        IProgress<(string packageId, string phase)>? phaseProgress = null,
+        IReadOnlyDictionary<string, PackageUpdateMetadata>? packageMetadata = null);
 }

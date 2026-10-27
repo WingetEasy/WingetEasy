@@ -33,7 +33,7 @@ public class UpdateService : IUpdateService
         Func<Task<bool>>? confirmElevation = null,
         CancellationToken ct = default)
     {
-        return ExecuteUpdatesAsync(packageIds, progress, confirmElevation, null, isAutoUpdate: true, ct);
+        return ExecuteUpdatesAsync(packageIds, progress, confirmElevation, null, isAutoUpdate: true, ct, null, null);
     }
 
     public async Task<IReadOnlyList<UpdateResult>> ExecuteUpdatesAsync(
@@ -43,7 +43,8 @@ public class UpdateService : IUpdateService
         Func<string, Task<AppRunningResolution>>? handleRunningApp,
         bool isAutoUpdate = false,
         CancellationToken ct = default,
-        IProgress<(string packageId, string phase)>? phaseProgress = null)
+        IProgress<(string packageId, string phase)>? phaseProgress = null,
+        IReadOnlyDictionary<string, PackageUpdateMetadata>? packageMetadata = null)
     {
         var ids = packageIds.ToList();
         var results = new List<UpdateResult>(ids.Count);
@@ -55,6 +56,12 @@ public class UpdateService : IUpdateService
             ct.ThrowIfCancellationRequested();
 
             var currentId = ids[i];
+            PackageUpdateMetadata? meta = null;
+            packageMetadata?.TryGetValue(currentId, out meta);
+
+            var fallbackName = meta?.Name ?? currentId;
+            var fromVer = meta?.FromVersion ?? string.Empty;
+            var toVer = meta?.ToVersion ?? string.Empty;
 
             // Informa a UI que um novo pacote começou (0%)
             progress?.Report((currentId, 0, i + 1, ids.Count));
@@ -74,10 +81,12 @@ public class UpdateService : IUpdateService
                     {
                         var skipResult = new UpdateResult(
                             currentId,
-                            currentId,
+                            fallbackName,
                             false,
                             "Atualização adiada para a próxima verificação (aplicativo em execução com janela visível).",
                             TimeSpan.Zero,
+                            FromVersion: fromVer,
+                            ToVersion: toVer,
                             ExitCode: WingetExitCodes.AppRunning,
                             IsApplicationRunning: true,
                             Skipped: true);
@@ -94,10 +103,12 @@ public class UpdateService : IUpdateService
                     {
                         var skipResult = new UpdateResult(
                             currentId,
-                            currentId,
+                            fallbackName,
                             false,
                             "Atualização pulada pelo usuário (aplicativo em uso).",
                             TimeSpan.Zero,
+                            FromVersion: fromVer,
+                            ToVersion: toVer,
                             ExitCode: WingetExitCodes.AppRunning,
                             IsApplicationRunning: true,
                             Skipped: true);
@@ -111,14 +122,25 @@ public class UpdateService : IUpdateService
                 }
 
                 // 2. Tentar instalar
-IProgress<string>? pkgPhaseProgress = phaseProgress is not null
+                IProgress<string>? pkgPhaseProgress = phaseProgress is not null
                     ? new SimpleProgress<string>(phase => phaseProgress.Report((currentId, phase)))
                     : null;
                 var result = pkgPhaseProgress is not null
                     ? await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct, pkgPhaseProgress).ConfigureAwait(false)
                     : await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct).ConfigureAwait(false);
 
-                // 3. Tratamento do código 0x8A150056 caso retorne do WinGet
+                // Enriquecer com metadados conhecidos caso o resultado não contenha versões
+                if (meta != null)
+                {
+                    result = result with
+                    {
+                        PackageName = string.IsNullOrWhiteSpace(result.PackageName) || result.PackageName == currentId ? (!string.IsNullOrWhiteSpace(meta.Name) ? meta.Name : result.PackageName) : result.PackageName,
+                        FromVersion = string.IsNullOrWhiteSpace(result.FromVersion) ? fromVer : result.FromVersion,
+                        ToVersion = string.IsNullOrWhiteSpace(result.ToVersion) ? toVer : result.ToVersion
+                    };
+                }
+
+                // 3. Tratamento do código 0x8A150056 / 0x8A150101 caso retorne do WinGet
                 if (!result.Success && (result.ExitCode == WingetExitCodes.AppRunning || result.IsApplicationRunning))
                 {
                     if (isAutoUpdate)
@@ -133,12 +155,20 @@ IProgress<string>? pkgPhaseProgress = phaseProgress is not null
                     }
                     else if (handleRunningApp != null)
                     {
-                        // Interativo: exibir aviso amigável se WinGet retornou 0x8A150056
+                        // Interativo: exibir aviso amigável se WinGet retornou que o app está em execução
                         var resolution = await handleRunningApp(result.PackageName).ConfigureAwait(false);
                         if (resolution == AppRunningResolution.CloseAndUpdate)
                         {
                             await _runningProcessService.CloseAppProcessesAsync(currentId).ConfigureAwait(false);
                             result = await _wingetService.InstallUpdateAsync(currentId, pkgProgress, ct).ConfigureAwait(false);
+                            if (meta != null)
+                            {
+                                result = result with
+                                {
+                                    FromVersion = string.IsNullOrWhiteSpace(result.FromVersion) ? fromVer : result.FromVersion,
+                                    ToVersion = string.IsNullOrWhiteSpace(result.ToVersion) ? toVer : result.ToVersion
+                                };
+                            }
                         }
                         else
                         {
@@ -176,7 +206,14 @@ IProgress<string>? pkgPhaseProgress = phaseProgress is not null
             catch (Exception ex)
             {
                 // Falha num pacote NUNCA deve cancelar os restantes (Critério de Aceite)
-                var failedResult = new UpdateResult(currentId, currentId, false, ex.Message, TimeSpan.Zero);
+                var failedResult = new UpdateResult(
+                    currentId,
+                    fallbackName,
+                    false,
+                    ex.Message,
+                    TimeSpan.Zero,
+                    FromVersion: fromVer,
+                    ToVersion: toVer);
                 results.Add(failedResult);
 
                 await _historyRepository.AddAsync(failedResult, ct).ConfigureAwait(false);
@@ -188,30 +225,48 @@ IProgress<string>? pkgPhaseProgress = phaseProgress is not null
             var shouldElevate = confirmElevation is not null && await confirmElevation().ConfigureAwait(false);
             var elevatedResults = shouldElevate
                 ? await _adminElevationHelper.ExecuteElevatedAsync(elevationCandidates, ct).ConfigureAwait(false)
-                : elevationCandidates.Select(id => new UpdateResult(
-                    id,
-                    id,
-                    false,
-                    "Elevação de administrador cancelada pelo usuário.",
-                    TimeSpan.Zero));
+                : elevationCandidates.Select(id =>
+                {
+                    PackageUpdateMetadata? candidateMeta = null;
+                    packageMetadata?.TryGetValue(id, out candidateMeta);
+                    return new UpdateResult(
+                        id,
+                        candidateMeta?.Name ?? id,
+                        false,
+                        "Elevação de administrador cancelada pelo usuário.",
+                        TimeSpan.Zero,
+                        FromVersion: candidateMeta?.FromVersion ?? string.Empty,
+                        ToVersion: candidateMeta?.ToVersion ?? string.Empty);
+                });
 
             foreach (var elevatedResult in elevatedResults)
             {
                 var index = results.FindIndex(result => string.Equals(result.PackageId, elevatedResult.PackageId, StringComparison.OrdinalIgnoreCase));
+                PackageUpdateMetadata? itemMeta = null;
+                packageMetadata?.TryGetValue(elevatedResult.PackageId, out itemMeta);
+
                 var mergedResult = elevatedResult;
                 if (index >= 0)
                 {
                     var original = results[index];
                     mergedResult = elevatedResult with
                     {
-                        PackageName = string.IsNullOrWhiteSpace(original.PackageName) ? elevatedResult.PackageName : original.PackageName,
-                        FromVersion = string.IsNullOrWhiteSpace(elevatedResult.FromVersion) ? original.FromVersion : elevatedResult.FromVersion,
-                        ToVersion = string.IsNullOrWhiteSpace(elevatedResult.ToVersion) ? original.ToVersion : elevatedResult.ToVersion
+                        PackageName = string.IsNullOrWhiteSpace(original.PackageName) ? (itemMeta?.Name ?? elevatedResult.PackageName) : original.PackageName,
+                        FromVersion = string.IsNullOrWhiteSpace(elevatedResult.FromVersion) ? (original.FromVersion.Length > 0 ? original.FromVersion : (itemMeta?.FromVersion ?? string.Empty)) : elevatedResult.FromVersion,
+                        ToVersion = string.IsNullOrWhiteSpace(elevatedResult.ToVersion) ? (original.ToVersion.Length > 0 ? original.ToVersion : (itemMeta?.ToVersion ?? string.Empty)) : elevatedResult.ToVersion
                     };
                     results[index] = mergedResult;
                 }
                 else
                 {
+                    if (itemMeta != null)
+                    {
+                        mergedResult = mergedResult with
+                        {
+                            FromVersion = string.IsNullOrWhiteSpace(mergedResult.FromVersion) ? itemMeta.FromVersion : mergedResult.FromVersion,
+                            ToVersion = string.IsNullOrWhiteSpace(mergedResult.ToVersion) ? itemMeta.ToVersion : mergedResult.ToVersion
+                        };
+                    }
                     results.Add(mergedResult);
                 }
 
@@ -243,6 +298,8 @@ IProgress<string>? pkgPhaseProgress = phaseProgress is not null
             || error.Contains("administrador", StringComparison.OrdinalIgnoreCase)
             || error.Contains("elevation", StringComparison.OrdinalIgnoreCase)
             || error.Contains("eleva", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("0x80070005", StringComparison.OrdinalIgnoreCase);
+            || error.Contains("0x80070005", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("0x8A150014", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("740", StringComparison.OrdinalIgnoreCase);
     }
 }

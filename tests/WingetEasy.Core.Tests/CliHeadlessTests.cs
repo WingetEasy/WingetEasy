@@ -124,6 +124,21 @@ public sealed class HeadlessRunnerTests
                 new WingetPackage("B", "B", "1", "2", "winget")
             ]);
         var update = new Mock<IUpdateService>();
+        var updateResults = new List<UpdateResult>
+        {
+            new UpdateResult("A", "A", true),
+            new UpdateResult("B", "B", false, "erro")
+        };
+        update.Setup(service => service.ExecuteUpdatesAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<IProgress<(string name, int pct, int cur, int total)>>(),
+                It.IsAny<Func<Task<bool>>>(),
+                It.IsAny<Func<string, Task<AppRunningResolution>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<IProgress<(string packageId, string phase)>>(),
+                It.IsAny<IReadOnlyDictionary<string, PackageUpdateMetadata>>()))
+            .ReturnsAsync(updateResults);
         update.Setup(service => service.ExecuteUpdatesAsync(
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<IProgress<(string name, int pct, int cur, int total)>>(),
@@ -202,6 +217,16 @@ public sealed class HeadlessRunnerTests
         if (update is null)
         {
             update = new Mock<IUpdateService>();
+            update.Setup(service => service.ExecuteUpdatesAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<IProgress<(string name, int pct, int cur, int total)>>(),
+                    It.IsAny<Func<Task<bool>>>(),
+                    It.IsAny<Func<string, Task<AppRunningResolution>>>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<IProgress<(string packageId, string phase)>>(),
+                    It.IsAny<IReadOnlyDictionary<string, PackageUpdateMetadata>>()))
+                .ReturnsAsync([]);
             update.Setup(service => service.ExecuteUpdatesAsync(
                     It.IsAny<IEnumerable<string>>(),
                     It.IsAny<IProgress<(string name, int pct, int cur, int total)>>() ,

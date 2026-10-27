@@ -37,6 +37,23 @@ public partial class WingetService : IWingetService
     private static partial Regex GetVersionRegex();
     private static Regex VersionRegex => GetVersionRegex();
 
+    [GeneratedRegex(@"(beta|alpha|rc|preview|pre|dev|canary|insider|nightly|ea)|[-.+](beta|alpha|rc|preview|pre|dev|canary|insider|nightly|ea)", RegexOptions.IgnoreCase)]
+    private static partial Regex GetBetaVersionRegex();
+    private static Regex BetaVersionRegex => GetBetaVersionRegex();
+
+    internal static bool IsBetaOrPreRelease(string availableVersion, string? currentVersion = null)
+    {
+        if (string.IsNullOrWhiteSpace(availableVersion))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(currentVersion) && BetaVersionRegex.IsMatch(currentVersion))
+        {
+            return false;
+        }
+
+        return BetaVersionRegex.IsMatch(availableVersion);
+    }
+
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(30);
 
@@ -47,6 +64,7 @@ public partial class WingetService : IWingetService
     private readonly IPackageRepository _packageRepository;
     private readonly ILogger<WingetService> _logger;
     private readonly IAdminElevationHelper? _adminElevationHelper;
+    private readonly ISettingsRepository? _settingsRepository;
     private readonly Func<string, CancellationToken, Task<(int ExitCode, string StdOut, string StdErr)>>? _commandRunner;
     private readonly Func<CancellationToken, Task<bool>>? _elevatedRepairRunner;
 
@@ -71,14 +89,17 @@ public partial class WingetService : IWingetService
     /// <param name="packageRepository">Repositório para consultar regras de pacotes (ex: ignorados).</param>
     /// <param name="logger">Serviço de logging estruturado.</param>
     /// <param name="adminElevationHelper">Auxiliar opcional de verificação/elevação administrativa.</param>
+    /// <param name="settingsRepository">Repositório opcional de configurações do usuário.</param>
     public WingetService(
         IPackageRepository packageRepository,
         ILogger<WingetService> logger,
-        IAdminElevationHelper? adminElevationHelper = null)
+        IAdminElevationHelper? adminElevationHelper = null,
+        ISettingsRepository? settingsRepository = null)
     {
         _packageRepository = packageRepository;
         _logger = logger;
         _adminElevationHelper = adminElevationHelper;
+        _settingsRepository = settingsRepository;
     }
 
     internal WingetService(
@@ -86,8 +107,9 @@ public partial class WingetService : IWingetService
         ILogger<WingetService> logger,
         Func<string, CancellationToken, Task<(int ExitCode, string StdOut, string StdErr)>> commandRunner,
         IAdminElevationHelper? adminElevationHelper = null,
-        Func<CancellationToken, Task<bool>>? elevatedRepairRunner = null)
-        : this(packageRepository, logger, adminElevationHelper)
+        Func<CancellationToken, Task<bool>>? elevatedRepairRunner = null,
+        ISettingsRepository? settingsRepository = null)
+        : this(packageRepository, logger, adminElevationHelper, settingsRepository)
     {
         _commandRunner = commandRunner;
         _elevatedRepairRunner = elevatedRepairRunner;
@@ -133,6 +155,12 @@ public partial class WingetService : IWingetService
                 var skippedSet = new HashSet<string>(skippedIds, StringComparer.OrdinalIgnoreCase);
 
                 var finalPackages = packages.Where(p => !skippedSet.Contains(p.Id)).ToList();
+
+                var includeBeta = await ReadIncludeBetaSettingAsync(timeoutCts.Token).ConfigureAwait(false);
+                if (!includeBeta)
+                {
+                    finalPackages = finalPackages.Where(p => !IsBetaOrPreRelease(p.AvailableVersion, p.CurrentVersion)).ToList();
+                }
 
                 // Atualiza o estado do cache com o tempo atual + tempo de expiração
                 _cachedPackages = finalPackages;
@@ -678,7 +706,9 @@ public partial class WingetService : IWingetService
             _logger.LogInformation("Pacote {PackageId} atualizado; reinicialização pendente ({Hex}).", packageId, info.HexCode);
         }
 
-        var cachedPkg = _cachedPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
+        var cachedPkg = _cachedPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase))
+            ?? _cachedInstalledPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
+
         return new UpdateResult(
             packageId,
             cachedPkg?.Name ?? packageId,
@@ -1130,5 +1160,18 @@ public partial class WingetService : IWingetService
             || combined.Contains("eleva", StringComparison.OrdinalIgnoreCase)
             || combined.Contains("privil", StringComparison.OrdinalIgnoreCase)
             || combined.Contains("0x80070005", StringComparison.OrdinalIgnoreCase);
+    }
+    private async Task<bool> ReadIncludeBetaSettingAsync(CancellationToken ct)
+    {
+        if (_settingsRepository == null) return false;
+        try
+        {
+            var raw = await _settingsRepository.GetAsync("IncludeBetaVersions", ct).ConfigureAwait(false);
+            return bool.TryParse(raw, out var parsed) && parsed;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
