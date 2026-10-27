@@ -21,6 +21,7 @@ public sealed partial class UpdateFlyout : Window
     private AppWindow _appWindow;
     private IntPtr _hwnd;
     private bool _isClosing = false;
+    private AcrylicBackdropHelper? _backdropHelper;
 
     public UpdateFlyout()
     {
@@ -31,6 +32,7 @@ public sealed partial class UpdateFlyout : Window
         this.Closed += (_, _) =>
         {
             this.Bindings.StopTracking();
+            _backdropHelper?.Dispose();
             if (ViewModel.ElevationConfirmation == (Func<Task<bool>>)ConfirmElevationAsync)
             {
                 ViewModel.ElevationConfirmation = null;
@@ -59,7 +61,8 @@ public sealed partial class UpdateFlyout : Window
 
         if (Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
         {
-            this.SystemBackdrop = new DesktopAcrylicBackdrop();
+            int cornerPreference = 2; _ = DwmSetWindowAttribute(_hwnd, 33, ref cornerPreference, sizeof(int));
+            _backdropHelper = new AcrylicBackdropHelper(this); _backdropHelper.TryActivate();
         }
 
         HideFromTaskbarAndAltTab();
@@ -190,6 +193,21 @@ public sealed partial class UpdateFlyout : Window
 
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    public void UpdateBackdropTheme(ElementTheme theme)
+    {
+        var effective = theme;
+        if (effective == ElementTheme.Default)
+        {
+            effective = Application.Current.RequestedTheme == ApplicationTheme.Dark
+                ? ElementTheme.Dark
+                : ElementTheme.Light;
+        }
+        _backdropHelper?.UpdateTheme(theme);
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);

@@ -33,6 +33,7 @@ namespace WingetEasy.App
         private bool _onboardingShown;
         private readonly IAppUpdateService _appUpdateService;
         private AppUpdateInfo? _availableAppUpdate;
+        private AcrylicBackdropHelper? _backdropHelper;
         private string _activeTag = "updates";
         private string _currentLang = "pt";
 
@@ -83,6 +84,7 @@ namespace WingetEasy.App
 
             _appWindow.Closing += AppWindow_Closing;
             this.Activated += MainWindow_Activated;
+            this.Closed += (_, _) => _backdropHelper?.Dispose();
 
             ConfigureBackdrop();
             UpdateThemeToggleGlyph();
@@ -131,13 +133,22 @@ namespace WingetEasy.App
 
         private void ConfigureBackdrop()
         {
-            if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+            if (_backdropHelper == null)
             {
-                this.SystemBackdrop = new MicaBackdrop { Kind = Microsoft.UI.Composition.SystemBackdrops.MicaKind.BaseAlt };
+                _backdropHelper = new AcrylicBackdropHelper(this);
+                _backdropHelper.TryActivate();
             }
-            else if (Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
+            else
             {
-                this.SystemBackdrop = new DesktopAcrylicBackdrop();
+                _backdropHelper.UpdateTheme(RootShellGrid.ActualTheme);
+            }
+            //
+            {
+                //
+            }
+            //
+            {
+                //
             }
         }
 
@@ -199,6 +210,7 @@ namespace WingetEasy.App
 
             var isDark = effective == ElementTheme.Dark;
             ThemeToggleIcon.Glyph = isDark ? "\uE706" : "\uE708";
+            _backdropHelper?.UpdateTheme(effective);
 
             if (AppWindowTitleBar.IsCustomizationSupported() && _appWindow?.TitleBar != null)
             {
@@ -395,7 +407,7 @@ namespace WingetEasy.App
 
         public void RestoreFromTray()
         {
-            if (this.SystemBackdrop == null) ConfigureBackdrop();
+            ConfigureBackdrop();
             if (ContentFrame.Content == null) NavigateToTag(_activeTag);
             _ = Task.Run(async () => { await Task.Delay(1000).ConfigureAwait(false); TrimWorkingSet(); });
         }

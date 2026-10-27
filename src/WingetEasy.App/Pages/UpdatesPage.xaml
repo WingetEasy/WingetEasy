@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:WingetEasy.App.Views.Controls"
     mc:Ignorable="d"
-    Background="{ThemeResource MainAreaBackgroundBrush}">
+    Background="Transparent">
 
     <Grid Padding="28,22,28,20" RowSpacing="16">
         <Grid.RowDefinitions>
