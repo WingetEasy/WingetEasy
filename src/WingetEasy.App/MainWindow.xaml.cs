@@ -95,6 +95,12 @@ namespace WingetEasy.App
                 ApplyLanguageVisuals(LocalizationService.Instance.CurrentLanguage);
                 LocalizeActivePage();
             };
+            RootShellGrid.ActualThemeChanged += (_, _) =>
+            {
+                _currentTheme = RootShellGrid.ActualTheme;
+                NavigateToTag(_activeTag);
+                ApplyLanguageVisuals(_currentLang);
+            };
         }
 
         private async Task ShowOnboardingIfNeededAsync()
@@ -208,6 +214,7 @@ namespace WingetEasy.App
                     : ElementTheme.Light;
             }
 
+            _currentTheme = effective;
             var isDark = effective == ElementTheme.Dark;
             ThemeToggleIcon.Glyph = isDark ? "\uE706" : "\uE708";
             _backdropHelper?.UpdateTheme(effective);
@@ -217,6 +224,9 @@ namespace WingetEasy.App
                 _appWindow.TitleBar.ButtonForegroundColor = isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black;
                 _appWindow.TitleBar.ButtonHoverForegroundColor = isDark ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black;
             }
+
+            NavigateToTag(_activeTag);
+            ApplyLanguageVisuals(_currentLang);
         }
 
         private void NavButton_Click(object sender, RoutedEventArgs e)
@@ -260,6 +270,53 @@ namespace WingetEasy.App
             }
         }
 
+        private ElementTheme _currentTheme = ElementTheme.Default;
+
+        private Brush GetThemeBrush(string key)
+        {
+            var effectiveTheme = _currentTheme;
+            if (effectiveTheme == ElementTheme.Default)
+            {
+                effectiveTheme = RootShellGrid?.ActualTheme ?? ElementTheme.Default;
+            }
+            if (effectiveTheme == ElementTheme.Default)
+            {
+                effectiveTheme = Application.Current.RequestedTheme == ApplicationTheme.Dark
+                    ? ElementTheme.Dark
+                    : ElementTheme.Light;
+            }
+
+            var themeKey = effectiveTheme == ElementTheme.Light ? "Light" : "Dark";
+
+            Brush? FindIn(ResourceDictionary dict)
+            {
+                if (dict.ThemeDictionaries.TryGetValue(themeKey, out var themeObj) &&
+                    themeObj is ResourceDictionary themeDict &&
+                    themeDict.TryGetValue(key, out var b) && b is Brush brush)
+                {
+                    return brush;
+                }
+
+                foreach (var merged in dict.MergedDictionaries)
+                {
+                    var found = FindIn(merged);
+                    if (found != null) return found;
+                }
+
+                return null;
+            }
+
+            var result = FindIn(Application.Current.Resources);
+            if (result != null) return result;
+
+            if (Application.Current.Resources.TryGetValue(key, out var fallbackObj) && fallbackObj is Brush fallbackBrush)
+            {
+                return fallbackBrush;
+            }
+
+            return new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        }
+
         private void SetNavVisualState(Button button, Border indicatorBar, TextBlock label, bool isActive)
         {
             indicatorBar.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
@@ -267,7 +324,7 @@ namespace WingetEasy.App
                 ? Microsoft.UI.Text.FontWeights.SemiBold
                 : Microsoft.UI.Text.FontWeights.Normal;
             button.Background = isActive
-                ? (Brush)Application.Current.Resources["NavItemActiveBrush"]
+                ? GetThemeBrush("NavItemActiveBrush")
                 : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         }
 
@@ -293,21 +350,21 @@ namespace WingetEasy.App
             bool isPt = lang == "pt";
 
             LangPtButton.Background = isPt
-                ? (Brush)Application.Current.Resources["SegmentedThumbBrush"]
+                ? GetThemeBrush("SegmentedThumbBrush")
                 : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             LangPtButton.Foreground = isPt
-                ? (Brush)Application.Current.Resources["BrandTextPrimaryBrush"]
-                : (Brush)Application.Current.Resources["BrandTextSecondaryBrush"];
+                ? GetThemeBrush("BrandTextPrimaryBrush")
+                : GetThemeBrush("BrandTextSecondaryBrush");
             LangPtButton.FontWeight = isPt
                 ? Microsoft.UI.Text.FontWeights.Bold
                 : Microsoft.UI.Text.FontWeights.SemiBold;
 
             LangEnButton.Background = !isPt
-                ? (Brush)Application.Current.Resources["SegmentedThumbBrush"]
+                ? GetThemeBrush("SegmentedThumbBrush")
                 : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             LangEnButton.Foreground = !isPt
-                ? (Brush)Application.Current.Resources["BrandTextPrimaryBrush"]
-                : (Brush)Application.Current.Resources["BrandTextSecondaryBrush"];
+                ? GetThemeBrush("BrandTextPrimaryBrush")
+                : GetThemeBrush("BrandTextSecondaryBrush");
             LangEnButton.FontWeight = !isPt
                 ? Microsoft.UI.Text.FontWeights.Bold
                 : Microsoft.UI.Text.FontWeights.SemiBold;

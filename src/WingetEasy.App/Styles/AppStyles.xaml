@@ -13,7 +13,7 @@
             <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#8024242A" />
             <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#8026262C" />
             <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#66242631" />
-            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#662B2B31" />
+            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#8a1d1d1d" />
             <SolidColorBrush x:Key="AcrylicFlyoutBackgroundBrush" Color="#802B2B31" />
             <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#802B2B31" />
             <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#F5F7FC" />
@@ -76,7 +76,7 @@
             <SolidColorBrush x:Key="BrandBackgroundBrush" Color="#8024242A" />
             <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#8026262C" />
             <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#66242631" />
-            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#662B2B31" />
+            <SolidColorBrush x:Key="MainAreaBackgroundBrush" Color="#8a1d1d1d" />
             <SolidColorBrush x:Key="AcrylicFlyoutBackgroundBrush" Color="#802B2B31" />
             <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#802B2B31" />
             <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#F5F7FC" />
@@ -143,8 +143,8 @@
             <SolidColorBrush x:Key="AcrylicFlyoutBackgroundBrush" Color="#80F8FAFC" />
             <SolidColorBrush x:Key="BrandSurfaceBrush" Color="#80FFFFFF" />
             <SolidColorBrush x:Key="BrandTextPrimaryBrush" Color="#0F172A" />
-            <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#64748B" />
-            <SolidColorBrush x:Key="BrandTextTertiaryBrush" Color="#94A3B8" />
+            <SolidColorBrush x:Key="BrandTextSecondaryBrush" Color="#475569" />
+            <SolidColorBrush x:Key="BrandTextTertiaryBrush" Color="#64748B" />
             <SolidColorBrush x:Key="BrandSuccessBrush" Color="#16A34A" />
 
             <!-- Navegação e Segmented -->
@@ -155,14 +155,14 @@
 
             <!-- Superfícies de Cards e Bordas -->
             <SolidColorBrush x:Key="SurfaceCardBackgroundBrush" Color="#80FFFFFF" />
-            <SolidColorBrush x:Key="SurfaceCardSecondaryBackgroundBrush" Color="#80F1F5F9" />
+            <SolidColorBrush x:Key="SurfaceCardSecondaryBackgroundBrush" Color="#F1F5F9" />
             <SolidColorBrush x:Key="SurfaceCardBorderBrush" Color="#E2E8F0" />
             <SolidColorBrush x:Key="SurfaceCardStrongBorderBrush" Color="#CBD5E1" />
             <SolidColorBrush x:Key="SurfaceDividerBrush" Color="#E2E8F0" />
             <SolidColorBrush x:Key="SurfaceLayerFillBrush" Color="#80F8FAFC" />
 
-            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#66FFFFFF" />
-            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#80F8FAFC" />
+            <SolidColorBrush x:Key="PackageCardBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="PackageCardHoverBrush" Color="#F8FAFC" />
             <SolidColorBrush x:Key="PackageCardBorderBrush" Color="#E2E8F0" />
 
             <!-- Badges Semânticos (Sucesso, Alerta, Erro) -->

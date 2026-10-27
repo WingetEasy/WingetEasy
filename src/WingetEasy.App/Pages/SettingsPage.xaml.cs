@@ -38,6 +38,12 @@ namespace WingetEasy.App.Pages
                 UpdateFrequencyButtonsVisual(ViewModel.FrequencyIndex);
                 UpdateThemeButtonsVisual(ViewModel.ThemeIndex);
             };
+
+            this.ActualThemeChanged += (_, _) =>
+            {
+                UpdateFrequencyButtonsVisual(ViewModel.FrequencyIndex);
+                UpdateThemeButtonsVisual(ViewModel.ThemeIndex);
+            };
         }
 
         private void FrequencySegmentedButton_Click(object sender, RoutedEventArgs e)
@@ -73,14 +79,55 @@ namespace WingetEasy.App.Pages
             SetSegmentedButtonState(ThemeBtn2, selectedIndex == 2);
         }
 
-        private static void SetSegmentedButtonState(Button button, bool isSelected)
+        private Brush GetThemeBrush(string key)
+        {
+            var effectiveTheme = this.ActualTheme;
+            if (effectiveTheme == ElementTheme.Default)
+            {
+                effectiveTheme = Application.Current.RequestedTheme == ApplicationTheme.Dark
+                    ? ElementTheme.Dark
+                    : ElementTheme.Light;
+            }
+
+            var themeKey = effectiveTheme == ElementTheme.Light ? "Light" : "Dark";
+
+            Brush? FindIn(ResourceDictionary dict)
+            {
+                if (dict.ThemeDictionaries.TryGetValue(themeKey, out var themeObj) &&
+                    themeObj is ResourceDictionary themeDict &&
+                    themeDict.TryGetValue(key, out var b) && b is Brush brush)
+                {
+                    return brush;
+                }
+
+                foreach (var merged in dict.MergedDictionaries)
+                {
+                    var found = FindIn(merged);
+                    if (found != null) return found;
+                }
+
+                return null;
+            }
+
+            var result = FindIn(Application.Current.Resources);
+            if (result != null) return result;
+
+            if (Application.Current.Resources.TryGetValue(key, out var fallbackObj) && fallbackObj is Brush fallbackBrush)
+            {
+                return fallbackBrush;
+            }
+
+            return new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        }
+
+        private void SetSegmentedButtonState(Button button, bool isSelected)
         {
             button.Background = isSelected
-                ? (Brush)Application.Current.Resources["SegmentedThumbBrush"]
+                ? GetThemeBrush("SegmentedThumbBrush")
                 : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             button.Foreground = isSelected
-                ? (Brush)Application.Current.Resources["BrandTextPrimaryBrush"]
-                : (Brush)Application.Current.Resources["BrandTextSecondaryBrush"];
+                ? GetThemeBrush("BrandTextPrimaryBrush")
+                : GetThemeBrush("BrandTextSecondaryBrush");
             button.FontWeight = isSelected
                 ? Microsoft.UI.Text.FontWeights.SemiBold
                 : Microsoft.UI.Text.FontWeights.Normal;
