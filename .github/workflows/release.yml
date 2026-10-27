@@ -97,6 +97,6 @@ jobs:
           generate_release_notes: true
           files: |
             ./releases/*.exe
-            ./releases/WingetEasy-*-full.nupkg
-            ./releases/RELEASES*
+            ./releases/*.nupkg
+            ./releases/RELEASES
             ./releases/*.json
