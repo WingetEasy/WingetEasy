@@ -96,8 +96,7 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            ./releases/WingetEasy-Setup.exe
+            ./releases/*.exe
             ./releases/WingetEasy-*-full.nupkg
-            ./releases/RELEASES
-            ./releases/releases.win.json
-            ./releases/assets.win.json
+            ./releases/RELEASES*
+            ./releases/*.json
