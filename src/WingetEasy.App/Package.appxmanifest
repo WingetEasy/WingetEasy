@@ -5,20 +5,19 @@
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10"
-  IgnorableNamespaces="uap rescap systemai">
+  IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="c58b2eaa-a825-40c2-a50e-35e4439690fe"
-    Publisher="CN=Jeferson"
+    Name="WingetEasy.WingetEasy"
+    Publisher="CN=Jeferson Braine Leal"
     Version="1.0.0.5" />
 
   <mp:PhoneIdentity PhoneProductId="c58b2eaa-a825-40c2-a50e-35e4439690fe" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>WingetEasy.App</DisplayName>
-    <PublisherDisplayName>Jeferson</PublisherDisplayName>
-    <Logo>Assets\SLogo.png</Logo>
+    <DisplayName>WingetEasy</DisplayName>
+    <PublisherDisplayName>Jeferson Braine Leal</PublisherDisplayName>
+    <Logo>Assets\Square44x44Logo.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -48,6 +47,5 @@
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
-    <systemai:Capability Name="systemAIModels"/>
   </Capabilities>
 </Package>
