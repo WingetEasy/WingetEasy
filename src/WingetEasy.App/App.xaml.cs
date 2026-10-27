@@ -590,6 +590,7 @@ namespace WingetEasy.App
                 if (_updateFlyout?.Content is FrameworkElement flyoutRoot)
                 {
                     flyoutRoot.RequestedTheme = theme;
+                    _updateFlyout.UpdateBackdropTheme(theme);
                 }
             }
 

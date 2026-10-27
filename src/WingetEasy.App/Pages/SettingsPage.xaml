@@ -6,7 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource MainAreaBackgroundBrush}">
+    Background="Transparent">
 
     <ScrollViewer Padding="32,24,32,36" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="22" MaxWidth="780" HorizontalAlignment="Left">

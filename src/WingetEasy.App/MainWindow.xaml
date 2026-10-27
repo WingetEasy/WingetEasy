@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="WingetEasy">
 
-    <Grid x:Name="RootShellGrid" Background="{ThemeResource MainAreaBackgroundBrush}">
+    <Grid x:Name="RootShellGrid" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="32" />
             <RowDefinition Height="*" />

@@ -8,7 +8,7 @@
     <Border x:Name="RootGrid"
             CornerRadius="12"
             Loaded="RootGrid_Loaded"
-            Background="{ThemeResource SurfaceCardBackgroundBrush}"
+            Background="{ThemeResource AcrylicFlyoutBackgroundBrush}"
             BorderBrush="{ThemeResource SurfaceCardBorderBrush}"
             BorderThickness="1">
         <Grid>
