@@ -512,6 +512,13 @@ public partial class WingetService : IWingetService
         RunInstallCommandAsync("upgrade", packageId, progress, ct, phaseProgress);
 
     /// <summary>
+    /// Atualiza um pacote em modo interativo (sem --silent), exibindo a interface do instalador.
+    /// Usado quando o instalador não suporta o modo silencioso.
+    /// </summary>
+    public Task<UpdateResult> InstallUpdateInteractiveAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default) =>
+        RunInstallCommandAsync("upgrade", packageId, progress, ct, null, interactive: true);
+
+    /// <summary>
     /// Instala um pacote que pode ainda não existir na máquina (winget install), ao contrário de InstallUpdateAsync (winget upgrade).
     /// </summary>
     public Task<UpdateResult> InstallPackageAsync(string packageId, IProgress<int>? progress = null, CancellationToken ct = default) =>
@@ -519,6 +526,7 @@ public partial class WingetService : IWingetService
 
     public Task<UpdateResult> InstallPackageAsync(string packageId, IProgress<int>? progress, CancellationToken ct, IProgress<string>? phaseProgress) =>
         RunInstallCommandAsync("install", packageId, progress, ct, phaseProgress);
+
     internal static string? DetectInstallPhase(string line)
     {
         if (string.IsNullOrWhiteSpace(line)) return null;
@@ -552,7 +560,31 @@ public partial class WingetService : IWingetService
         return null;
     }
 
-    private async Task<UpdateResult> RunInstallCommandAsync(string verb, string packageId, IProgress<int>? progress, CancellationToken ct, IProgress<string>? phaseProgress = null)
+    private static readonly TimeSpan InstallTimeout = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan InteractiveInstallTimeout = TimeSpan.FromMinutes(30);
+    private const int OutputTailSize = 15;
+
+    /// <summary>
+    /// Resultado bruto de uma execução do winget.exe para instalação/atualização.
+    /// </summary>
+    internal sealed record InstallProcessOutcome(int ExitCode, IReadOnlyList<string> Output, bool WingetMissing = false);
+
+    /// <summary>
+    /// Ponto de extensão para testes: substitui a execução real do winget.exe na instalação/atualização.
+    /// Recebe os argumentos e o reporter de linhas de saída.
+    /// </summary>
+    internal Func<string, CancellationToken, Task<InstallProcessOutcome>>? InstallProcessRunner { get; init; }
+
+    internal static string BuildInstallArguments(string verb, string packageId, bool interactive) =>
+        $"{verb} --id {packageId} --exact {(interactive ? "--interactive" : "--silent")} --accept-package-agreements --accept-source-agreements --disable-interactivity";
+
+    private async Task<UpdateResult> RunInstallCommandAsync(
+        string verb,
+        string packageId,
+        IProgress<int>? progress,
+        CancellationToken ct,
+        IProgress<string>? phaseProgress = null,
+        bool interactive = false)
     {
         // 1. Validação estrita do ID para evitar injeção de comandos no terminal
         ValidatePackageId(packageId);
@@ -560,14 +592,128 @@ public partial class WingetService : IWingetService
         var sw = Stopwatch.StartNew();
         progress?.Report(0); // Inicio a 0%
 
-        // Timeout de 10 minutos associado ao token do utilizador
+        // Timeout associado ao token do utilizador (maior no modo interativo, pois depende do usuário)
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
+        timeoutCts.CancelAfter(interactive ? InteractiveInstallTimeout : InstallTimeout);
+
+        var isInstallVerb = verb == "install";
+        var arguments = BuildInstallArguments(verb, packageId, interactive);
+
+        InstallProcessOutcome outcome;
+        WingetErrorInfo info;
+
+        try
+        {
+            outcome = await RunInstallProcessAsync(arguments, progress, phaseProgress, timeoutCts.Token).ConfigureAwait(false);
+            if (outcome.WingetMissing)
+            {
+                sw.Stop();
+                return new UpdateResult(packageId, packageId, false, "O executável 'winget' não foi encontrado.", sw.Elapsed);
+            }
+
+            info = WingetErrorTranslator.Translate(outcome.ExitCode, outcome.Output, isInstallVerb);
+
+            // 2. Auto-recuperação: hash divergente → atualiza as fontes e tenta mais uma vez
+            if (info.ShouldRetryAfterSourceUpdate)
+            {
+                _logger.LogWarning(
+                    "Hash do instalador divergente para {PackageId} ({Hex}). Executando 'winget source update' e tentando novamente.",
+                    packageId, info.HexCode);
+
+                phaseProgress?.Report("Atualizando fontes do WinGet...");
+                var sourceResult = await ExecuteWingetWithResultAsync("source update", timeoutCts.Token).ConfigureAwait(false);
+                if (sourceResult.ExitCode != 0)
+                {
+                    _logger.LogWarning("'winget source update' retornou {ExitCode} durante a auto-recuperação.", sourceResult.ExitCode);
+                }
+
+                InvalidateCaches();
+                phaseProgress?.Report("Tentando novamente...");
+                progress?.Report(0);
+
+                outcome = await RunInstallProcessAsync(arguments, progress, phaseProgress, timeoutCts.Token).ConfigureAwait(false);
+                if (outcome.WingetMissing)
+                {
+                    sw.Stop();
+                    return new UpdateResult(packageId, packageId, false, "O executável 'winget' não foi encontrado.", sw.Elapsed);
+                }
+
+                info = WingetErrorTranslator.Translate(outcome.ExitCode, outcome.Output, isInstallVerb);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            var isTimeout = timeoutCts.Token.IsCancellationRequested && !ct.IsCancellationRequested;
+            var cancelReason = isTimeout
+                ? $"Tempo limite de {(interactive ? InteractiveInstallTimeout : InstallTimeout).TotalMinutes:0} minutos excedido."
+                : "Instalação cancelada pelo utilizador.";
+            return new UpdateResult(packageId, packageId, false, cancelReason, sw.Elapsed);
+        }
+
+        sw.Stop();
+        progress?.Report(info.IsSuccess ? 100 : -1);
+
+        if (info.IsSuccess)
+        {
+            InvalidateCaches();
+        }
+
+        string? message = info.Kind == WingetErrorKind.Success ? null : WingetErrorTranslator.FormatMessage(info);
+
+        // Para erros desconhecidos, anexamos as últimas linhas do output como pista de diagnóstico
+        if (!info.IsSuccess && info.Kind == WingetErrorKind.Unknown && outcome.Output.Count > 0)
+        {
+            message += " Detalhes: " + string.Join(" | ", outcome.Output.TakeLast(3));
+        }
+
+        if (!info.IsSuccess)
+        {
+            _logger.LogWarning(
+                "Falha ao executar 'winget {Verb}' para {PackageId}: {Hex} ({Kind}).",
+                verb, packageId, info.HexCode, info.Kind);
+        }
+        else if (info.RequiresReboot)
+        {
+            _logger.LogInformation("Pacote {PackageId} atualizado; reinicialização pendente ({Hex}).", packageId, info.HexCode);
+        }
+
+        var cachedPkg = _cachedPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
+        return new UpdateResult(
+            packageId,
+            cachedPkg?.Name ?? packageId,
+            info.IsSuccess,
+            message,
+            sw.Elapsed,
+            cachedPkg?.CurrentVersion ?? string.Empty,
+            cachedPkg?.AvailableVersion ?? string.Empty,
+            DateTime.UtcNow,
+            ExitCode: outcome.ExitCode,
+            IsApplicationRunning: info.IsAppRunning,
+            RequiresReboot: info.RequiresReboot,
+            RequiresElevation: info.RequiresElevation,
+            CanRetryInteractive: info.CanRetryInteractive && !interactive);
+    }
+
+    /// <summary>
+    /// Executa o winget.exe lendo o stdout linha a linha para emitir as fases (Baixando / Verificando / Instalando)
+    /// e guardando as últimas linhas do output para tradução do erro.
+    /// </summary>
+    private async Task<InstallProcessOutcome> RunInstallProcessAsync(
+        string arguments,
+        IProgress<int>? progress,
+        IProgress<string>? phaseProgress,
+        CancellationToken ct)
+    {
+        if (InstallProcessRunner is not null)
+        {
+            return await InstallProcessRunner(arguments, ct).ConfigureAwait(false);
+        }
 
         var processStartInfo = new ProcessStartInfo
         {
             FileName = "winget",
-            Arguments = $"{verb} --id {packageId} --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity",
+            Arguments = arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -584,18 +730,17 @@ public partial class WingetService : IWingetService
         }
         catch (System.ComponentModel.Win32Exception)
         {
-            sw.Stop();
-            return new UpdateResult(packageId, packageId, false, "O executável 'winget' não foi encontrado.", sw.Elapsed);
+            return new InstallProcessOutcome(-1, [], WingetMissing: true);
         }
 
         // Garante que o processo morre se a operação for cancelada (pelo timeout ou utilizador)
-        await using var processKiller = timeoutCts.Token.Register(() =>
+        await using var processKiller = ct.Register(() =>
         {
             try { if (!process.HasExited) process.Kill(true); } catch { }
         }).ConfigureAwait(false);
 
         var errorLines = new List<string>();
-        var lastOutputLines = new Queue<string>(3);
+        var lastOutputLines = new Queue<string>(OutputTailSize);
 
         // Task para ler o StdOut linha a linha e emitir o progresso
         var stdoutTask = Task.Run(async () =>
@@ -603,12 +748,12 @@ public partial class WingetService : IWingetService
             try
             {
                 using var reader = process.StandardOutput;
-                while (await reader.ReadLineAsync(timeoutCts.Token).ConfigureAwait(false) is { } line)
+                while (await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
 
                     lastOutputLines.Enqueue(line);
-                    if (lastOutputLines.Count > 3) lastOutputLines.Dequeue();
+                    if (lastOutputLines.Count > OutputTailSize) lastOutputLines.Dequeue();
 
                     var phase = DetectInstallPhase(line);
                     if (phase is not null)
@@ -638,7 +783,7 @@ public partial class WingetService : IWingetService
             try
             {
                 using var reader = process.StandardError;
-                while (await reader.ReadLineAsync(timeoutCts.Token).ConfigureAwait(false) is { } line)
+                while (await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
                 {
                     if (!string.IsNullOrWhiteSpace(line))
                         errorLines.Add(line);
@@ -647,67 +792,12 @@ public partial class WingetService : IWingetService
             catch (OperationCanceledException) { /* Ignorado na leitura */ }
         });
 
-        try
-        {
-            await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
-            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            sw.Stop();
-            var isTimeout = timeoutCts.Token.IsCancellationRequested && !ct.IsCancellationRequested;
-            var cancelReason = isTimeout ? "Tempo limite de 10 minutos excedido." : "Instalação cancelada pelo utilizador.";
-            return new UpdateResult(packageId, packageId, false, cancelReason, sw.Elapsed);
-        }
+        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
 
-        sw.Stop();
-
-        int exitCode = process.ExitCode;
-        // 0 = Sucesso | -1978335189 = Não há atualizações aplicáveis (já atualizado)
-        // -1978335135 = Pacote já instalado (winget install)
-        bool success = exitCode == 0 || exitCode == -1978335189 || (verb == "install" && exitCode == -1978335135);
-        progress?.Report(success ? 100 : -1);
-
-        if (success)
-        {
-            _installedCacheExpiryTime = DateTime.MinValue;
-            _cacheExpiryTime = DateTime.MinValue;
-        }
-
-        bool isAppRunning = exitCode == WingetExitCodes.AppRunning
-            || errorLines.Any(l => l.Contains("0x8a150056", StringComparison.OrdinalIgnoreCase))
-            || lastOutputLines.Any(l => l.Contains("0x8a150056", StringComparison.OrdinalIgnoreCase));
-
-        string? errorMessage = null;
-        if (!success)
-        {
-            if (isAppRunning)
-            {
-                errorMessage = "O aplicativo está aberto no momento (código 0x8A150056).";
-            }
-            else
-            {
-                errorMessage = $"Código: {exitCode}. " + string.Join(" | ", errorLines);
-                if (string.IsNullOrWhiteSpace(errorMessage) || errorMessage.EndsWith(". "))
-                {
-                    // Se não houver erro no stderr, usamos as últimas linhas do stdout como dica
-                    errorMessage += string.Join(" | ", lastOutputLines);
-                }
-            }
-        }
-
-        var cachedPkg = _cachedPackages.FirstOrDefault(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
-        return new UpdateResult(
-            packageId,
-            cachedPkg?.Name ?? packageId,
-            success,
-            errorMessage,
-            sw.Elapsed,
-            cachedPkg?.CurrentVersion ?? string.Empty,
-            cachedPkg?.AvailableVersion ?? string.Empty,
-            DateTime.UtcNow,
-            ExitCode: exitCode,
-            IsApplicationRunning: isAppRunning);
+        // O stderr do winget raramente tem conteúdo; o stdout é a principal fonte de diagnóstico
+        var output = lastOutputLines.Concat(errorLines).ToList();
+        return new InstallProcessOutcome(process.ExitCode, output);
     }
 
     public async Task<IEnumerable<WingetPackage>> GetInstalledPackagesAsync(CancellationToken ct = default)
