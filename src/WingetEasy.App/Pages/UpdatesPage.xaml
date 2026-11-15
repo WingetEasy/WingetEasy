@@ -111,7 +111,7 @@
                                   Margin="18,-8,-4,-8">
                                 <Border x:Name="HeroLogoShadowHost" />
                                 <Image x:Name="HeroLogoImage"
-                                       Source="ms-appx:///Assets/WingetEasy-Logo.png"
+                                       Source="ms-appx:///Assets/WingetEasy-Logo-Hero.png"
                                        Width="270"
                                        Height="250"
                                        Stretch="Uniform"

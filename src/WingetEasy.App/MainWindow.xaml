@@ -30,7 +30,7 @@
                   VerticalAlignment="Center"
                   Padding="12,0,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
-                    <Image Source="ms-appx:///Assets/WingetEasy-Logo.png"
+                    <Image Source="ms-appx:///Assets/WingetEasy-Logo-TitleBar.png"
                            Width="18"
                            Height="18"
                            VerticalAlignment="Center" />

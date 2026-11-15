@@ -563,8 +563,8 @@
 
                         <Image Grid.Column="0"
                                Source="ms-appx:///Assets/WingetEasy-Logo.png"
-                               Width="46"
-                               Height="46"
+                               Width="62"
+                               Height="41"
                                VerticalAlignment="Center" />
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">

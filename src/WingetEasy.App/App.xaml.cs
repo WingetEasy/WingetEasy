@@ -380,6 +380,8 @@ namespace WingetEasy.App
             });
 
             var contextMenu = new Microsoft.UI.Xaml.Controls.MenuFlyout();
+            // Reaplica o tema escolhido toda vez que o menu abre (ele vive fora da janela principal).
+            contextMenu.Opening += (_, _) => ApplyTrayMenuTheme(_currentTheme);
             contextMenu.Items.Add(menuVerificar);
             contextMenu.Items.Add(menuAtualizacoes);
             contextMenu.Items.Add(menuFlyoutPainel);
@@ -408,6 +410,8 @@ namespace WingetEasy.App
             {
                 Log.Warning(ex, "Não foi possível registrar o ícone na bandeja do sistema.");
             }
+
+            ApplyTrayMenuTheme(_currentTheme);
         }
 
         /// <summary>
@@ -592,6 +596,8 @@ namespace WingetEasy.App
                     flyoutRoot.RequestedTheme = theme;
                     _updateFlyout.UpdateBackdropTheme(theme);
                 }
+
+                ApplyTrayMenuTheme(theme);
             }
 
             if (dispatcherQueue.HasThreadAccess)
@@ -601,6 +607,39 @@ namespace WingetEasy.App
             else
             {
                 dispatcherQueue.TryEnqueue(ApplyToRoots);
+            }
+        }
+
+        /// <summary>
+        /// Aplica o tema escolhido (Claro/Escuro/Sistema) ao menu de contexto da bandeja.
+        /// O menu é um flyout próprio, fora da árvore visual da janela, e por isso não herda o tema do app.
+        /// </summary>
+        private void ApplyTrayMenuTheme(ElementTheme theme)
+        {
+            // Menu nativo (modo PopupMenu do H.NotifyIcon): tema via uxtheme.
+            global::WingetEasy.App.Services.NativeMenuTheme.Apply(theme);
+
+            if (_trayIcon is null)
+            {
+                return;
+            }
+
+            // O flyout herda o tema do elemento-alvo onde é aberto (o próprio TaskbarIcon).
+            _trayIcon.RequestedTheme = theme;
+
+            if (_trayIcon.ContextFlyout is not Microsoft.UI.Xaml.Controls.MenuFlyout menuFlyout)
+            {
+                return;
+            }
+
+            // "Default" (Sistema) segue o tema do Windows; Light/Dark forçam o tema escolhido.
+            var presenterStyle = new Microsoft.UI.Xaml.Style(typeof(Microsoft.UI.Xaml.Controls.MenuFlyoutPresenter));
+            presenterStyle.Setters.Add(new Microsoft.UI.Xaml.Setter(FrameworkElement.RequestedThemeProperty, theme));
+            menuFlyout.MenuFlyoutPresenterStyle = presenterStyle;
+
+            foreach (var item in menuFlyout.Items)
+            {
+                item.RequestedTheme = theme;
             }
         }
 
