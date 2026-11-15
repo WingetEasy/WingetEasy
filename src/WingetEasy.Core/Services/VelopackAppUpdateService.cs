@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Velopack;
+using Velopack.Sources;
 using WingetEasy.Core.Interfaces;
 using WingetEasy.Core.Models;
 
@@ -65,10 +66,23 @@ public sealed class VelopackAppUpdateManager : IAppUpdateManager
 {
     private readonly UpdateManager? _updateManager;
 
-    public VelopackAppUpdateManager()
+    public VelopackAppUpdateManager(IUpdateSource? customSource = null)
     {
-        var source = Environment.GetEnvironmentVariable("WINGETEASY_UPDATE_SOURCE")
+        if (customSource is not null)
+        {
+            _updateManager = new UpdateManager(customSource);
+            return;
+        }
+
+        var sourceUrl = Environment.GetEnvironmentVariable("WINGETEASY_UPDATE_SOURCE")
             ?? VelopackAppUpdateService.DefaultUpdateSource;
+
+        // Se for uma URL do GitHub (repositório), usa o GithubSource oficial do Velopack.
+        // Se for uma URL direta (ex: bucket S3, CDN ou releases/latest/download), usa SimpleWebSource.
+        IUpdateSource source = sourceUrl.Contains("github.com", StringComparison.OrdinalIgnoreCase) && !sourceUrl.EndsWith("/download", StringComparison.OrdinalIgnoreCase)
+            ? new GithubSource(sourceUrl, null, false)
+            : new SimpleWebSource(sourceUrl);
+
         _updateManager = new UpdateManager(source);
     }
 
