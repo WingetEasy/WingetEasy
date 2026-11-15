@@ -284,22 +284,32 @@ public class UpdateService : IUpdateService
 
     private static bool RequiresElevation(UpdateResult result)
     {
-        if (result.Success || string.IsNullOrWhiteSpace(result.ErrorMessage))
+        if (result.Success)
         {
             return false;
         }
 
+        // Sinal estruturado: o WingetErrorTranslator já marca os códigos que realmente exigem
+        // administrador (acesso negado / elevação requerida).
+        if (result.RequiresElevation)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(result.ErrorMessage))
+        {
+            return false;
+        }
+
+        // Fallback textual, restrito a mensagens inequívocas de permissão.
+        // Importante: NÃO tratar 0x8A150014 (pacote não encontrado) nem 0x8A15008E (tecnologia de
+        // instalador diferente) como falta de permissão: rodar como administrador não resolve esses casos.
         var error = result.ErrorMessage;
         return error.Contains("access denied", StringComparison.OrdinalIgnoreCase)
             || error.Contains("acesso negado", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("permission", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("permiss", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("administrator", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("administrador", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("elevation", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("eleva", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("requer permiss", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("requires elevation", StringComparison.OrdinalIgnoreCase)
             || error.Contains("0x80070005", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("0x8A150014", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("740", StringComparison.OrdinalIgnoreCase);
+            || error.Contains("0x800702E4", StringComparison.OrdinalIgnoreCase);
     }
 }
